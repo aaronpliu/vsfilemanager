@@ -270,6 +270,8 @@ function activate(context) {
 			// Handle Add Block button
 			document.getElementById('addBlockBtn').addEventListener('click', () => {
 				document.getElementById('newBlockForm').classList.remove('hidden');
+				// Set the depth selector to match the current view depth
+				document.getElementById('newBlockDepth').value = maxDepth;
 			});
 			
 			// Handle Cancel Add button
@@ -277,17 +279,19 @@ function activate(context) {
 				document.getElementById('newBlockForm').classList.add('hidden');
 				document.getElementById('newBlockKey').value = '';
 				document.getElementById('newBlockValue').value = '';
+				document.getElementById('newBlockDepth').value = '0';
 			});
 			
 			// Handle Confirm Add button
 			document.getElementById('confirmAddBtn').addEventListener('click', () => {
 				const key = document.getElementById('newBlockKey').value.trim();
 				const value = document.getElementById('newBlockValue').value;
+				const depth = parseInt(document.getElementById('newBlockDepth').value);
 				
 				if (key) {
-					// Add to first depth level (top level)
-					if (!currentBlocks[0]) {
-						currentBlocks[0] = { depth: 0, blocks: {} };
+					// Add to selected depth level
+					if (!currentBlocks[depth]) {
+						currentBlocks[depth] = { depth: depth, blocks: {} };
 					}
 					
 					// Determine the type of the value
@@ -316,10 +320,10 @@ function activate(context) {
 						displayValue = '"' + actualValue + '"';
 					}
 					
-					currentBlocks[0].blocks[key] = {
+					currentBlocks[depth].blocks[key] = {
 						value: displayValue,
 						type: typeof actualValue,
-						depth: 0,
+						depth: depth,
 						key: key,
 						editable: true,
 						originalType: originalType
@@ -328,6 +332,7 @@ function activate(context) {
 					document.getElementById('newBlockForm').classList.add('hidden');
 					document.getElementById('newBlockKey').value = '';
 					document.getElementById('newBlockValue').value = '';
+					document.getElementById('newBlockDepth').value = '0';
 				} else {
 					alert('Please enter a valid key!');
 				}

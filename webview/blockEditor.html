@@ -61,6 +61,8 @@
             margin: 15px 0 10px 0;
             padding-bottom: 5px;
             border-bottom: 1px solid var(--vscode-panel-border);
+            font-size: 1.2em;
+            font-weight: bold;
         }
         
         .block-item {
@@ -252,6 +254,16 @@
         </div>
         <div class="form-row">
             <input type="text" id="newBlockValue" placeholder="Block value">
+        </div>
+        <div class="form-row">
+            <select id="newBlockDepth">
+                <option value="0">Depth 0 (Top Level)</option>
+                <option value="1">Depth 1</option>
+                <option value="2">Depth 2</option>
+                <option value="3">Depth 3</option>
+                <option value="4">Depth 4</option>
+                <option value="5">Depth 5</option>
+            </select>
         </div>
         <div class="form-row">
             <button id="confirmAddBtn">Add Block</button>
