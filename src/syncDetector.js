@@ -65,22 +65,22 @@ class SyncDetector {
         const choice = await vscode.window.showInformationMessage(
             message,
             { modal: true },
+            'Select Files',
             'Sync All',
-            'View Files',
             'Cancel'
         );
 
         switch (choice) {
             case 'Sync All':
-                return true;
-            case 'View Files':
-                // Show files in an information message
-                vscode.window.showInformationMessage(
-                    `Found files:\n${sameNamedFiles.join('\n')}`,
-                    'OK'
-                );
-                return false;
+                // Synchronize all files
+                const content = fs.readFileSync(filePath, 'utf8');
+                this.synchronizeFiles(filePath, content, sameNamedFiles);
+                return null; // We handle synchronization here, so return null
+            case 'Select Files':
+                // Let the caller handle file selection
+                return sameNamedFiles; // Return the list of files for selection
             default:
+                // Cancel - just update current file
                 return false;
         }
     }
