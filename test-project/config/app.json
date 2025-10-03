@@ -1,0 +1,21 @@
+{
+  "config": {
+    "db": {
+      "host": "localhost",
+      "port": 5432,
+      "username": "admin",
+      "password": "password"
+    },
+    "api": {
+      "baseUrl": "https://api.example.com",
+      "timeout": 5000
+    }
+  },
+  "ui": {
+    "theme": {
+      "primaryColor": "#007acc",
+      "secondaryColor": "#6c757d",
+      "font": "Arial"
+    }
+  }
+}

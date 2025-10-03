@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON Block Editor</title>
+    <style>
+        body {
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            color: var(--vscode-foreground);
+            background-color: var(--vscode-editor-background);
+            padding: 20px;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+            padding-bottom: 10px;
+        }
+        
+        .block-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .depth-group {
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            padding: 15px;
+            background-color: var(--vscode-editorWidget-background);
+        }
+        
+        .depth-header h3 {
+            margin-top: 0;
+            color: var(--vscode-editor-foreground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            padding-bottom: 8px;
+        }
+        
+        .block-item {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+            padding: 10px;
+            background-color: var(--vscode-editorWidget-background);
+            margin-bottom: 10px;
+        }
+        
+        .block-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .block-key {
+            font-weight: bold;
+            color: var(--vscode-editor-foreground);
+            word-break: break-all;
+        }
+        
+        .block-value-container {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .block-value {
+            flex: 1;
+            padding: 5px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            color: var(--vscode-input-foreground);
+            font-family: var(--vscode-editor-font-family);
+        }
+        
+        .block-value:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+        
+        .block-value[readonly] {
+            background-color: var(--vscode-input-background);
+            opacity: 0.7;
+        }
+        
+        .block-value-readonly {
+            flex: 1;
+            padding: 5px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            color: var(--vscode-input-foreground);
+            font-family: var(--vscode-editor-font-family);
+            opacity: 0.7;
+        }
+        
+        .block-info {
+            margin-top: 5px;
+            color: var(--vscode-descriptionForeground);
+            font-style: italic;
+        }
+        
+        .button-group {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 2px;
+        }
+        
+        button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        
+        .add-block {
+            background-color: var(--vscode-button-secondaryBackground);
+            color: var(--vscode-button-secondaryForeground);
+        }
+        
+        .add-block:hover {
+            background-color: var(--vscode-button-secondaryHoverBackground);
+        }
+        
+        .edit-toggle-btn {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--vscode-errorForeground);
+            cursor: pointer;
+            font-size: 16px;
+            padding: 0;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .delete-btn:hover {
+            background-color: var(--vscode-toolbar-hoverBackground);
+            border-radius: 3px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .new-block-form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px dashed var(--vscode-panel-border);
+            border-radius: 3px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .form-row input {
+            flex: 1;
+            padding: 5px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            color: var(--vscode-input-foreground);
+            font-family: var(--vscode-editor-font-family);
+        }
+        
+        .form-row input:focus {
+            outline: none;
+            border-color: var(--vscode-focusBorder);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>JSON Block Editor</h1>
+        <p>Edit individual JSON blocks using dot notation paths</p>
+    </div>
+    
+    <div class="block-list" id="blockList">
+        <!-- Blocks will be populated here -->
+    </div>
+    
+    <div class="button-group">
+        <button id="addBlockBtn" class="add-block">Add New Block</button>
+        <button id="saveBtn">Save Changes</button>
+    </div>
+    
+    <div id="newBlockForm" class="new-block-form hidden">
+        <h3>Add New Block</h3>
+        <div class="form-row">
+            <input type="text" id="newBlockKey" placeholder="Block key (e.g., config.db.host)">
+        </div>
+        <div class="form-row">
+            <input type="text" id="newBlockValue" placeholder="Block value">
+        </div>
+        <div class="form-row">
+            <button id="confirmAddBtn">Add Block</button>
+            <button id="cancelAddBtn">Cancel</button>
+        </div>
+    </div>
+    
+    <script>
+        // SCRIPT_PLACEHOLDER
+    </script>
+</body>
+</html>
