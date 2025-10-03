@@ -64,6 +64,7 @@ class SyncDetector {
         
         const choice = await vscode.window.showInformationMessage(
             message,
+            { modal: true },
             'Sync All',
             'View Files',
             'Cancel'

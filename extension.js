@@ -61,6 +61,28 @@ function activate(context) {
 				}
 			);
 
+			// Store the document's initial version
+			let documentVersion = document.version;
+
+			// Set up a listener for document changes
+			const changeListener = vscode.workspace.onDidChangeTextDocument((event) => {
+				if (event.document.uri.toString() === document.uri.toString()) {
+					// Document has changed, update the version
+					documentVersion = event.document.version;
+					
+					// Notify the webview that the document has changed
+					panel.webview.postMessage({
+						command: 'documentChanged',
+						version: documentVersion
+					});
+				}
+			});
+
+			// Set up a listener for when the panel is disposed
+			panel.onDidDispose(() => {
+				changeListener.dispose();
+			}, null, context.subscriptions);
+
 			// Get path to HTML file on disk
 			const htmlPath = vscode.Uri.joinPath(context.extensionUri, 'webview', 'blockEditor.html');
 			let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
@@ -74,90 +96,108 @@ function activate(context) {
 			const originalBlocks = ${JSON.stringify(depthBlocks)};
 			let currentBlocks = JSON.parse(JSON.stringify(originalBlocks));
 			let maxDepth = 2; // Default depth is 2 - matching the HTML selector
+			let documentVersion = ${document.version}; // Track document version
 			
 			// Function to render blocks grouped by depth
 			function renderBlocks() {
 				const blockList = document.getElementById('blockList');
 				blockList.innerHTML = '';
 				
-				// Find the depth group that matches the selected depth
-				const selectedDepthGroup = currentBlocks.find(depthGroup => depthGroup.depth === maxDepth);
+				// Find all depth groups that match the selected depth
+				const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
 				
-				if (selectedDepthGroup && Object.keys(selectedDepthGroup.blocks).length > 0) {
-					const depthContainer = document.createElement('div');
-					depthContainer.className = 'depth-group';
+				if (selectedDepthGroups.length > 0) {
+					// Create a container for all blocks at this depth
+					const allBlocksContainer = document.createElement('div');
+					allBlocksContainer.className = 'depth-group';
 					
 					const depthHeader = document.createElement('div');
 					depthHeader.className = 'depth-header';
 					const depthTitle = document.createElement('h3');
-					depthTitle.textContent = 'Depth Level ' + selectedDepthGroup.depth;
+					depthTitle.textContent = 'Depth Level ' + maxDepth;
 					depthHeader.appendChild(depthTitle);
-					depthContainer.appendChild(depthHeader);
+					allBlocksContainer.appendChild(depthHeader);
 					
 					const blocksContainer = document.createElement('div');
 					blocksContainer.className = 'depth-blocks';
 					
-					for (const [key, block] of Object.entries(selectedDepthGroup.blocks)) {
-						const blockItem = document.createElement('div');
-						blockItem.className = 'block-item';
-						
-						const blockHeader = document.createElement('div');
-						blockHeader.className = 'block-header';
-						
-						const blockKey = document.createElement('div');
-						blockKey.className = 'block-key';
-						blockKey.textContent = key;
-						blockHeader.appendChild(blockKey);
-						
-						const deleteBtn = document.createElement('button');
-						deleteBtn.className = 'delete-btn';
-						deleteBtn.textContent = '✕';
-						deleteBtn.setAttribute('data-key', key);
-						deleteBtn.setAttribute('data-depth', selectedDepthGroup.depth);
-						blockHeader.appendChild(deleteBtn);
-						
-						blockItem.appendChild(blockHeader);
-						
-						const blockValueContainer = document.createElement('div');
-						blockValueContainer.className = 'block-value-container';
-						
-						if (block.editable) {
-							const input = document.createElement('input');
-							input.type = 'text';
-							input.className = 'block-value';
-							input.value = block.value;
-							input.setAttribute('readonly', 'readonly');
-							input.setAttribute('data-key', key);
-							input.setAttribute('data-depth', selectedDepthGroup.depth);
-							blockValueContainer.appendChild(input);
-							
-							const editBtn = document.createElement('button');
-							editBtn.className = 'edit-toggle-btn';
-							editBtn.textContent = 'Edit';
-							editBtn.setAttribute('data-key', key);
-							editBtn.setAttribute('data-depth', selectedDepthGroup.depth);
-							blockValueContainer.appendChild(editBtn);
-						} else {
-							const valueDiv = document.createElement('div');
-							valueDiv.className = 'block-value-readonly';
-							valueDiv.textContent = block.value;
-							blockValueContainer.appendChild(valueDiv);
+					// Iterate through all depth groups at the selected depth
+					selectedDepthGroups.forEach(selectedDepthGroup => {
+						// Add a header for this group if there's a prefix
+						if (selectedDepthGroup.prefix) {
+							const groupHeader = document.createElement('div');
+							groupHeader.className = 'group-prefix-header';
+							groupHeader.textContent = 'Group: ' + selectedDepthGroup.prefix;
+							groupHeader.style.fontWeight = 'bold';
+							groupHeader.style.marginTop = '10px';
+							groupHeader.style.paddingBottom = '5px';
+							groupHeader.style.borderBottom = '1px solid var(--vscode-panel-border)';
+							blocksContainer.appendChild(groupHeader);
 						}
 						
-						blockItem.appendChild(blockValueContainer);
-						
-						const blockInfo = document.createElement('div');
-						blockInfo.className = 'block-info';
-						const small = document.createElement('small');
-						small.textContent = 'Depth: ' + block.depth;
-						blockInfo.appendChild(small);
-						blockItem.appendChild(blockInfo);
-						
-						blocksContainer.appendChild(blockItem);
-					}
+						// Add all blocks in this group
+						for (const [key, block] of Object.entries(selectedDepthGroup.blocks)) {
+							const blockItem = document.createElement('div');
+							blockItem.className = 'block-item';
+							
+							const blockHeader = document.createElement('div');
+							blockHeader.className = 'block-header';
+							
+							const blockKey = document.createElement('div');
+							blockKey.className = 'block-key';
+							blockKey.textContent = key;
+							blockHeader.appendChild(blockKey);
+							
+							const deleteBtn = document.createElement('button');
+							deleteBtn.className = 'delete-btn';
+							deleteBtn.textContent = '✕';
+							deleteBtn.setAttribute('data-key', key);
+							deleteBtn.setAttribute('data-depth', selectedDepthGroup.depth);
+							blockHeader.appendChild(deleteBtn);
+							
+							blockItem.appendChild(blockHeader);
+							
+							const blockValueContainer = document.createElement('div');
+							blockValueContainer.className = 'block-value-container';
+							
+							if (block.editable) {
+								const input = document.createElement('input');
+								input.type = 'text';
+								input.className = 'block-value';
+								input.value = block.value;
+								input.setAttribute('readonly', 'readonly');
+								input.setAttribute('data-key', key);
+								input.setAttribute('data-depth', selectedDepthGroup.depth);
+								blockValueContainer.appendChild(input);
+								
+								const editBtn = document.createElement('button');
+								editBtn.className = 'edit-toggle-btn';
+								editBtn.textContent = 'Edit';
+								editBtn.setAttribute('data-key', key);
+								editBtn.setAttribute('data-depth', selectedDepthGroup.depth);
+								blockValueContainer.appendChild(editBtn);
+							} else {
+								const valueDiv = document.createElement('div');
+								valueDiv.className = 'block-value-readonly';
+								valueDiv.textContent = block.value;
+								blockValueContainer.appendChild(valueDiv);
+							}
+							
+							blockItem.appendChild(blockValueContainer);
+							
+							const blockInfo = document.createElement('div');
+							blockInfo.className = 'block-info';
+							const small = document.createElement('small');
+							small.textContent = 'Depth: ' + block.depth;
+							blockInfo.appendChild(small);
+							blockItem.appendChild(blockInfo);
+							
+							blocksContainer.appendChild(blockItem);
+						}
+					});
 					
-					depthContainer.appendChild(blocksContainer);
-					blockList.appendChild(depthContainer);
+					allBlocksContainer.appendChild(blocksContainer);
+					blockList.appendChild(allBlocksContainer);
 				} else {
 					// Show message when no blocks are found at selected depth
 					const noBlocksMessage = document.createElement('div');
@@ -174,7 +214,9 @@ function activate(context) {
 					button.addEventListener('click', (e) => {
 						const key = e.target.getAttribute('data-key');
 						const depthIndex = parseInt(e.target.getAttribute('data-depth'));
-						const depthGroup = currentBlocks.find(dg => dg.depth === depthIndex);
+						// Find the correct depth group and delete the block
+						const depthGroup = currentBlocks.find(dg => 
+							dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
 						if (depthGroup) {
 							delete depthGroup.blocks[key];
 							renderBlocks();
@@ -196,8 +238,10 @@ function activate(context) {
 						} else {
 							input.setAttribute('readonly', 'readonly');
 							// Update the value in our data structure
-							const depthGroup = currentBlocks.find(dg => dg.depth === depthIndex);
+							const depthGroup = currentBlocks.find(dg => 
+								dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
 							if (depthGroup && depthGroup.blocks[key]) {
+								// Update the display value
 								depthGroup.blocks[key].value = input.value;
 							}
 							e.target.textContent = 'Edit';
@@ -210,8 +254,10 @@ function activate(context) {
 					input.addEventListener('change', (e) => {
 						const key = e.target.getAttribute('data-key');
 						const depthIndex = parseInt(e.target.getAttribute('data-depth'));
-						const depthGroup = currentBlocks.find(dg => dg.depth === depthIndex);
+						const depthGroup = currentBlocks.find(dg => 
+							dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
 						if (depthGroup && depthGroup.blocks[key]) {
+							// Update the display value
 							depthGroup.blocks[key].value = e.target.value;
 						}
 					});
@@ -243,12 +289,40 @@ function activate(context) {
 					if (!currentBlocks[0]) {
 						currentBlocks[0] = { depth: 0, blocks: {} };
 					}
+					
+					// Determine the type of the value
+					let actualValue = value;
+					let originalType = 'string';
+					
+					// Try to parse as JSON to determine type
+					try {
+						const parsed = JSON.parse(value);
+						actualValue = parsed;
+						originalType = typeof parsed;
+					} catch (e) {
+						// If it's not valid JSON, check if it's a number
+						if (!isNaN(Number(value)) && value.trim() !== '') {
+							actualValue = Number(value);
+							originalType = 'number';
+						} else if (value === 'true' || value === 'false') {
+							actualValue = value === 'true';
+							originalType = 'boolean';
+						}
+					}
+					
+					// Format value for display
+					let displayValue = actualValue;
+					if (originalType === 'string') {
+						displayValue = '"' + actualValue + '"';
+					}
+					
 					currentBlocks[0].blocks[key] = {
-						value: value,
-						type: typeof value,
+						value: displayValue,
+						type: typeof actualValue,
 						depth: 0,
 						key: key,
-						editable: true
+						editable: true,
+						originalType: originalType
 					};
 					renderBlocks();
 					document.getElementById('newBlockForm').classList.add('hidden');
@@ -271,18 +345,21 @@ function activate(context) {
 				const flattenedBlocks = {};
 				currentBlocks.forEach(depthGroup => {
 					for (const [key, block] of Object.entries(depthGroup.blocks)) {
-						// Remove quotes from string values if they exist
-						let value = block.value;
-						if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
-							value = value.substring(1, value.length - 1);
-						}
-						flattenedBlocks[key] = value;
+						// Pass the entire block object to preserve type information
+						flattenedBlocks[key] = block;
 					}
 				});
 				
 				vscode.postMessage({
 					command: 'save',
 					blocks: flattenedBlocks
+				});
+			});
+			
+			// Handle Reload button
+			document.getElementById('reloadBtn').addEventListener('click', () => {
+				vscode.postMessage({
+					command: 'reload'
 				});
 			});
 			
@@ -294,6 +371,37 @@ function activate(context) {
 						currentBlocks = JSON.parse(JSON.stringify(message.blocks));
 						renderBlocks();
 						break;
+					case 'documentChanged':
+						// Show a notification that the document has changed
+						const notification = document.createElement('div');
+						notification.id = 'documentChangedNotification';
+						notification.className = 'document-changed-notification';
+						notification.innerHTML = \`
+							<div class="notification-content">
+								<span>Source file has been modified. Would you like to reload the latest content?</span>
+								<button id="reloadBtnNotification" class="reload-btn-notification">Reload</button>
+								<button id="dismissBtn" class="dismiss-btn">Dismiss</button>
+							</div>
+						\`;
+						
+						// Add to the top of the document
+						const header = document.querySelector('.header');
+						if (header) {
+							header.parentNode.insertBefore(notification, header.nextSibling);
+							
+							// Add event listeners
+							document.getElementById('reloadBtnNotification').addEventListener('click', () => {
+								vscode.postMessage({
+									command: 'reload'
+								});
+								notification.remove();
+							});
+							
+							document.getElementById('dismissBtn').addEventListener('click', () => {
+								notification.remove();
+							});
+						}
+						break;
 				}
 			});
 			</script>`;
@@ -303,6 +411,43 @@ function activate(context) {
 				'<p>Edit individual JSON blocks using dot notation paths</p>',
 				'<p>Edit individual JSON blocks using dot notation paths</p>'
 			);
+			
+			// Add CSS for the notification
+			const styleInsert = `
+			<style>
+			.document-changed-notification {
+				background-color: var(--vscode-editorWarning-foreground);
+				color: var(--vscode-input-foreground);
+				padding: 10px;
+				margin-bottom: 15px;
+				border-radius: 3px;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+			}
+			
+			.notification-content {
+				display: flex;
+				align-items: center;
+				gap: 15px;
+			}
+			
+			.reload-btn-notification, .dismiss-btn {
+				background-color: var(--vscode-button-background);
+				color: var(--vscode-button-foreground);
+				border: none;
+				padding: 5px 10px;
+				border-radius: 2px;
+				cursor: pointer;
+			}
+			
+			.reload-btn-notification:hover, .dismiss-btn:hover {
+				background-color: var(--vscode-button-hoverBackground);
+			}
+			</style>
+			`;
+			
+			htmlContent = htmlContent.replace('</style>', styleInsert + '</style>');
 			
 			panel.webview.html = htmlContent.replace(
 				'// SCRIPT_PLACEHOLDER',
@@ -329,9 +474,13 @@ function activate(context) {
 								// Apply the edit
 								await vscode.workspace.applyEdit(edit);
 								
+								// Show success message
+								vscode.window.showInformationMessage('JSON blocks updated successfully!');
+								
 								// Ask if user wants to apply batch update
 								const batchAction = await vscode.window.showInformationMessage(
-									'Changes saved successfully! Would you like to apply these changes to other files?',
+									'Would you like to apply these changes to other files?',
+									{ modal: true },
 									'Batch Update',
 									'Cancel'
 								);
@@ -346,6 +495,27 @@ function activate(context) {
 								}
 							} catch (error) {
 								vscode.window.showErrorMessage('Error updating JSON: ' + error.message);
+							}
+							return;
+						case 'reload':
+							try {
+								// Reload the document content
+								const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
+								const updatedJsonContent = JSON.parse(updatedDocument.getText());
+								const updatedDepthBlocks = JsonBlockParser.parseToDepthBlocks(updatedJsonContent);
+								
+								// Update the webview with new content
+								panel.webview.postMessage({
+									command: 'update',
+									blocks: updatedDepthBlocks
+								});
+								
+								// Update our version tracking
+								documentVersion = updatedDocument.version;
+								
+								vscode.window.showInformationMessage('Document reloaded with latest changes');
+							} catch (error) {
+								vscode.window.showErrorMessage('Error reloading document: ' + error.message);
 							}
 							return;
 					}

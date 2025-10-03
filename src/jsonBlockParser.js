@@ -57,7 +57,8 @@ class JsonBlockParser {
                         type: 'object',
                         depth: depth,
                         key: fullKey,
-                        editable: true // Make it editable so users can modify the JSON directly
+                        editable: true, // Make it editable so users can modify the JSON directly,
+                        originalType: 'object'
                     };
                     
                     // Recursively parse children
@@ -65,12 +66,22 @@ class JsonBlockParser {
                     blocks.push(...childBlocks);
                 } else {
                     // Leaf node - create a block
+                    // Store original type information to preserve it when converting back
+                    const originalType = typeof value;
+                    let displayValue = value;
+                    
+                    // For strings, wrap in quotes for display but keep track of original type
+                    if (originalType === 'string') {
+                        displayValue = `"${value}"`;
+                    }
+                    
                     currentLevelBlocks[fullKey] = {
-                        value: typeof value === 'string' ? `"${value}"` : value,
+                        value: displayValue,
                         type: typeof value,
                         depth: depth,
                         key: fullKey,
-                        editable: true
+                        editable: true,
+                        originalType: originalType
                     };
                 }
             }
@@ -98,8 +109,45 @@ class JsonBlockParser {
             if (blocks.hasOwnProperty(key)) {
                 let value = blocks[key];
                 
-                // Try to parse JSON strings back to objects
-                if (typeof value === 'string') {
+                // Handle different types based on original type information
+                if (typeof value === 'object' && value !== null && value.originalType) {
+                    // This is a block object with type information
+                    if (value.originalType === 'object') {
+                        // Try to parse JSON strings back to objects
+                        try {
+                            value = JSON.parse(value.value);
+                        } catch (e) {
+                            // If parsing fails, keep as string
+                            value = value.value;
+                        }
+                    } else if (value.originalType === 'string') {
+                        // Remove quotes from string values
+                        if (typeof value.value === 'string' && 
+                            value.value.startsWith('"') && 
+                            value.value.endsWith('"')) {
+                            value = value.value.substring(1, value.value.length - 1);
+                        } else {
+                            value = value.value;
+                        }
+                    } else if (value.originalType === 'number') {
+                        // Convert to number if possible
+                        const numValue = Number(value.value);
+                        value = isNaN(numValue) ? value.value : numValue;
+                    } else if (value.originalType === 'boolean') {
+                        // Convert to boolean
+                        if (value.value === 'true') {
+                            value = true;
+                        } else if (value.value === 'false') {
+                            value = false;
+                        } else {
+                            value = value.value;
+                        }
+                    } else {
+                        // For other types, use the value as is
+                        value = value.value;
+                    }
+                } else if (typeof value === 'string') {
+                    // Handle values that might be from the old format without type info
                     // Check if it's a quoted string
                     if (value.startsWith('"') && value.endsWith('"')) {
                         // Remove the quotes
@@ -112,7 +160,9 @@ class JsonBlockParser {
                                 value = parsed;
                             }
                         } catch (e) {
-                            // Not valid JSON, keep as string
+                            // Not valid JSON, try to convert to number or keep as string
+                            const numValue = Number(value);
+                            value = isNaN(numValue) ? value : numValue;
                         }
                     }
                 }

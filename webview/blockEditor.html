@@ -56,6 +56,13 @@
             padding-bottom: 8px;
         }
         
+        .group-prefix-header {
+            color: var(--vscode-editor-foreground);
+            margin: 15px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--vscode-panel-border);
+        }
+        
         .block-item {
             display: flex;
             flex-direction: column;
@@ -235,6 +242,7 @@
     <div class="button-group">
         <button id="addBlockBtn" class="add-block">Add New Block</button>
         <button id="saveBtn">Save Changes</button>
+        <button id="reloadBtn">Reload Document</button>
     </div>
     
     <div id="newBlockForm" class="new-block-form hidden">
