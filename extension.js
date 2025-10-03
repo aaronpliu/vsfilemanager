@@ -63,7 +63,7 @@ function activate(context) {
 
 			// Get path to HTML file on disk
 			const htmlPath = vscode.Uri.joinPath(context.extensionUri, 'webview', 'blockEditor.html');
-			const htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
+			let htmlContent = fs.readFileSync(htmlPath.fsPath, 'utf8');
 			
 			// Set the webview's html content
 			const scriptContent = `
@@ -73,61 +73,112 @@ function activate(context) {
 			// Store the original blocks
 			const originalBlocks = ${JSON.stringify(depthBlocks)};
 			let currentBlocks = JSON.parse(JSON.stringify(originalBlocks));
+			let maxDepth = 2; // Default depth is 2 - matching the HTML selector
 			
 			// Function to render blocks grouped by depth
 			function renderBlocks() {
 				const blockList = document.getElementById('blockList');
 				blockList.innerHTML = '';
 				
-				currentBlocks.forEach((depthGroup, index) => {
-					if (Object.keys(depthGroup.blocks).length === 0) return;
-					
+				// Find the depth group that matches the selected depth
+				const selectedDepthGroup = currentBlocks.find(depthGroup => depthGroup.depth === maxDepth);
+				
+				if (selectedDepthGroup && Object.keys(selectedDepthGroup.blocks).length > 0) {
 					const depthContainer = document.createElement('div');
 					depthContainer.className = 'depth-group';
-					depthContainer.innerHTML = \`
-						<div class="depth-header">
-							<h3>Depth Level \${depthGroup.depth}</h3>
-						</div>
-						<div class="depth-blocks"></div>
-					\`;
 					
-					const blocksContainer = depthContainer.querySelector('.depth-blocks');
+					const depthHeader = document.createElement('div');
+					depthHeader.className = 'depth-header';
+					const depthTitle = document.createElement('h3');
+					depthTitle.textContent = 'Depth Level ' + selectedDepthGroup.depth;
+					depthHeader.appendChild(depthTitle);
+					depthContainer.appendChild(depthHeader);
 					
-					for (const [key, block] of Object.entries(depthGroup.blocks)) {
+					const blocksContainer = document.createElement('div');
+					blocksContainer.className = 'depth-blocks';
+					
+					for (const [key, block] of Object.entries(selectedDepthGroup.blocks)) {
 						const blockItem = document.createElement('div');
 						blockItem.className = 'block-item';
-						blockItem.innerHTML = \`
-							<div>
-								<div class="block-header">
-									<div class="block-key">\${key}</div>
-									<button class="delete-btn" data-key="\${key}" data-depth="\${index}">✕</button>
-								</div>
-								<div class="block-value-container">
-									\${block.editable ? 
-									  \`<input type="text" class="block-value" data-key="\${key}" data-depth="\${index}" value="\${block.value}" readonly>\` : 
-									  \`<div class="block-value-readonly">\${block.value}</div>\` }
-									\${block.editable ? 
-									  \`<button class="edit-toggle-btn" data-key="\${key}" data-depth="\${index}">Edit</button>\` : 
-									  '' }
-								</div>
-								<div class="block-info">
-									<small>Depth: \${block.depth}</small>
-								</div>
-							</div>
-						\`;
+						
+						const blockHeader = document.createElement('div');
+						blockHeader.className = 'block-header';
+						
+						const blockKey = document.createElement('div');
+						blockKey.className = 'block-key';
+						blockKey.textContent = key;
+						blockHeader.appendChild(blockKey);
+						
+						const deleteBtn = document.createElement('button');
+						deleteBtn.className = 'delete-btn';
+						deleteBtn.textContent = '✕';
+						deleteBtn.setAttribute('data-key', key);
+						deleteBtn.setAttribute('data-depth', selectedDepthGroup.depth);
+						blockHeader.appendChild(deleteBtn);
+						
+						blockItem.appendChild(blockHeader);
+						
+						const blockValueContainer = document.createElement('div');
+						blockValueContainer.className = 'block-value-container';
+						
+						if (block.editable) {
+							const input = document.createElement('input');
+							input.type = 'text';
+							input.className = 'block-value';
+							input.value = block.value;
+							input.setAttribute('readonly', 'readonly');
+							input.setAttribute('data-key', key);
+							input.setAttribute('data-depth', selectedDepthGroup.depth);
+							blockValueContainer.appendChild(input);
+							
+							const editBtn = document.createElement('button');
+							editBtn.className = 'edit-toggle-btn';
+							editBtn.textContent = 'Edit';
+							editBtn.setAttribute('data-key', key);
+							editBtn.setAttribute('data-depth', selectedDepthGroup.depth);
+							blockValueContainer.appendChild(editBtn);
+						} else {
+							const valueDiv = document.createElement('div');
+							valueDiv.className = 'block-value-readonly';
+							valueDiv.textContent = block.value;
+							blockValueContainer.appendChild(valueDiv);
+						}
+						
+						blockItem.appendChild(blockValueContainer);
+						
+						const blockInfo = document.createElement('div');
+						blockInfo.className = 'block-info';
+						const small = document.createElement('small');
+						small.textContent = 'Depth: ' + block.depth;
+						blockInfo.appendChild(small);
+						blockItem.appendChild(blockInfo);
+						
 						blocksContainer.appendChild(blockItem);
 					}
 					
+					depthContainer.appendChild(blocksContainer);
 					blockList.appendChild(depthContainer);
-				});
+				} else {
+					// Show message when no blocks are found at selected depth
+					const noBlocksMessage = document.createElement('div');
+					noBlocksMessage.textContent = 'No blocks found at depth level ' + maxDepth;
+					noBlocksMessage.style.textAlign = 'center';
+					noBlocksMessage.style.padding = '20px';
+					noBlocksMessage.style.fontStyle = 'italic';
+					noBlocksMessage.style.color = 'var(--vscode-descriptionForeground)';
+					blockList.appendChild(noBlocksMessage);
+				}
 				
 				// Add event listeners to delete buttons
 				document.querySelectorAll('.delete-btn').forEach(button => {
 					button.addEventListener('click', (e) => {
 						const key = e.target.getAttribute('data-key');
 						const depthIndex = parseInt(e.target.getAttribute('data-depth'));
-						delete currentBlocks[depthIndex].blocks[key];
-						renderBlocks();
+						const depthGroup = currentBlocks.find(dg => dg.depth === depthIndex);
+						if (depthGroup) {
+							delete depthGroup.blocks[key];
+							renderBlocks();
+						}
 					});
 				});
 				
@@ -145,7 +196,10 @@ function activate(context) {
 						} else {
 							input.setAttribute('readonly', 'readonly');
 							// Update the value in our data structure
-							currentBlocks[depthIndex].blocks[key].value = input.value;
+							const depthGroup = currentBlocks.find(dg => dg.depth === depthIndex);
+							if (depthGroup && depthGroup.blocks[key]) {
+								depthGroup.blocks[key].value = input.value;
+							}
 							e.target.textContent = 'Edit';
 						}
 					});
@@ -156,7 +210,10 @@ function activate(context) {
 					input.addEventListener('change', (e) => {
 						const key = e.target.getAttribute('data-key');
 						const depthIndex = parseInt(e.target.getAttribute('data-depth'));
-						currentBlocks[depthIndex].blocks[key].value = e.target.value;
+						const depthGroup = currentBlocks.find(dg => dg.depth === depthIndex);
+						if (depthGroup && depthGroup.blocks[key]) {
+							depthGroup.blocks[key].value = e.target.value;
+						}
 					});
 				});
 			}
@@ -202,6 +259,12 @@ function activate(context) {
 				}
 			});
 			
+			// Handle depth selection change
+			document.getElementById('depthSelector').addEventListener('change', (e) => {
+				maxDepth = parseInt(e.target.value);
+				renderBlocks();
+			});
+			
 			// Handle Save button
 			document.getElementById('saveBtn').addEventListener('click', () => {
 				// Flatten blocks for saving
@@ -234,6 +297,12 @@ function activate(context) {
 				}
 			});
 			</script>`;
+			
+			// Add depth selector to the HTML
+			htmlContent = htmlContent.replace(
+				'<p>Edit individual JSON blocks using dot notation paths</p>',
+				'<p>Edit individual JSON blocks using dot notation paths</p>'
+			);
 			
 			panel.webview.html = htmlContent.replace(
 				'// SCRIPT_PLACEHOLDER',

@@ -49,14 +49,15 @@ class JsonBlockParser {
                 const value = jsonObject[key];
 
                 if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                    // This is a nested object, add it to current level
+                    // This is a nested object, add it to current level with stringified representation
                     hasChildren = true;
+                    // Show a stringified version of the object instead of '[object]'
                     currentLevelBlocks[fullKey] = {
-                        value: '[object]',
+                        value: JSON.stringify(value),
                         type: 'object',
                         depth: depth,
                         key: fullKey,
-                        editable: false
+                        editable: true // Make it editable so users can modify the JSON directly
                     };
                     
                     // Recursively parse children
@@ -97,9 +98,23 @@ class JsonBlockParser {
             if (blocks.hasOwnProperty(key)) {
                 let value = blocks[key];
                 
-                // If value is a quoted string, remove the quotes
-                if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
-                    value = value.substring(1, value.length - 1);
+                // Try to parse JSON strings back to objects
+                if (typeof value === 'string') {
+                    // Check if it's a quoted string
+                    if (value.startsWith('"') && value.endsWith('"')) {
+                        // Remove the quotes
+                        value = value.substring(1, value.length - 1);
+                    } else {
+                        // Try to parse as JSON
+                        try {
+                            const parsed = JSON.parse(value);
+                            if (typeof parsed === 'object') {
+                                value = parsed;
+                            }
+                        } catch (e) {
+                            // Not valid JSON, keep as string
+                        }
+                    }
                 }
                 
                 const keyParts = key.split('.');

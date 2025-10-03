@@ -19,6 +19,23 @@
             padding-bottom: 10px;
         }
         
+        .depth-selector {
+            margin-top: 10px;
+        }
+        
+        .depth-selector label {
+            color: var(--vscode-foreground);
+            margin-right: 10px;
+        }
+        
+        .depth-selector select {
+            background-color: var(--vscode-dropdown-background);
+            color: var(--vscode-dropdown-foreground);
+            border: 1px solid var(--vscode-dropdown-border);
+            padding: 4px 8px;
+            border-radius: 2px;
+        }
+        
         .block-list {
             display: flex;
             flex-direction: column;
@@ -198,6 +215,17 @@
     <div class="header">
         <h1>JSON Block Editor</h1>
         <p>Edit individual JSON blocks using dot notation paths</p>
+        <div class="depth-selector">
+            <label for="depthSelector">View Depth: </label>
+            <select id="depthSelector">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+            </select>
+        </div>
     </div>
     
     <div class="block-list" id="blockList">
