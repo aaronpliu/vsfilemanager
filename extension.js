@@ -479,17 +479,6 @@ function activate(context) {
 					switch (message.command) {
 						case 'save':
 							try {
-								// Track changed blocks
-								const changedBlocks = {};
-								
-								// Compare current blocks with original to find changes
-								for (const [key, block] of Object.entries(message.blocks)) {
-									// Only include blocks with type information (new format)
-									if (typeof block === 'object' && block !== null && block.hasOwnProperty('originalType')) {
-										changedBlocks[key] = block;
-									}
-								}
-								
 								// Convert blocks back to JSON
 								const updatedJson = JsonBlockParser.blocksToJson(message.blocks);
 								
@@ -504,6 +493,90 @@ function activate(context) {
 								// Apply the edit
 								await vscode.workspace.applyEdit(edit);
 								
+								// Show success message for the current file update
+								vscode.window.showInformationMessage('JSON blocks updated successfully!');
+								
+								// Reload the webview with the latest content from the updated document
+								let updatedDepthBlocks;
+								try {
+									// Re-read the document to get the updated content
+									const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
+									const updatedJsonContent = JSON.parse(updatedDocument.getText());
+									updatedDepthBlocks = JsonBlockParser.parseToDepthBlocks(updatedJsonContent);
+									
+									// Update the webview with new content
+									panel.webview.postMessage({
+										command: 'update',
+										blocks: updatedDepthBlocks
+									});
+								} catch (error) {
+									console.error('Error reloading webview content:', error);
+								}
+								
+								// Track changed blocks by comparing current blocks with original
+								const changedBlocks = {};
+								
+                                // Helper function to normalize values for comparison
+                                function normalizeValueForComparison(value) {
+                                    // If it's a string that looks like a quoted string, remove the quotes
+                                    if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
+                                        return value.substring(1, value.length - 1);
+                                    }
+                                    return value;
+                                }
+                                
+                                // Helper function to get the actual value from a block
+                                function getBlockValue(block) {
+                                    if (typeof block === 'object' && block !== null && block.hasOwnProperty('value')) {
+                                        return normalizeValueForComparison(block.value);
+                                    }
+                                    return block;
+                                }
+                                
+								// Create a map of original blocks for easier comparison
+								const originalBlocksMap = {};
+								if (message.originalBlocks) {
+									message.originalBlocks.forEach(depthGroup => {
+										for (const [key, block] of Object.entries(depthGroup.blocks)) {
+											originalBlocksMap[key] = block;
+										}
+									});
+									
+									// Compare current blocks with original to find changes
+									// Use the updatedDepthBlocks we just fetched, not the message.blocks
+									if (updatedDepthBlocks) {
+										for (const depthGroup of updatedDepthBlocks) {
+											for (const [key, block] of Object.entries(depthGroup.blocks)) {
+												// Check if this is a new block or a modified one
+												if (!originalBlocksMap[key]) {
+													// This is a new block
+													changedBlocks[key] = block;
+												} else {
+													// Compare the values properly
+													const originalBlock = originalBlocksMap[key];
+													const currentBlock = block;
+													
+													// Get normalized values for comparison
+													const originalValue = getBlockValue(originalBlock);
+													const currentValue = getBlockValue(currentBlock);
+													
+													// Compare the normalized values
+													if (originalValue !== currentValue) {
+														changedBlocks[key] = currentBlock;
+													}
+												}
+											}
+										}
+									}
+								} else {
+									// If we don't have original blocks, send all current blocks
+									if (updatedDepthBlocks) {
+										for (const depthGroup of updatedDepthBlocks) {
+											Object.assign(changedBlocks, depthGroup.blocks);
+										}
+									}
+								}
+								
 								// Ask if user wants to apply batch update
 								const batchAction = await vscode.window.showInformationMessage(
 									'Would you like to apply these changes to other files?',
@@ -515,9 +588,6 @@ function activate(context) {
 								// Only proceed with batch update if user explicitly selects "Batch Update"
 								// If user selects "No" or closes dialog, do nothing further
 								if (batchAction === 'Batch Update') {
-									// Show success message
-									vscode.window.showInformationMessage('JSON blocks updated successfully!');
-									
 									// Find same-named files
 									const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
 									
@@ -550,11 +620,8 @@ function activate(context) {
 									}
 								} else if (batchAction === 'No' || batchAction === undefined) {
 									// User selected "No" or closed the dialog
-									// Show success message
-									vscode.window.showInformationMessage('JSON blocks updated successfully!');
+									// Nothing more to do, already updated current file and refreshed webview
 								}
-								// If user selected 'No' or closed the dialog (undefined), do nothing else
-								// The file is already saved, and no additional dialogs should appear
 							} catch (error) {
 								vscode.window.showErrorMessage('Error updating JSON: ' + error.message);
 							}

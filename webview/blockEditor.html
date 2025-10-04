@@ -218,6 +218,25 @@
             outline: none;
             border-color: var(--vscode-focusBorder);
         }
+        
+        .document-changed-notification {
+            background-color: var(--vscode-editorWarning-background);
+            border: 1px solid var(--vscode-editorWarning-border);
+            border-radius: 3px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .reload-btn-notification, .dismiss-btn {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
     </style>
 </head>
 <body>
@@ -541,7 +560,8 @@
 				
 				vscode.postMessage({
 					command: 'save',
-					blocks: flattenedBlocks
+					blocks: flattenedBlocks,
+					originalBlocks: originalBlocks
 				});
 			});
 			
@@ -558,6 +578,7 @@
 				switch (message.command) {
 					case 'update':
 						currentBlocks = JSON.parse(JSON.stringify(message.blocks));
+						originalBlocks = JSON.parse(JSON.stringify(message.blocks)); // Update original blocks too
 						renderBlocks();
 						break;
 					case 'documentChanged':

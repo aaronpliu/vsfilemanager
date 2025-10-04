@@ -8,7 +8,7 @@
     },
     "api": {
       "baseUrl": "https://api.example.com",
-      "timeout": 5329
+      "timeout": 5356
     }
   },
   "ui": {

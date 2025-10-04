@@ -73,16 +73,14 @@ class SyncDetector {
 
         switch (choice) {
             case 'Sync All':
-                // Synchronize all files
-                const content = fs.readFileSync(filePath, 'utf8');
-                this.synchronizeFiles(filePath, content, sameNamedFiles);
-                return null; // We handle synchronization here, so return null
+                // Return all files for synchronization
+                return { action: 'syncAll', files: sameNamedFiles };
             case 'Select Files':
                 // Let the caller handle file selection
-                return sameNamedFiles; // Return the list of files for selection
+                return { action: 'selectFiles', files: sameNamedFiles };
             default:
                 // Cancel - just update current file
-                return false;
+                return { action: 'cancel' };
         }
     }
 
@@ -102,8 +100,26 @@ class SyncDetector {
                 const existingContent = fs.readFileSync(targetFile, 'utf8');
                 const existingJson = JSON.parse(existingContent);
                 
+                // Validate that the target file has the structure to apply changes
+                if (!this.validateBlockCompatibility(existingJson, changedBlocks)) {
+                    failedFiles.push({ 
+                        file: targetFile, 
+                        error: 'Target file structure incompatible with changes' 
+                    });
+                    continue;
+                }
+                
                 // Apply only the changed blocks to the existing content
                 const updatedJson = JsonBlockParser.applyBlockChanges(existingJson, changedBlocks);
+                
+                // Validate the updated JSON before writing
+                if (!this.validateJsonStructure(updatedJson)) {
+                    failedFiles.push({ 
+                        file: targetFile, 
+                        error: 'Updated JSON structure is invalid' 
+                    });
+                    continue;
+                }
                 
                 // Write the updated content back to the file
                 fs.writeFileSync(targetFile, JSON.stringify(updatedJson, null, 2), 'utf8');
@@ -116,14 +132,58 @@ class SyncDetector {
         // Report results
         if (syncedFiles.length > 0) {
             vscode.window.showInformationMessage(
-                `Successfully synchronized changes to ${syncedFiles.length} file(s):\n${syncedFiles.join('\n')}`
+                `Successfully synchronized changes to ${syncedFiles.length} file(s)`
             );
         }
 
         if (failedFiles.length > 0) {
             vscode.window.showErrorMessage(
-                `Failed to synchronize ${failedFiles.length} file(s):\\n${failedFiles.map(f => f.file + ': ' + f.error).join('\\n')}`
+                `Failed to synchronize ${failedFiles.length} file(s):\n${failedFiles.map(f => f.file + ': ' + f.error).join('\n')}`
             );
+        }
+        
+        return { syncedFiles, failedFiles };
+    }
+
+    /**
+     * Validate that target file has compatible structure for block changes
+     * @param {Object} jsonContent - The JSON content of the target file
+     * @param {Object} changedBlocks - The blocks that have been changed
+     * @returns {boolean} Whether the target file is compatible
+     */
+    static validateBlockCompatibility(jsonContent, changedBlocks) {
+        try {
+            // Parse the existing content into blocks
+            const existingBlocks = JsonBlockParser.parseToBlocks(jsonContent);
+            
+            // Check if all changed blocks can be applied to the existing structure
+            for (const key in changedBlocks) {
+                if (changedBlocks.hasOwnProperty(key)) {
+                    // We can apply any block changes since we're using dot notation paths
+                    // If a path doesn't exist, it will be created
+                    // If it does exist, it will be updated
+                    // So this is always compatible
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Validate JSON structure
+     * @param {Object} jsonContent - The JSON content to validate
+     * @returns {boolean} Whether the JSON structure is valid
+     */
+    static validateJsonStructure(jsonContent) {
+        try {
+            // Try to stringify and parse to check for circular references and other issues
+            JSON.stringify(jsonContent);
+            return true;
+        } catch (error) {
+            return false;
         }
     }
 
