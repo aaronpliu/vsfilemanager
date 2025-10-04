@@ -236,9 +236,48 @@ function activate(context) {
 						const input = e.target.parentElement.querySelector('.block-value');
 						
 						if (input.hasAttribute('readonly')) {
+							// Store the original value before editing
+							input.setAttribute('data-original-value', input.value);
 							input.removeAttribute('readonly');
 							input.focus();
 							e.target.textContent = 'Save';
+							
+							// Create and add a cancel button
+							const cancelBtn = document.createElement('button');
+							cancelBtn.className = 'cancel-edit-btn';
+							cancelBtn.textContent = 'Cancel';
+							cancelBtn.setAttribute('data-key', key);
+							cancelBtn.setAttribute('data-depth', depthIndex);
+							cancelBtn.style.marginLeft = '5px';
+							e.target.parentNode.appendChild(cancelBtn);
+							
+							// Add event listener to cancel button
+							cancelBtn.addEventListener('click', (cancelEvent) => {
+								const key = cancelEvent.target.getAttribute('data-key');
+								const depthIndex = parseInt(cancelEvent.target.getAttribute('data-depth'));
+								const container = cancelEvent.target.parentElement;
+								const input = container.querySelector('.block-value');
+								const editBtn = container.querySelector('.edit-toggle-btn');
+								
+								// Restore original value
+								input.value = input.getAttribute('data-original-value');
+								
+								// Switch back to readonly mode
+								input.setAttribute('readonly', 'readonly');
+								
+								// Update the display value in our data structure
+								const depthGroup = currentBlocks.find(dg => 
+									dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
+								if (depthGroup && depthGroup.blocks[key]) {
+									depthGroup.blocks[key].value = input.value;
+								}
+								
+								// Remove cancel button and update edit button text
+								cancelEvent.target.remove();
+								if (editBtn) {
+									editBtn.textContent = 'Edit';
+								}
+							});
 						} else {
 							input.setAttribute('readonly', 'readonly');
 							// Update the value in our data structure
@@ -248,6 +287,13 @@ function activate(context) {
 								// Update the display value
 								depthGroup.blocks[key].value = input.value;
 							}
+							
+							// Remove any existing cancel button
+							const cancelBtn = e.target.parentElement.querySelector('.cancel-edit-btn');
+							if (cancelBtn) {
+								cancelBtn.remove();
+							}
+							
 							e.target.textContent = 'Edit';
 						}
 					});
@@ -459,6 +505,20 @@ function activate(context) {
 			
 			.reload-btn-notification:hover, .dismiss-btn:hover {
 				background-color: var(--vscode-button-hoverBackground);
+			}
+			
+			.cancel-edit-btn {
+				background-color: var(--vscode-button-secondaryBackground);
+				color: var(--vscode-button-secondaryForeground);
+				border: none;
+				padding: 5px 10px;
+				border-radius: 2px;
+				cursor: pointer;
+				font-size: 12px;
+			}
+			
+			.cancel-edit-btn:hover {
+				background-color: var(--vscode-button-secondaryHoverBackground);
 			}
 			</style>
 			`;
