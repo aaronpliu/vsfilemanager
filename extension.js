@@ -102,6 +102,22 @@ function activate(context) {
 			let maxDepth = 2; // Default depth is 2 - matching the HTML selector
 			let documentVersion = ${document.version}; // Track document version
 			
+			// Function to check if there are any changes and update save button state
+			function updateSaveButtonState() {
+				const saveBtn = document.getElementById('saveBtn');
+				if (saveBtn) {
+					saveBtn.disabled = false; // Enable save button when there are changes
+				}
+			}
+			
+			// Function to reset save button to disabled state
+			function resetSaveButtonState() {
+				const saveBtn = document.getElementById('saveBtn');
+				if (saveBtn) {
+					saveBtn.disabled = true; // Disable save button by default
+				}
+			}
+			
 			// Function to render blocks grouped by depth
 			function renderBlocks() {
 				const blockList = document.getElementById('blockList');
@@ -224,6 +240,8 @@ function activate(context) {
 						if (depthGroup) {
 							delete depthGroup.blocks[key];
 							renderBlocks();
+							// Enable save button when block is deleted
+							updateSaveButtonState();
 						}
 					});
 				});
@@ -268,7 +286,7 @@ function activate(context) {
 								// Update the display value in our data structure
 								const depthGroup = currentBlocks.find(dg => 
 									dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
-								if (depthGroup && depthGroup.blocks[key]) {
+								if (depthGroup) {
 									depthGroup.blocks[key].value = input.value;
 								}
 								
@@ -277,6 +295,9 @@ function activate(context) {
 								if (editBtn) {
 									editBtn.textContent = 'Edit';
 								}
+								
+								// Reset save button state
+								resetSaveButtonState();
 							});
 						} else {
 							input.setAttribute('readonly', 'readonly');
@@ -295,13 +316,16 @@ function activate(context) {
 							}
 							
 							e.target.textContent = 'Edit';
+							
+							// Enable save button when user saves changes
+							updateSaveButtonState();
 						}
 					});
 				});
 				
 				// Add event listeners to value inputs
 				document.querySelectorAll('.block-value').forEach(input => {
-					input.addEventListener('change', (e) => {
+					input.addEventListener('input', (e) => {
 						const key = e.target.getAttribute('data-key');
 						const depthIndex = parseInt(e.target.getAttribute('data-depth'));
 						const depthGroup = currentBlocks.find(dg => 
@@ -309,6 +333,14 @@ function activate(context) {
 						if (depthGroup && depthGroup.blocks[key]) {
 							// Update the display value
 							depthGroup.blocks[key].value = e.target.value;
+							// Check if value has actually changed from original
+							const originalValue = e.target.getAttribute('data-original-value');
+							if (originalValue !== undefined && originalValue !== e.target.value) {
+								// Enable save button when value changes
+								updateSaveButtonState();
+							} else {
+								resetSaveButtonState();
+							}
 						}
 					});
 				});
@@ -316,6 +348,8 @@ function activate(context) {
 			
 			// Initial render
 			renderBlocks();
+			// Disable save button by default
+			resetSaveButtonState();
 			
 			// Handle Add Block button
 			document.getElementById('addBlockBtn').addEventListener('click', () => {
@@ -381,6 +415,8 @@ function activate(context) {
 						originalType: originalType
 					};
 					renderBlocks();
+					// Enable save button when new block is added
+					updateSaveButtonState();
 					document.getElementById('newBlockForm').classList.add('hidden');
 					document.getElementById('newBlockKey').value = '';
 					document.getElementById('newBlockValue').value = '';
@@ -427,6 +463,8 @@ function activate(context) {
 					case 'update':
 						currentBlocks = JSON.parse(JSON.stringify(message.blocks));
 						renderBlocks();
+						// Disable save button after successful update
+						resetSaveButtonState();
 						break;
 					case 'documentChanged':
 						// Show a notification that the document has changed
@@ -519,6 +557,11 @@ function activate(context) {
 			
 			.cancel-edit-btn:hover {
 				background-color: var(--vscode-button-secondaryHoverBackground);
+			}
+			
+			button:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
 			}
 			</style>
 			`;
