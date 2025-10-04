@@ -290,8 +290,10 @@ function activate(context) {
 				
 				if (key) {
 					// Add to selected depth level
-					if (!currentBlocks[depth]) {
-						currentBlocks[depth] = { depth: depth, blocks: {} };
+					let depthGroup = currentBlocks.find(dg => dg.depth === depth);
+					if (!depthGroup) {
+						depthGroup = { depth: depth, blocks: {} };
+						currentBlocks.push(depthGroup);
 					}
 					
 					// Determine the type of the value
@@ -320,7 +322,7 @@ function activate(context) {
 						displayValue = '"' + actualValue + '"';
 					}
 					
-					currentBlocks[depth].blocks[key] = {
+					depthGroup.blocks[key] = {
 						value: displayValue,
 						type: typeof actualValue,
 						depth: depth,
@@ -526,6 +528,9 @@ function activate(context) {
 										// Synchronize only selected files
 										SyncDetector.synchronizeFiles(document.fileName, content, filePaths);
 									}
+								} else if (batchAction === 'No' || batchAction === undefined) {
+									// User selected "No" or closed the dialog, do nothing
+									// The file is already saved, and no additional dialogs should appear
 								}
 								// If user selected 'No' or closed the dialog (undefined), do nothing else
 								// The file is already saved, and no additional dialogs should appear
@@ -587,13 +592,48 @@ function activate(context) {
 			return;
 		}
 
-		// Prompt user for sync
-		const syncResult = await SyncDetector.promptForSync(filePath, sameNamedFiles);
+		// Create quick pick items for file selection
+		const quickPickItems = sameNamedFiles.map(file => ({
+			label: path.basename(file),
+			description: file,
+			picked: true // Selected by default
+		}));
 		
-		// Check if user wants to select files (not null or false)
-		if (syncResult && Array.isArray(syncResult)) {
+		// Show quick pick dialog for file selection
+		const selectedItems = await vscode.window.showQuickPick(quickPickItems, {
+			canPickMany: true,
+			placeHolder: 'Select files to synchronize (press SPACE to toggle selection)',
+			title: 'Select Files to Synchronize',
+			ignoreFocusOut: true
+		});
+		
+		if (selectedItems && selectedItems.length > 0) {
+			// Extract file paths from selected items
+			const filePaths = selectedItems.map(item => item.description);
+			
+			// Get current document content
+			const content = document.getText();
+			
+			// Synchronize only selected files
+			SyncDetector.synchronizeFiles(filePath, content, filePaths);
+		}
+	});
+
+	context.subscriptions.push(syncDisposable);
+	
+	// Register file save event listener for automatic sync detection
+	vscode.workspace.onDidSaveTextDocument(async (document) => {
+		// Only process JSON files
+		if (path.extname(document.fileName) !== '.json') {
+			return;
+		}
+		
+		// Find same-named files
+		const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
+		
+		if (sameNamedFiles.length > 0) {
 			// Create quick pick items for file selection
-			const quickPickItems = syncResult.map(file => ({
+			const quickPickItems = sameNamedFiles.map(file => ({
 				label: path.basename(file),
 				description: file,
 				picked: true // Selected by default
@@ -615,59 +655,8 @@ function activate(context) {
 				const content = document.getText();
 				
 				// Synchronize only selected files
-				SyncDetector.synchronizeFiles(filePath, content, filePaths);
+				SyncDetector.synchronizeFiles(document.fileName, content, filePaths);
 			}
-		}
-		// If syncResult is null (Sync All) or false (Cancel), we don't need to do anything
-		// Sync All is handled in promptForSync, and Cancel means no sync
-	});
-
-	context.subscriptions.push(syncDisposable);
-	
-	// Register file save event listener for automatic sync detection
-	vscode.workspace.onDidSaveTextDocument(async (document) => {
-		// Only process JSON files
-		if (path.extname(document.fileName) !== '.json') {
-			return;
-		}
-		
-		// Find same-named files
-		const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
-		
-		if (sameNamedFiles.length > 0) {
-			// Prompt user for sync
-			const syncResult = await SyncDetector.promptForSync(document.fileName, sameNamedFiles);
-			
-			// Check if user wants to select files (not null or false)
-			if (syncResult && Array.isArray(syncResult)) {
-				// Create quick pick items for file selection
-				const quickPickItems = syncResult.map(file => ({
-					label: path.basename(file),
-					description: file,
-					picked: true // Selected by default
-				}));
-				
-				// Show quick pick dialog for file selection
-				const selectedItems = await vscode.window.showQuickPick(quickPickItems, {
-					canPickMany: true,
-					placeHolder: 'Select files to synchronize (press SPACE to toggle selection)',
-					title: 'Select Files to Synchronize',
-					ignoreFocusOut: true
-				});
-				
-				if (selectedItems && selectedItems.length > 0) {
-					// Extract file paths from selected items
-					const filePaths = selectedItems.map(item => item.description);
-					
-					// Get current document content
-					const content = document.getText();
-					
-					// Synchronize only selected files
-					SyncDetector.synchronizeFiles(document.fileName, content, filePaths);
-				}
-			}
-			// If syncResult is null (Sync All) or false (Cancel), we don't need to do anything
-			// Sync All is handled in promptForSync, and Cancel means no sync
 		}
 	});
 	
