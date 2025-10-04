@@ -628,36 +628,9 @@ function activate(context) {
 			return;
 		}
 		
-		// Find same-named files
-		const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
-		
-		if (sameNamedFiles.length > 0) {
-			// Create quick pick items for file selection
-			const quickPickItems = sameNamedFiles.map(file => ({
-				label: path.basename(file),
-				description: file,
-				picked: true // Selected by default
-			}));
-			
-			// Show quick pick dialog for file selection
-			const selectedItems = await vscode.window.showQuickPick(quickPickItems, {
-				canPickMany: true,
-				placeHolder: 'Select files to synchronize (press SPACE to toggle selection)',
-				title: 'Select Files to Synchronize',
-				ignoreFocusOut: true
-			});
-			
-			if (selectedItems && selectedItems.length > 0) {
-				// Extract file paths from selected items
-				const filePaths = selectedItems.map(item => item.description);
-				
-				// Get current document content
-				const content = document.getText();
-				
-				// Synchronize only selected files
-				SyncDetector.synchronizeFiles(document.fileName, content, filePaths);
-			}
-		}
+		// Don't show any notifications or dialogs here
+		// The webview's save flow handles synchronization prompts
+		// This prevents interference with the correct workflow
 	});
 	
 	// Register batch update command
