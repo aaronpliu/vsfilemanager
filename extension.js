@@ -46,10 +46,14 @@ function activate(context) {
 			// Convert to blocks grouped by depth
 			const depthBlocks = JsonBlockParser.parseToDepthBlocks(jsonContent);
 			
+			// Get the file name for the title
+			const fileName = path.basename(document.fileName);
+			const filePath = document.fileName;
+			
 			// Create and show a webview panel
 			const panel = vscode.window.createWebviewPanel(
 				'jsonBlockEditor', // Identifies the type of the webview. Used internally
-				'JSON Block Editor', // Title of the panel displayed to the user
+				`JSON Block Editor - ${filePath}`, // Title of the panel displayed to the user
 				vscode.ViewColumn.One, // Editor column to show the new webview panel in.
 				{
 					// Enable scripts in the webview
@@ -383,13 +387,12 @@ function activate(context) {
 						const notification = document.createElement('div');
 						notification.id = 'documentChangedNotification';
 						notification.className = 'document-changed-notification';
-						notification.innerHTML = \`
-							<div class="notification-content">
-								<span>Source file has been modified. Would you like to reload the latest content?</span>
-								<button id="reloadBtnNotification" class="reload-btn-notification">Reload</button>
-								<button id="dismissBtn" class="dismiss-btn">Dismiss</button>
-							</div>
-						\`;
+						notification.innerHTML = '' +
+							'<div class="notification-content">' +
+							'<span>Source file has been modified. Would you like to reload the latest content?</span>' +
+							'<button id="reloadBtnNotification" class="reload-btn-notification">Reload</button>' +
+							'<button id="dismissBtn" class="dismiss-btn">Dismiss</button>' +
+							'</div>';
 						
 						// Add to the top of the document
 						const header = document.querySelector('.header');
@@ -412,6 +415,12 @@ function activate(context) {
 				}
 			});
 			</script>`;
+			
+			// Add the file path to the HTML
+			htmlContent = htmlContent.replace(
+				'<h1>JSON Block Editor</h1>',
+				'<h1>JSON Block Editor</h1>\n        <p style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin-top: -10px;">' + document.fileName + '</p>'
+			);
 			
 			// Add depth selector to the HTML
 			htmlContent = htmlContent.replace(
@@ -456,10 +465,13 @@ function activate(context) {
 			
 			htmlContent = htmlContent.replace('</style>', styleInsert + '</style>');
 			
-			panel.webview.html = htmlContent.replace(
-				'// SCRIPT_PLACEHOLDER',
-				scriptContent.replace('<script>', '').replace('</script>', '')
-			);
+			// Remove the existing script tag and placeholder
+			htmlContent = htmlContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+			
+			// Add the new script content
+			htmlContent = htmlContent.replace('</body>', scriptContent + '\n</body>');
+			
+			panel.webview.html = htmlContent;
 			
 			// Handle messages from the webview
 			panel.webview.onDidReceiveMessage(
@@ -467,6 +479,17 @@ function activate(context) {
 					switch (message.command) {
 						case 'save':
 							try {
+								// Track changed blocks
+								const changedBlocks = {};
+								
+								// Compare current blocks with original to find changes
+								for (const [key, block] of Object.entries(message.blocks)) {
+									// Only include blocks with type information (new format)
+									if (typeof block === 'object' && block !== null && block.hasOwnProperty('originalType')) {
+										changedBlocks[key] = block;
+									}
+								}
+								
 								// Convert blocks back to JSON
 								const updatedJson = JsonBlockParser.blocksToJson(message.blocks);
 								
@@ -481,9 +504,6 @@ function activate(context) {
 								// Apply the edit
 								await vscode.workspace.applyEdit(edit);
 								
-								// Show success message
-								vscode.window.showInformationMessage('JSON blocks updated successfully!');
-								
 								// Ask if user wants to apply batch update
 								const batchAction = await vscode.window.showInformationMessage(
 									'Would you like to apply these changes to other files?',
@@ -495,6 +515,9 @@ function activate(context) {
 								// Only proceed with batch update if user explicitly selects "Batch Update"
 								// If user selects "No" or closes dialog, do nothing further
 								if (batchAction === 'Batch Update') {
+									// Show success message
+									vscode.window.showInformationMessage('JSON blocks updated successfully!');
+									
 									// Find same-named files
 									const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
 									
@@ -522,15 +545,13 @@ function activate(context) {
 										// Extract file paths from selected items
 										const filePaths = selectedItems.map(item => item.description);
 										
-										// Get current document content
-										const content = document.getText();
-										
-										// Synchronize only selected files
-										SyncDetector.synchronizeFiles(document.fileName, content, filePaths);
+										// Synchronize only the changed blocks, not the entire file content
+										SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
 									}
 								} else if (batchAction === 'No' || batchAction === undefined) {
-									// User selected "No" or closed the dialog, do nothing
-									// The file is already saved, and no additional dialogs should appear
+									// User selected "No" or closed the dialog
+									// Show success message
+									vscode.window.showInformationMessage('JSON blocks updated successfully!');
 								}
 								// If user selected 'No' or closed the dialog (undefined), do nothing else
 								// The file is already saved, and no additional dialogs should appear
@@ -611,11 +632,29 @@ function activate(context) {
 			// Extract file paths from selected items
 			const filePaths = selectedItems.map(item => item.description);
 			
-			// Get current document content
+			// Get current document content and parse to blocks
 			const content = document.getText();
+			const jsonContent = JSON.parse(content);
+			const blocks = JsonBlockParser.parseToBlocks(jsonContent);
 			
-			// Synchronize only selected files
-			SyncDetector.synchronizeFiles(filePath, content, filePaths);
+			// Convert to the new block format to ensure compatibility
+			const formattedBlocks = {};
+			for (const key in blocks) {
+				if (blocks.hasOwnProperty(key)) {
+					const value = blocks[key];
+					formattedBlocks[key] = {
+						value: typeof value === 'string' ? `"${value}"` : value,
+						type: typeof value,
+						depth: 0,
+						key: key,
+						editable: true,
+						originalType: typeof value
+					};
+				}
+			}
+			
+			// Synchronize only the changed blocks, not the entire file content
+			SyncDetector.synchronizeBlockChanges(filePath, formattedBlocks, filePaths);
 		}
 	});
 
@@ -658,9 +697,16 @@ function activate(context) {
 			return;
 		}
 		
-		// Create blocks object
+		// Create blocks object with proper format
 		const blocks = {};
-		blocks[blockKey] = blockValue;
+		blocks[blockKey] = {
+			value: blockValue,
+			type: typeof blockValue,
+			depth: 0,
+			key: blockKey,
+			editable: true,
+			originalType: typeof blockValue
+		};
 		
 		// Apply batch update
 		await BatchUpdater.applyBatchUpdate(blocks, filePaths);

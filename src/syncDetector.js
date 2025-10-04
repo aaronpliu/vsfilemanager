@@ -1,6 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
+const JsonBlockParser = require('./jsonBlockParser');
 
 /**
  * Sync Detector
@@ -86,7 +87,48 @@ class SyncDetector {
     }
 
     /**
-     * Apply synchronization to same-named files
+     * Apply synchronization to same-named files with selective block updates
+     * @param {string} sourceFilePath - Path of the source file
+     * @param {Object} changedBlocks - The blocks that have been changed
+     * @param {Array} targetFiles - Array of file paths to synchronize
+     */
+    static synchronizeBlockChanges(sourceFilePath, changedBlocks, targetFiles) {
+        const syncedFiles = [];
+        const failedFiles = [];
+
+        for (const targetFile of targetFiles) {
+            try {
+                // Read the existing content of the target file
+                const existingContent = fs.readFileSync(targetFile, 'utf8');
+                const existingJson = JSON.parse(existingContent);
+                
+                // Apply only the changed blocks to the existing content
+                const updatedJson = JsonBlockParser.applyBlockChanges(existingJson, changedBlocks);
+                
+                // Write the updated content back to the file
+                fs.writeFileSync(targetFile, JSON.stringify(updatedJson, null, 2), 'utf8');
+                syncedFiles.push(targetFile);
+            } catch (error) {
+                failedFiles.push({ file: targetFile, error: error.message });
+            }
+        }
+
+        // Report results
+        if (syncedFiles.length > 0) {
+            vscode.window.showInformationMessage(
+                `Successfully synchronized changes to ${syncedFiles.length} file(s):\n${syncedFiles.join('\n')}`
+            );
+        }
+
+        if (failedFiles.length > 0) {
+            vscode.window.showErrorMessage(
+                `Failed to synchronize ${failedFiles.length} file(s):\\n${failedFiles.map(f => f.file + ': ' + f.error).join('\\n')}`
+            );
+        }
+    }
+
+    /**
+     * Apply synchronization to same-named files (full content replacement)
      * @param {string} sourceFilePath - Path of the source file
      * @param {string} content - Content to write to other files
      * @param {Array} targetFiles - Array of file paths to synchronize

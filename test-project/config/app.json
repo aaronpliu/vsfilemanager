@@ -2,13 +2,13 @@
   "config": {
     "db": {
       "host": "localhost",
-      "port": 5432,
+      "port": 5433,
       "username": "admin",
       "password": "password"
     },
     "api": {
       "baseUrl": "https://api.example.com",
-      "timeout": 5323
+      "timeout": 5328
     }
   },
   "ui": {

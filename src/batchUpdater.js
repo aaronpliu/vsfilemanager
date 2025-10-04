@@ -38,14 +38,8 @@ class BatchUpdater {
                 // Parse as JSON
                 const jsonContent = JSON.parse(fileContent);
                 
-                // Convert to blocks
-                const fileBlocks = JsonBlockParser.parseToBlocks(jsonContent);
-                
-                // Apply changes - merge blocks
-                const updatedBlocks = { ...fileBlocks, ...blocks };
-                
-                // Convert back to JSON
-                const updatedJson = JsonBlockParser.blocksToJson(updatedBlocks);
+                // Apply changes using the JsonBlockParser
+                const updatedJson = JsonBlockParser.applyBlockChanges(jsonContent, blocks);
                 
                 // Write back to file
                 fs.writeFileSync(filePath, JSON.stringify(updatedJson, null, 2), 'utf8');

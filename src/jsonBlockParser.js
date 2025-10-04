@@ -214,6 +214,33 @@ class JsonBlockParser {
 
         return result;
     }
+
+    /**
+     * Apply specific block changes to an existing JSON file
+     * @param {Object} existingJsonContent - The existing JSON content to update
+     * @param {Object} changedBlocks - The blocks that have been changed
+     * @returns {Object} Updated JSON object with only the changed blocks applied
+     */
+    static applyBlockChanges(existingJsonContent, changedBlocks) {
+        // Parse the existing content into blocks
+        const existingBlocks = this.parseToBlocks(existingJsonContent);
+        
+        // Apply the changed blocks to the existing blocks
+        for (const key in changedBlocks) {
+            if (changedBlocks.hasOwnProperty(key)) {
+                // Handle the new block format with type information
+                if (typeof changedBlocks[key] === 'object' && changedBlocks[key] !== null && changedBlocks[key].hasOwnProperty('originalType')) {
+                    existingBlocks[key] = changedBlocks[key];
+                } else {
+                    // Handle the old format for backward compatibility
+                    existingBlocks[key] = changedBlocks[key];
+                }
+            }
+        }
+        
+        // Convert back to JSON
+        return this.blocksToJson(existingBlocks);
+    }
 }
 
 module.exports = JsonBlockParser;
