@@ -7,8 +7,7 @@
       "password": "password"
     },
     "api": {
-      "baseUrl": "https://api.example.com",
-      "timeout": 5365
+      "baseUrl": "https://api.example.com"
     }
   },
   "ui": {

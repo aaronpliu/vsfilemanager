@@ -53,7 +53,7 @@ function activate(context) {
 			// Create and show a webview panel
 			const panel = vscode.window.createWebviewPanel(
 				'jsonBlockEditor', // Identifies the type of the webview. Used internally
-				`JSON Block Editor - ${filePath}`, // Title of the panel displayed to the user
+				`JSON Block Editor`, // Title of the panel displayed to the user
 				vscode.ViewColumn.One, // Editor column to show the new webview panel in.
 				{
 					// Enable scripts in the webview
@@ -170,7 +170,7 @@ function activate(context) {
 							
 							const deleteBtn = document.createElement('button');
 							deleteBtn.className = 'delete-btn';
-							deleteBtn.textContent = '✕';
+							deleteBtn.textContent = '🗑';
 							deleteBtn.setAttribute('data-key', key);
 							deleteBtn.setAttribute('data-depth', selectedDepthGroup.depth);
 							blockHeader.appendChild(deleteBtn);
@@ -234,11 +234,29 @@ function activate(context) {
 					button.addEventListener('click', (e) => {
 						const key = e.target.getAttribute('data-key');
 						const depthIndex = parseInt(e.target.getAttribute('data-depth'));
+						
 						// Find the correct depth group and delete the block
-						const depthGroup = currentBlocks.find(dg => 
-							dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
-						if (depthGroup) {
-							delete depthGroup.blocks[key];
+						let deleted = false;
+						for (const depthGroup of currentBlocks) {
+							if (depthGroup.depth === depthIndex && depthGroup.blocks.hasOwnProperty(key)) {
+								delete depthGroup.blocks[key];
+								deleted = true;
+								break;
+							}
+						}
+						
+						// If not found in the specific depth, search all groups
+						if (!deleted) {
+							for (const depthGroup of currentBlocks) {
+								if (depthGroup.blocks.hasOwnProperty(key)) {
+									delete depthGroup.blocks[key];
+									deleted = true;
+									break;
+								}
+							}
+						}
+						
+						if (deleted) {
 							renderBlocks();
 							// Enable save button when block is deleted
 							updateSaveButtonState();
@@ -443,9 +461,32 @@ function activate(context) {
 					}
 				});
 				
+				// Create a list of deleted keys by comparing with originalBlocks
+				const deletedKeys = [];
+				if (originalBlocks) {
+					originalBlocks.forEach(depthGroup => {
+						for (const [key, block] of Object.entries(depthGroup.blocks)) {
+							// Check if this key exists in the current blocks
+							let exists = false;
+							for (const currentDepthGroup of currentBlocks) {
+								if (currentDepthGroup.blocks.hasOwnProperty(key)) {
+									exists = true;
+									break;
+								}
+							}
+							
+							if (!exists) {
+								deletedKeys.push(key);
+							}
+						}
+					});
+				}
+				
 				vscode.postMessage({
 					command: 'save',
-					blocks: flattenedBlocks
+					blocks: flattenedBlocks,
+					deletedKeys: deletedKeys,
+					originalBlocks: originalBlocks
 				});
 			});
 			
@@ -582,19 +623,50 @@ function activate(context) {
 					switch (message.command) {
 						case 'save':
 							try {
-								// Convert blocks back to JSON
-								const updatedJson = JsonBlockParser.blocksToJson(message.blocks);
+								// Get the original JSON content
+								const originalJsonContent = JSON.parse(document.getText());
 								
-								// Update the document
-								const edit = new vscode.WorkspaceEdit();
-								const fullRange = new vscode.Range(
-									document.positionAt(0),
-									document.positionAt(document.getText().length)
-								);
-								edit.replace(document.uri, fullRange, JSON.stringify(updatedJson, null, 2));
+								// Apply block changes (including deletions) to the original content
+								const updatedJson = JsonBlockParser.applyBlockChanges(originalJsonContent, message.blocks);
 								
-								// Apply the edit
-								await vscode.workspace.applyEdit(edit);
+								// Handle deletions if any
+								if (message.deletedKeys && message.deletedKeys.length > 0) {
+									// Parse the updated JSON into blocks to work with
+									const updatedBlocks = JsonBlockParser.parseToBlocks(updatedJson);
+									
+									// Remove deleted keys
+									message.deletedKeys.forEach(key => {
+										if (updatedBlocks.hasOwnProperty(key)) {
+											delete updatedBlocks[key];
+										}
+									});
+									
+									// Convert back to JSON
+									const finalJson = JsonBlockParser.blocksToJson(updatedBlocks);
+									
+									// Update the document
+									const edit = new vscode.WorkspaceEdit();
+									const fullRange = new vscode.Range(
+										document.positionAt(0),
+										document.positionAt(document.getText().length)
+									);
+									edit.replace(document.uri, fullRange, JSON.stringify(finalJson, null, 2));
+									
+									// Apply the edit
+									await vscode.workspace.applyEdit(edit);
+								} else {
+									// No deletions, use the updated JSON directly
+									// Update the document
+									const edit = new vscode.WorkspaceEdit();
+									const fullRange = new vscode.Range(
+										document.positionAt(0),
+										document.positionAt(document.getText().length)
+									);
+									edit.replace(document.uri, fullRange, JSON.stringify(updatedJson, null, 2));
+									
+									// Apply the edit
+									await vscode.workspace.applyEdit(edit);
+								}
 								
 								// Show success message for the current file update
 								vscode.window.showInformationMessage('JSON blocks updated successfully!');
