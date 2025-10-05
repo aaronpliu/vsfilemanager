@@ -202,7 +202,7 @@ function activate(context) {
 							
 							const deleteBtn = document.createElement('button');
 							deleteBtn.className = 'delete-btn';
-							deleteBtn.textContent = '🗑';
+							deleteBtn.textContent = '🗑️'; deleteBtn.title = 'Delete';
 							deleteBtn.setAttribute('data-key', key);
 							deleteBtn.setAttribute('data-depth', selectedDepthGroup.depth);
 							blockHeader.appendChild(deleteBtn);
