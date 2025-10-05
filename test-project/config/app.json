@@ -7,15 +7,7 @@
       "password": "password"
     },
     "api": {
-      "baseUrl": "https://api.example.com",
-      "timeout": 2001,
-      "flag": true
-    },
-    "auth": {
-      "secret": "secret",
-      "jwt": {
-        "algorithm": "HS256"
-      }
+      "baseUrl": "https://api.example.com"
     }
   },
   "ui": {

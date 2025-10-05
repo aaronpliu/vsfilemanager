@@ -134,6 +134,10 @@ function activate(context) {
 			let maxDepth = 2; // Default depth is 2 - matching the HTML selector
 			let documentVersion = ${document.version}; // Track document version
 			
+			// Search state
+			let searchResults = [];
+			let currentSearchIndex = -1;
+			
 			// Function to check if there are any changes and update save button state
 			function updateSaveButtonState() {
 				const saveBtn = document.getElementById('saveBtn');
@@ -191,6 +195,19 @@ function activate(context) {
 						for (const [key, block] of Object.entries(selectedDepthGroup.blocks)) {
 							const blockItem = document.createElement('div');
 							blockItem.className = 'block-item';
+							
+							// Highlight block if it's part of search results
+							if (searchResults.length > 0) {
+								if (searchResults.includes(key)) {
+									blockItem.classList.add('search-highlight');
+									// If this is the current search result, add special class
+									if (currentSearchIndex >= 0 && searchResults[currentSearchIndex] === key) {
+										blockItem.classList.add('current-search-result');
+										// Scroll to the element
+										blockItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+									}
+								}
+							}
 							
 							const blockHeader = document.createElement('div');
 							blockHeader.className = 'block-header';
@@ -518,6 +535,23 @@ function activate(context) {
 				renderBlocks();
 			});
 			
+			// Handle search button
+			document.getElementById('searchBtn').addEventListener('click', performSearch);
+			
+			// Handle clear search button
+			document.getElementById('clearSearchBtn').addEventListener('click', clearSearch);
+			
+			// Handle Enter key in search input
+			document.getElementById('searchInput').addEventListener('keyup', (e) => {
+				if (e.key === 'Enter') {
+					if (e.shiftKey) {
+						previousSearchResult();
+					} else {
+						nextSearchResult();
+					}
+				}
+			});
+			
 			// Handle Save button
 			document.getElementById('saveBtn').addEventListener('click', () => {
 				// Flatten blocks for saving
@@ -624,6 +658,69 @@ function activate(context) {
 						break;
 				}
 			});
+			
+			// Function to perform search
+			function performSearch() {
+				const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+				const searchResultsElement = document.getElementById('searchResults');
+				
+				if (!searchTerm) {
+					searchResults = [];
+					currentSearchIndex = -1;
+					searchResultsElement.textContent = '';
+					renderBlocks();
+					return;
+				}
+				
+				// Find all matching blocks across all depths
+				searchResults = [];
+				currentBlocks.forEach(depthGroup => {
+					for (const key in depthGroup.blocks) {
+						if (key.toLowerCase().includes(searchTerm)) {
+							searchResults.push(key);
+						}
+					}
+				});
+				
+				if (searchResults.length > 0) {
+					currentSearchIndex = 0;
+					searchResultsElement.textContent = 'Found ' + searchResults.length + ' result(s). Use Enter or Search button to navigate.';
+				} else {
+					currentSearchIndex = -1;
+					searchResultsElement.textContent = 'No matching blocks found.';
+				}
+				
+				renderBlocks();
+			}
+			
+			// Function to navigate to next search result
+			function nextSearchResult() {
+				if (searchResults.length === 0) return;
+				
+				currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
+				document.getElementById('searchResults').textContent = 
+					'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+				renderBlocks();
+			}
+			
+			// Function to navigate to previous search result
+			function previousSearchResult() {
+				if (searchResults.length === 0) return;
+				
+				currentSearchIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
+				document.getElementById('searchResults').textContent = 
+					'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+				renderBlocks();
+			}
+			
+			// Function to clear search
+			function clearSearch() {
+				document.getElementById('searchInput').value = '';
+				searchResults = [];
+				currentSearchIndex = -1;
+				document.getElementById('searchResults').textContent = '';
+				renderBlocks();
+			}
 			</script>`;
 			
 			// Add the file path to the HTML
@@ -665,6 +762,16 @@ function activate(context) {
 				padding: 5px 10px;
 				border-radius: 2px;
 				cursor: pointer;
+			}
+			
+			.search-highlight {
+				background-color: var(--vscode-editor-findMatchHighlightBackground);
+				color: var(--vscode-editor-findMatchHighlightForeground);
+			}
+			
+			.current-search-result {
+				background-color: var(--vscode-editor-findMatchBackground);
+				color: var(--vscode-editor-findMatchForeground);
 			}
 			
 			.reload-btn-notification:hover, .dismiss-btn:hover {
