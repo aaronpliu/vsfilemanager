@@ -544,11 +544,14 @@ function activate(context) {
 			// Handle Enter key in search input
 			document.getElementById('searchInput').addEventListener('keyup', (e) => {
 				if (e.key === 'Enter') {
-					if (e.shiftKey) {
-						previousSearchResult();
-					} else {
-						nextSearchResult();
-					}
+					performSearch();
+				}
+			});
+			
+			// Clear search when the search input is emptied
+			document.getElementById('searchInput').addEventListener('input', (e) => {
+				if (e.target.value.trim() === '') {
+					clearSearch();
 				}
 			});
 			
