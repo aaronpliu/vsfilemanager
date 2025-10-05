@@ -298,22 +298,27 @@
     <div class="header">
         <h1>JSON Block Editor</h1>
         <p>Edit individual JSON blocks using dot notation paths</p>
-        <div class="search-container" style="margin: 10px 0;">
-            <input type="text" id="searchInput" placeholder="Search blocks by key..." style="width: 300px; padding: 5px; margin-right: 10px;">
-            <button id="searchBtn">Search</button>
-            <button id="clearSearchBtn">Clear</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin: 10px 0;">
+            <div class="depth-selector">
+                <label for="depthSelector">View Depth: </label>
+                <select id="depthSelector">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="search-container" style="display: flex; gap: 10px; align-items: center; padding: 5px; border: 1px solid var(--vscode-panel-border); border-radius: 3px;">
+                <span>🔍</span>
+                <input type="text" id="searchInput" placeholder="Search blocks by key..." style="padding: 5px; flex: 1; min-width: 200px;">
+                <button id="searchBtn">Search</button>
+                <button id="clearSearchBtn">Clear</button>
+            </div>
         </div>
-        <div class="search-results" id="searchResults" style="margin: 10px 0; color: var(--vscode-descriptionForeground); font-size: 0.9em;"></div>
-        <div class="depth-selector">
-            <label for="depthSelector">View Depth: </label>
-            <select id="depthSelector">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value="2" selected>2</option>
-                <option value="3">3</option>
-                <option value="4">4</option>
-                <option value="5">5</option>
-            </select>
+        <div class="search-results-placeholder" style="margin: 10px 0; color: var(--vscode-descriptionForeground); font-size: 0.9em; text-align: right; min-height: 1.2em;">
+            <span id="searchResults"></span>
         </div>
     </div>
     
@@ -883,7 +888,7 @@
 				
 				if (searchResults.length > 0) {
 					currentSearchIndex = 0;
-					searchResultsElement.textContent = `Found ${searchResults.length} result(s). Use Enter or Search button to navigate.`;
+					searchResultsElement.textContent = 'Found ' + searchResults.length + ' result(s). Use Enter or Search button to navigate.';
 				} else {
 					currentSearchIndex = -1;
 					searchResultsElement.textContent = 'No matching blocks found.';
