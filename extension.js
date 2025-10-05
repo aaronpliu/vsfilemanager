@@ -536,6 +536,13 @@ function activate(context) {
 				});
 			});
 			
+			// Handle Open Source File button
+			document.getElementById('openSourceBtn').addEventListener('click', () => {
+				vscode.postMessage({
+					command: 'openSource'
+				});
+			});
+			
 			// Handle messages from the extension
 			window.addEventListener('message', event => {
 				const message = event.data;
@@ -583,7 +590,7 @@ function activate(context) {
 			// Add the file path to the HTML
 			htmlContent = htmlContent.replace(
 				'<h1>JSON Block Editor</h1>',
-				'<h1>JSON Block Editor</h1>\n        <p style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin-top: -10px;">' + document.fileName + '</p>'
+				'<h1>JSON Block Editor</h1>\n        <div style="display: flex; align-items: center; gap: 10px;">\n          <p style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin: 0; flex-grow: 1;">' + document.fileName + '</p>\n          <button id="openSourceBtn" class="open-source-btn">Open Source File</button>\n        </div>'
 			);
 			
 			// Add depth selector to the HTML
@@ -642,6 +649,21 @@ function activate(context) {
 			button:disabled {
 				opacity: 0.5;
 				cursor: not-allowed;
+			}
+			
+			.open-source-btn {
+				background-color: var(--vscode-button-background);
+				color: var(--vscode-button-foreground);
+				border: none;
+				padding: 4px 8px;
+				border-radius: 2px;
+				cursor: pointer;
+				font-size: 0.8em;
+				white-space: nowrap;
+			}
+			
+			.open-source-btn:hover {
+				background-color: var(--vscode-button-hoverBackground);
 			}
 			</style>
 			`;
@@ -860,6 +882,10 @@ function activate(context) {
 							} catch (error) {
 								vscode.window.showErrorMessage('Error reloading document: ' + error.message);
 							}
+							return;
+						case 'openSource':
+							// Open the source file in VS Code editor
+							vscode.window.showTextDocument(document.uri);
 							return;
 					}
 				},

@@ -11,6 +11,13 @@
       "timeout": 2000,
       "test": false
     },
+    "auth": {
+      "secret": "secret",
+      "expiresIn": "1d",
+      "jwt": {
+        "algorithm": "HS256"
+      }
+    },
     "dev": true
   },
   "ui": {

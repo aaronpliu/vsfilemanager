@@ -162,6 +162,21 @@
             background-color: var(--vscode-button-secondaryHoverBackground);
         }
         
+        .open-source-btn {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 4px 8px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 0.8em;
+            white-space: nowrap;
+        }
+        
+        .open-source-btn:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        
         .edit-toggle-btn {
             background-color: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
@@ -357,8 +372,8 @@
 				const blockList = document.getElementById('blockList');
 				blockList.innerHTML = '';
 				
-				// Find all depth groups up to and including the selected depth
-				const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth <= maxDepth);
+				// Find all depth groups that match the selected depth
+				const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
 				
 				if (selectedDepthGroups.length > 0) {
 					// Sort groups by depth to display them in order
@@ -730,6 +745,13 @@
 			document.getElementById('reloadBtn').addEventListener('click', () => {
 				vscode.postMessage({
 					command: 'reload'
+				});
+			});
+			
+			// Handle Open Source File button
+			document.getElementById('openSourceBtn').addEventListener('click', () => {
+				vscode.postMessage({
+					command: 'openSource'
 				});
 			});
 			
