@@ -8,7 +8,7 @@
     },
     "api": {
       "baseUrl": "https://api.example.com",
-      "timeout": 2000,
+      "timeout": 2001,
       "flag": true
     },
     "auth": {

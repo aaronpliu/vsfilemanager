@@ -570,8 +570,11 @@
 									} else {
 										depthGroup.blocks[key].value = input.value;
 									}
+								} else if (depthGroup.blocks[key].originalType === 'string') {
+									// For strings, add quotes for display
+									depthGroup.blocks[key].value = '"' + input.value + '"';
 								} else {
-									// For strings and other types, use as is
+									// For other types, use as is
 									depthGroup.blocks[key].value = input.value;
 								}
 							}
@@ -611,8 +614,11 @@
 								} else {
 									depthGroup.blocks[key].value = e.target.value;
 								}
+							} else if (depthGroup.blocks[key].originalType === 'string') {
+								// For strings, add quotes for display
+								depthGroup.blocks[key].value = '"' + e.target.value + '"';
 							} else {
-								// For strings and other types, use as is
+								// For other types, use as is
 								depthGroup.blocks[key].value = e.target.value;
 							}
 							// Check if value has actually changed from original
