@@ -792,6 +792,9 @@
 							});
 							
 							document.getElementById('dismissBtn').addEventListener('click', () => {
+								vscode.postMessage({
+									command: 'dismissNotification'
+								});
 								notification.remove();
 							});
 						}

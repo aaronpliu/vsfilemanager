@@ -9,16 +9,15 @@
     "api": {
       "baseUrl": "https://api.example.com",
       "timeout": 2000,
-      "test": false
+      "flag": false
     },
     "auth": {
       "secret": "secret",
-      "expiresIn": "1d",
       "jwt": {
         "algorithm": "HS256"
       }
     },
-    "dev": true
+    "test": false
   },
   "ui": {
     "theme": {
@@ -26,5 +25,6 @@
       "secondaryColor": "#6c757d",
       "font": "Arial"
     }
-  }
+  },
+  "foo": "bar"
 }

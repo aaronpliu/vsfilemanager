@@ -69,6 +69,12 @@ function activate(context) {
 
 			// Store the document's initial version
 			let documentVersion = document.version;
+			// Flag to track if changes are made internally by our extension
+			let isInternalChange = false;
+			// Timer for debouncing external change notifications
+			let externalChangeTimer = null;
+			// Flag to track if external change notification is already shown
+			let isExternalChangeNotified = false;
 
 			// Set up a listener for document changes
 			const changeListener = vscode.workspace.onDidChangeTextDocument((event) => {
@@ -76,17 +82,41 @@ function activate(context) {
 					// Document has changed, update the version
 					documentVersion = event.document.version;
 					
-					// Notify the webview that the document has changed
-					panel.webview.postMessage({
-						command: 'documentChanged',
-						version: documentVersion
-					});
+					// Only notify the webview if changes are external (not made by our extension)
+					if (!isInternalChange) {
+						// Clear any existing timer
+						if (externalChangeTimer) {
+							clearTimeout(externalChangeTimer);
+						}
+						
+						// Set a new timer to debounce the notification
+						externalChangeTimer = setTimeout(() => {
+							// Only notify if we haven't already notified about this change
+							if (!isExternalChangeNotified) {
+								// Notify the webview that the document has changed
+								panel.webview.postMessage({
+									command: 'documentChanged',
+									version: documentVersion
+								});
+								// Mark that we've notified
+								isExternalChangeNotified = true;
+							}
+							externalChangeTimer = null;
+						}, 1000); // Wait 1 second after changes stop before notifying
+					} else {
+						// Reset the flag for next change
+						isInternalChange = false;
+					}
 				}
 			});
 
 			// Set up a listener for when the panel is disposed
 			panel.onDidDispose(() => {
 				changeListener.dispose();
+				// Clear any pending external change timer
+				if (externalChangeTimer) {
+					clearTimeout(externalChangeTimer);
+				}
 			}, null, context.subscriptions);
 
 			// Get path to HTML file on disk
@@ -579,6 +609,9 @@ function activate(context) {
 							});
 							
 							document.getElementById('dismissBtn').addEventListener('click', () => {
+								vscode.postMessage({
+									command: 'dismissNotification'
+								});
 								notification.remove();
 							});
 						}
@@ -713,6 +746,9 @@ function activate(context) {
 									);
 									edit.replace(document.uri, fullRange, JSON.stringify(finalJson, null, 2));
 									
+									// Mark this as an internal change
+									isInternalChange = true;
+									
 									// Apply the edit
 									await vscode.workspace.applyEdit(edit);
 								} else {
@@ -724,6 +760,9 @@ function activate(context) {
 										document.positionAt(document.getText().length)
 									);
 									edit.replace(document.uri, fullRange, JSON.stringify(updatedJson, null, 2));
+									
+									// Mark this as an internal change
+									isInternalChange = true;
 									
 									// Apply the edit
 									await vscode.workspace.applyEdit(edit);
@@ -864,6 +903,9 @@ function activate(context) {
 							return;
 						case 'reload':
 							try {
+								// Reset the external change notification flag
+								isExternalChangeNotified = false;
+								
 								// Reload the document content
 								const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
 								const updatedJsonContent = JSON.parse(updatedDocument.getText());
@@ -882,6 +924,10 @@ function activate(context) {
 							} catch (error) {
 								vscode.window.showErrorMessage('Error reloading document: ' + error.message);
 							}
+							return;
+						case 'dismissNotification':
+							// Reset the external change notification flag when user dismisses notification
+							isExternalChangeNotified = false;
 							return;
 						case 'openSource':
 							// Open the source file in VS Code editor
