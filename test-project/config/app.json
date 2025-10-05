@@ -10,7 +10,8 @@
       "baseUrl": "https://api.example.com",
       "timeout": 2000,
       "test": false
-    }
+    },
+    "dev": true
   },
   "ui": {
     "theme": {

@@ -61,7 +61,9 @@ function activate(context) {
 					// Restrict the webview to only load resources from workspace and webview directory
 					localResourceRoots: [
 						vscode.Uri.joinPath(context.extensionUri, 'webview')
-					]
+					],
+					// Enable retention of state when webview is hidden
+					retainContextWhenHidden: true
 				}
 			);
 

@@ -326,7 +326,14 @@
 			// Store the original blocks
 			const originalBlocks = /*${JSON.stringify(depthBlocks)}*/ [];
 			let currentBlocks = JSON.parse(JSON.stringify(originalBlocks));
-			let maxDepth = 2; // Default depth is 2 - matching the HTML selector
+			
+			// Retrieve state if it exists
+			const previousState = vscode.getState();
+			let maxDepth = previousState?.maxDepth ?? 2; // Default depth is 2 - matching the HTML selector
+			
+			// Update the depth selector to match the current maxDepth
+			document.getElementById('depthSelector').value = maxDepth;
+			
 			let documentVersion = /*${document.version}*/ 0; // Track document version
 			
 			// Function to check if there are any changes and update save button state
@@ -350,26 +357,29 @@
 				const blockList = document.getElementById('blockList');
 				blockList.innerHTML = '';
 				
-				// Find all depth groups that match the selected depth
-				const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+				// Find all depth groups up to and including the selected depth
+				const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth <= maxDepth);
 				
 				if (selectedDepthGroups.length > 0) {
-					// Create a container for all blocks at this depth
-					const allBlocksContainer = document.createElement('div');
-					allBlocksContainer.className = 'depth-group';
+					// Sort groups by depth to display them in order
+					selectedDepthGroups.sort((a, b) => a.depth - b.depth);
 					
-					const depthHeader = document.createElement('div');
-					depthHeader.className = 'depth-header';
-					const depthTitle = document.createElement('h3');
-					depthTitle.textContent = 'Depth Level ' + maxDepth;
-					depthHeader.appendChild(depthTitle);
-					allBlocksContainer.appendChild(depthHeader);
-					
-					const blocksContainer = document.createElement('div');
-					blocksContainer.className = 'depth-blocks';
-					
-					// Iterate through all depth groups at the selected depth
+					// Create containers for each depth level
 					selectedDepthGroups.forEach(selectedDepthGroup => {
+						// Create a container for all blocks at this depth
+						const allBlocksContainer = document.createElement('div');
+						allBlocksContainer.className = 'depth-group';
+						
+						const depthHeader = document.createElement('div');
+						depthHeader.className = 'depth-header';
+						const depthTitle = document.createElement('h3');
+						depthTitle.textContent = 'Depth Level ' + selectedDepthGroup.depth;
+						depthHeader.appendChild(depthTitle);
+						allBlocksContainer.appendChild(depthHeader);
+						
+						const blocksContainer = document.createElement('div');
+						blocksContainer.className = 'depth-blocks';
+						
 						// Add a header for this group if there's a prefix
 						if (selectedDepthGroup.prefix) {
 							const groupHeader = document.createElement('div');
@@ -441,10 +451,10 @@
 							
 							blocksContainer.appendChild(blockItem);
 						}
+						
+						allBlocksContainer.appendChild(blocksContainer);
+						blockList.appendChild(allBlocksContainer);
 					});
-					
-					allBlocksContainer.appendChild(blocksContainer);
-					blockList.appendChild(allBlocksContainer);
 				} else {
 					// Show message when no blocks are found at selected depth
 					const noBlocksMessage = document.createElement('div');
@@ -686,6 +696,8 @@
 			// Handle depth selection change
 			document.getElementById('depthSelector').addEventListener('change', (e) => {
 				maxDepth = parseInt(e.target.value);
+				// Save the state
+				vscode.setState({ maxDepth: maxDepth });
 				renderBlocks();
 			});
 			
