@@ -110,7 +110,7 @@ class JsonBlockParser {
                 let value = blocks[key];
                 
                 // Handle different types based on original type information
-                if (typeof value === 'object' && value !== null && value.originalType) {
+                if (typeof value === 'object' && value !== null && value.hasOwnProperty('originalType')) {
                     // This is a block object with type information
                     if (value.originalType === 'object') {
                         // Try to parse JSON strings back to objects
@@ -130,20 +130,38 @@ class JsonBlockParser {
                             value = value.value;
                         }
                     } else if (value.originalType === 'number') {
-                        // Convert to number if possible
-                        const numValue = Number(value.value);
-                        value = isNaN(numValue) ? value.value : numValue;
-                    } else if (value.originalType === 'boolean') {
-                        // Convert to boolean
-                        if (value.value === 'true') {
-                            value = true;
-                        } else if (value.value === 'false') {
-                            value = false;
-                        } else {
+                        // For numbers, use the value directly if it's already a number
+                        // or convert from the value property if it's an object
+                        if (typeof value.value === 'number') {
                             value = value.value;
+                        } else {
+                            // Convert to number if possible
+                            const numValue = Number(value.value);
+                            value = isNaN(numValue) ? value.value : numValue;
+                        }
+                    } else if (value.originalType === 'boolean') {
+                        // For booleans, use the value directly if it's already a boolean
+                        // or convert from the value property if it's an object
+                        if (typeof value.value === 'boolean') {
+                            value = value.value;
+                        } else {
+                            // Convert to boolean
+                            if (value.value === 'true') {
+                                value = true;
+                            } else if (value.value === 'false') {
+                                value = false;
+                            } else {
+                                value = value.value;
+                            }
                         }
                     } else {
                         // For other types, use the value as is
+                        value = value.value;
+                    }
+                } else if (typeof value === 'object' && value !== null) {
+                    // Handle values that are objects but don't have originalType
+                    // This might be from the old format or direct values
+                    if (value.hasOwnProperty('value')) {
                         value = value.value;
                     }
                 } else if (typeof value === 'string') {
@@ -228,12 +246,51 @@ class JsonBlockParser {
         // Apply the changed blocks to the existing blocks
         for (const key in changedBlocks) {
             if (changedBlocks.hasOwnProperty(key)) {
-                // Handle the new block format with type information
-                if (typeof changedBlocks[key] === 'object' && changedBlocks[key] !== null && changedBlocks[key].hasOwnProperty('originalType')) {
-                    existingBlocks[key] = changedBlocks[key];
+                const changedBlock = changedBlocks[key];
+                
+                // Check if this is a complete block object with all metadata
+                if (typeof changedBlock === 'object' && changedBlock !== null && 
+                    changedBlock.hasOwnProperty('originalType') && 
+                    changedBlock.hasOwnProperty('value')) {
+                    // This is a complete block object, use it as-is
+                    existingBlocks[key] = changedBlock;
+                } else if (typeof changedBlock === 'object' && changedBlock !== null && 
+                           changedBlock.hasOwnProperty('value')) {
+                    // This has a value but might be missing some metadata, preserve what we can
+                    if (existingBlocks[key]) {
+                        // Merge with existing block metadata
+                        existingBlocks[key] = {
+                            ...existingBlocks[key],
+                            value: changedBlock.value
+                        };
+                    } else {
+                        // Create a new block with minimal metadata
+                        existingBlocks[key] = changedBlock;
+                    }
                 } else {
-                    // Handle the old format for backward compatibility
-                    existingBlocks[key] = changedBlocks[key];
+                    // This is a direct value, need to create proper block structure
+                    if (existingBlocks[key]) {
+                        // Update just the value but keep the metadata
+                        existingBlocks[key].value = changedBlock;
+                    } else {
+                        // Create new block with inferred type
+                        const originalType = typeof changedBlock;
+                        let displayValue = changedBlock;
+                        
+                        // For strings, add quotes for display
+                        if (originalType === 'string') {
+                            displayValue = `"${changedBlock}"`;
+                        }
+                        
+                        existingBlocks[key] = {
+                            value: displayValue,
+                            type: typeof changedBlock,
+                            depth: 0,
+                            key: key,
+                            editable: true,
+                            originalType: originalType
+                        };
+                    }
                 }
             }
         }

@@ -532,8 +532,23 @@
 							const depthGroup = currentBlocks.find(dg => 
 								dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
 							if (depthGroup && depthGroup.blocks[key]) {
-								// Update the display value
-								depthGroup.blocks[key].value = input.value;
+								// Handle different data types properly - keep the object structure
+								// but update the value property with the correct type
+								if (depthGroup.blocks[key].originalType === 'number') {
+									const numValue = Number(input.value);
+									depthGroup.blocks[key].value = !isNaN(numValue) ? numValue : input.value;
+								} else if (depthGroup.blocks[key].originalType === 'boolean') {
+									if (input.value === 'true') {
+										depthGroup.blocks[key].value = true;
+									} else if (input.value === 'false') {
+										depthGroup.blocks[key].value = false;
+									} else {
+										depthGroup.blocks[key].value = input.value;
+									}
+								} else {
+									// For strings and other types, use as is
+									depthGroup.blocks[key].value = input.value;
+								}
 							}
 							
 							// Remove any existing cancel button
@@ -558,8 +573,23 @@
 						const depthGroup = currentBlocks.find(dg => 
 							dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
 						if (depthGroup && depthGroup.blocks[key]) {
-							// Update the display value
-							depthGroup.blocks[key].value = e.target.value;
+							// Handle different data types properly - keep the object structure
+							// but update the value property with the correct type
+							if (depthGroup.blocks[key].originalType === 'number') {
+								const numValue = Number(e.target.value);
+								depthGroup.blocks[key].value = !isNaN(numValue) ? numValue : e.target.value;
+							} else if (depthGroup.blocks[key].originalType === 'boolean') {
+								if (e.target.value === 'true') {
+									depthGroup.blocks[key].value = true;
+								} else if (e.target.value === 'false') {
+									depthGroup.blocks[key].value = false;
+								} else {
+									depthGroup.blocks[key].value = e.target.value;
+								}
+							} else {
+								// For strings and other types, use as is
+								depthGroup.blocks[key].value = e.target.value;
+							}
 							// Check if value has actually changed from original
 							const originalValue = e.target.getAttribute('data-original-value');
 							if (originalValue !== undefined && originalValue !== e.target.value) {
@@ -666,7 +696,14 @@
 				currentBlocks.forEach(depthGroup => {
 					for (const [key, block] of Object.entries(depthGroup.blocks)) {
 						// Pass the entire block object to preserve type information
-						flattenedBlocks[key] = block;
+						flattenedBlocks[key] = {
+							value: block.value,
+							type: block.type,
+							depth: block.depth,
+							key: block.key,
+							editable: block.editable,
+							originalType: block.originalType
+						};
 					}
 				});
 				
