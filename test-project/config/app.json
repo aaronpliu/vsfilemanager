@@ -8,10 +8,10 @@
     },
     "api": {
       "baseUrl": "https://api.example.com",
-      "development": 123,
+      "development": 123456,
       "auth": {
         "username": "admin",
-        "password": "password"
+        "password": "admin"
       }
     }
   },
@@ -21,6 +21,5 @@
       "secondaryColor": "#6c757d",
       "font": "Arial"
     }
-  },
-  "hello": "world"
+  }
 }
