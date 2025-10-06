@@ -18,12 +18,16 @@ Easily edit complex JSON and YAML files using a hierarchical block editor, synch
 - **Multi-format Support**: Works seamlessly with both JSON and YAML file formats
 - **Smart Detection**: Automatic detection of same-named files with configurable sync prompts
 
-## Features
+## JSON/YAML Block Editor
 
-- Edit JSON and YAML files in hierarchical blocks using dot notation (e.g., `config.db.host`)
-- Synchronize changes across multiple files with same name in parent/sibling directories
-- Batch update functionality to apply changes to multiple JSON/YAML files simultaneously
-- Smart detection of same-named files with automatic sync prompts
+The Block Editor provides a user-friendly interface for editing JSON and YAML files with a hierarchical view. Key features include:
+
+- View file contents organized by depth levels
+- Edit values in place with type preservation
+- Add new blocks at any depth level
+- Delete unwanted blocks
+- Search functionality to find specific keys
+- Save or reload the document as needed
 
 ## Commands
 

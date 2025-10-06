@@ -2,7 +2,7 @@
   "name": "vsfilemanager",
   "displayName": "VS File Manager",
   "description": "Advanced JSON and YAML structure editor with file synchronization",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "engines": {
     "vscode": "^1.75.0"
   },
