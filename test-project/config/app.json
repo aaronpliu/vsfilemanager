@@ -9,11 +9,11 @@
     "api": {
       "baseUrl": "https://api.example.com",
       "development": 123456,
+      "timeout": "5001",
       "auth": {
         "username": "admin",
         "password": "admin"
-      },
-      "timeout": 3001
+      }
     }
   },
   "ui": {

@@ -7,8 +7,23 @@
     "vscode": "^1.75.0"
   },
   "categories": [
+    "Visualization",
     "Other"
   ],
+  "keywords": [
+    "json",
+    "yaml",
+    "editor",
+    "block",
+    "sync",
+    "batch",
+    "file manager"
+  ],
+  "icon": "media/icon-128.png",
+  "galleryBanner": {
+    "color": "#4285f4",
+    "theme": "dark"
+  },
   "activationEvents": [],
   "main": "./extension.js",
   "contributes": {
@@ -45,5 +60,14 @@
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/vsfilemanager.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/vsfilemanager/issues"
+  },
+  "homepage": "https://github.com/your-username/vsfilemanager/blob/main/README.md",
+  "license": "MIT"
 }

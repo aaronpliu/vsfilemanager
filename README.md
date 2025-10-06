@@ -1,6 +1,22 @@
 # VS File Manager
 
+[![Version](https://vsmarketplacebadge.apphb.com/version-short/aaron-lv.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaron-lv.vsfilemanager)
+[![Installs](https://vsmarketplacebadge.apphb.com/installs-short/aaron-lv.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaron-lv.vsfilemanager)
+[![Rating](https://vsmarketplacebadge.apphb.com/rating-short/aaron-lv.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaron-lv.vsfilemanager)
+
+![VS File Manager Logo](media/icon-128.png)
+
 Advanced JSON and YAML structure editor with file synchronization capabilities for Visual Studio Code.
+
+Easily edit complex JSON and YAML files using a hierarchical block editor, synchronize changes across multiple files, and perform batch updates efficiently.
+
+## Features
+
+- **Block Editor**: Edit JSON and YAML files in a hierarchical block view using dot notation (e.g., `config.db.host`)
+- **File Synchronization**: Automatically detect and synchronize changes across multiple files with same name in your project
+- **Batch Updates**: Apply the same changes to multiple JSON/YAML files simultaneously
+- **Multi-format Support**: Works seamlessly with both JSON and YAML file formats
+- **Smart Detection**: Automatic detection of same-named files with configurable sync prompts
 
 ## Features
 

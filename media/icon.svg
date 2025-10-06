@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <!-- Background -->
+  <rect width="128" height="128" rx="16" fill="#4285f4"/>
+  
+  <!-- File shape -->
+  <path d="M32 24H96V104H32V24Z" fill="white"/>
+  
+  <!-- File fold effect -->
+  <path d="M96 24L76 8V24H96Z" fill="#e8eaed"/>
+  
+  <!-- Block elements representing structured data -->
+  <rect x="40" y="32" width="48" height="8" fill="#4285f4"/>
+  <rect x="40" y="44" width="32" height="8" fill="#4285f4"/>
+  <rect x="40" y="56" width="40" height="8" fill="#4285f4"/>
+  <rect x="40" y="68" width="24" height="8" fill="#4285f4"/>
+  <rect x="40" y="80" width="36" height="8" fill="#4285f4"/>
+  <rect x="40" y="92" width="30" height="8" fill="#4285f4"/>
+  
+  <!-- Sync arrows -->
+  <path d="M104 56L120 64L104 72" fill="none" stroke="#34a853" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M120 64C120 52 112 44 100 44" fill="none" stroke="#34a853" stroke-width="4" stroke-linecap="round"/>
+  
+  <path d="M24 72L8 64L24 56" fill="none" stroke="#ea4335" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M8 64C8 76 16 84 28 84" fill="none" stroke="#ea4335" stroke-width="4" stroke-linecap="round"/>
+</svg>
