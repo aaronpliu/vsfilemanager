@@ -12,7 +12,8 @@
       "auth": {
         "username": "admin",
         "password": "admin"
-      }
+      },
+      "timeout": 3001
     }
   },
   "ui": {

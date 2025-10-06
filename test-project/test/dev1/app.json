@@ -8,7 +8,12 @@
     },
     "api": {
       "baseUrl": "https://api.example.com",
-      "timeout": 5342
+      "development": 123456,
+      "auth": {
+        "username": "admin",
+        "password": "admin"
+      },
+      "timeout": 3001
     }
   },
   "ui": {

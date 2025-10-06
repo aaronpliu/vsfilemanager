@@ -18,6 +18,31 @@ class SyncDetector {
         const dirPath = path.dirname(filePath);
         const sameNamedFiles = [];
 
+        // Get the workspace root
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
+            // Fallback to original behavior if no workspace is open
+            return this.findSameNamedFilesLegacy(filePath);
+        }
+
+        const workspaceRoot = workspaceFolders[0].uri.fsPath;
+
+        // Search recursively from workspace root
+        this.searchFilesRecursively(workspaceRoot, fileName, sameNamedFiles, filePath);
+
+        return sameNamedFiles;
+    }
+
+    /**
+     * Legacy method to find same-named files (original behavior)
+     * @param {string} filePath - Path of the current file
+     * @returns {Array} Array of file paths that match the name
+     */
+    static findSameNamedFilesLegacy(filePath) {
+        const fileName = path.basename(filePath);
+        const dirPath = path.dirname(filePath);
+        const sameNamedFiles = [];
+
         // Check parent directory
         const parentDir = path.dirname(dirPath);
         if (fs.existsSync(parentDir)) {
@@ -47,6 +72,41 @@ class SyncDetector {
         }
 
         return sameNamedFiles;
+    }
+
+    /**
+     * Search for files recursively in all subdirectories
+     * @param {string} dir - Directory to search in
+     * @param {string} fileName - Name of the file to find
+     * @param {Array} results - Array to store results
+     * @param {string} excludePath - Path to exclude from results
+     */
+    static searchFilesRecursively(dir, fileName, results, excludePath) {
+        try {
+            const items = fs.readdirSync(dir);
+            
+            for (const item of items) {
+                const fullPath = path.join(dir, item);
+                
+                // Skip node_modules and other common directories that we don't want to search
+                if (item === 'node_modules' || item === '.git' || item.startsWith('.')) {
+                    continue;
+                }
+                
+                const stat = fs.statSync(fullPath);
+                
+                if (stat.isDirectory()) {
+                    // Recursively search in subdirectories
+                    this.searchFilesRecursively(fullPath, fileName, results, excludePath);
+                } else if (stat.isFile() && item === fileName && fullPath !== excludePath) {
+                    // Found a matching file (but not the original file)
+                    results.push(fullPath);
+                }
+            }
+        } catch (error) {
+            // Silently ignore errors to prevent one bad directory from stopping the entire search
+            console.warn(`Could not search directory ${dir}: ${error.message}`);
+        }
     }
 
     /**
