@@ -63,7 +63,7 @@ function activate(context) {
 			// Create and show a webview panel
 			const panel = vscode.window.createWebviewPanel(
 				'jsonBlockEditor', // Identifies the type of the webview. Used internally
-				`JSON Block Editor`, // Title of the panel displayed to the user
+				`JSON/YAML Block Editor`, // Title of the panel displayed to the user
 				vscode.ViewColumn.One, // Editor column to show the new webview panel in.
 				{
 					// Enable scripts in the webview
@@ -820,8 +820,8 @@ function activate(context) {
 			
 			// Add the file path to the HTML
 			htmlContent = htmlContent.replace(
-				'<h1>JSON Block Editor</h1>',
-				'<h1>JSON Block Editor</h1>\n        <div style="display: flex; align-items: center; gap: 10px;">\n          <p style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin: 0; flex-grow: 1;">' + document.fileName + '</p>\n          <button id="openSourceBtn" class="open-source-btn">Open Source File</button>\n        </div>'
+				'<h1>JSON/YAML Block Editor</h1>',
+				'<h1>JSON/YAML Block Editor</h1>\n        <div style="display: flex; align-items: center; gap: 10px;">\n          <p style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin: 0; flex-grow: 1;">' + document.fileName + '</p>\n          <button id="openSourceBtn" class="open-source-btn">Open Source File</button>\n        </div>'
 			);
 			
 			// Add depth selector to the HTML

@@ -2,13 +2,13 @@
   <!-- Window -->
   <rect x="0" y="0" width="800" height="600" fill="#2d2d30" rx="6" />
   <rect x="0" y="0" width="800" height="30" fill="#3c3c3c" rx="6" />
-  <text x="15" y="20" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" font-weight="600">JSON Block Editor</text>
+  <text x="15" y="20" font-family="Arial, sans-serif" font-size="14" fill="#ffffff" font-weight="600">JSON/YAML Block Editor</text>
   
   <!-- Content area -->
   <rect x="20" y="40" width="760" height="540" fill="#1e1e1e" />
   
   <!-- Header -->
-  <text x="40" y="70" font-family="Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="600">JSON Block Editor</text>
+  <text x="40" y="70" font-family="Arial, sans-serif" font-size="20" fill="#ffffff" font-weight="600">JSON/YAML Block Editor</text>
   <rect x="40" y="80" width="720" height="30" fill="#2d2d30" />
   <text x="50" y="100" font-family="Arial, sans-serif" font-size="12" fill="#999999">/workspace/project/config/app.json</text>
   <rect x="650" y="85" width="100" height="20" fill="#0e639c" rx="2" />
