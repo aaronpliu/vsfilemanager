@@ -20,8 +20,11 @@ Easily edit complex JSON and YAML files using a hierarchical block editor, synch
 
 ## JSON/YAML Block Editor
 
-The Block Editor provides a user-friendly interface for editing JSON and YAML files with a hierarchical view. Key features include:
+The Block Editor provides a user-friendly interface for editing JSON and YAML files with a hierarchical view:
 
+![JSON Block Editor](media/json-block-editor-screenshot.svg)
+
+Key features of the Block Editor:
 - View file contents organized by depth levels
 - Edit values in place with type preservation
 - Add new blocks at any depth level
