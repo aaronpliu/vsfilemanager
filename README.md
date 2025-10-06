@@ -32,18 +32,24 @@ Key features of the Block Editor:
 - Search functionality to find specific keys
 - Save or reload the document as needed
 
+## Installation
+
+### From VS Code Marketplace
+1. Search for "VS File Manager" in the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`)
+2. Click Install
+
+### From VSIX (Manual Installation)
+1. Download the `.vsix` file from the [latest release](https://github.com/aaron-lv/vsfilemanager/releases)
+2. In VS Code, open the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`)
+3. Click the "..." menu in the top right
+4. Select "Install from VSIX..."
+5. Choose the downloaded `.vsix` file
+
 ## Commands
 
 - `Edit JSON/YAML Blocks`: Open the block editor with a custom webview UI for JSON or YAML files
 - `Sync Files`: Manually trigger file synchronization for JSON or YAML files
 - `Batch Update JSON/YAML Files`: Apply the same changes to multiple selected JSON or YAML files
-
-## Installation
-
-1. Clone this repository
-2. Run `npm install` to install dependencies
-3. Open the folder in VS Code
-4. Press F5 to launch the extension in a new Extension Development Host window
 
 ## Usage
 
