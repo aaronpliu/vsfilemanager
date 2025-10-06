@@ -415,8 +415,19 @@ function activate(context) {
 									} else if (!isNaN(Number(input.value)) && input.value.trim() !== '') {
 										depthGroup.blocks[key].originalType = 'number';
 									} else {
-										// Keep as string
-										depthGroup.blocks[key].originalType = 'string';
+										// Check if it's a JSON object or array
+										try {
+											const parsed = JSON.parse(input.value);
+											if (typeof parsed === 'object' && parsed !== null) {
+												depthGroup.blocks[key].originalType = Array.isArray(parsed) ? 'array' : 'object';
+											} else {
+												// Keep as string
+												depthGroup.blocks[key].originalType = 'string';
+											}
+										} catch (e) {
+											// Keep as string
+											depthGroup.blocks[key].originalType = 'string';
+										}
 									}
 								} else {
 									// For other types, use as is
@@ -489,8 +500,19 @@ function activate(context) {
 								} else if (!isNaN(Number(e.target.value)) && e.target.value.trim() !== '') {
 									depthGroup.blocks[key].originalType = 'number';
 								} else {
-									// Keep as string
-									depthGroup.blocks[key].originalType = 'string';
+									// Check if it's a JSON object or array
+									try {
+										const parsed = JSON.parse(e.target.value);
+										if (typeof parsed === 'object' && parsed !== null) {
+											depthGroup.blocks[key].originalType = Array.isArray(parsed) ? 'array' : 'object';
+										} else {
+											// Keep as string
+											depthGroup.blocks[key].originalType = 'string';
+										}
+									} catch (e) {
+										// Keep as string
+										depthGroup.blocks[key].originalType = 'string';
+									}
 								}
 							} else {
 								// For other types, use as is

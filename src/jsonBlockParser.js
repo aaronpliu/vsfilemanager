@@ -112,21 +112,39 @@ class JsonBlockParser {
                 // Handle different types based on original type information
                 if (typeof value === 'object' && value !== null && value.hasOwnProperty('originalType')) {
                     // This is a block object with type information
-                    if (value.originalType === 'object') {
-                        // Try to parse JSON strings back to objects
-                        try {
-                            value = JSON.parse(value.value);
-                        } catch (e) {
-                            // If parsing fails, keep as string
-                            value = value.value;
-                        }
-                    } else if (value.originalType === 'string') {
+                    if (value.originalType === 'string') {
                         // Remove quotes from string values
                         if (typeof value.value === 'string' && 
                             value.value.startsWith('"') && 
                             value.value.endsWith('"')) {
                             value = value.value.substring(1, value.value.length - 1);
                         } else {
+                            value = value.value;
+                        }
+                    } else if (value.originalType === 'array') {
+                        // Try to parse JSON strings back to arrays
+                        try {
+                            const parsed = JSON.parse(value.value);
+                            if (Array.isArray(parsed)) {
+                                value = parsed;
+                            } else {
+                                value = value.value;
+                            }
+                        } catch (e) {
+                            // If parsing fails, keep as string
+                            value = value.value;
+                        }
+                    } else if (value.originalType === 'object') {
+                        // Try to parse JSON strings back to objects
+                        try {
+                            const parsed = JSON.parse(value.value);
+                            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                                value = parsed;
+                            } else {
+                                value = value.value;
+                            }
+                        } catch (e) {
+                            // If parsing fails, keep as string
                             value = value.value;
                         }
                     } else if (value.originalType === 'number') {
@@ -248,50 +266,9 @@ class JsonBlockParser {
             if (changedBlocks.hasOwnProperty(key)) {
                 const changedBlock = changedBlocks[key];
                 
-                // Check if this is a complete block object with all metadata
-                if (typeof changedBlock === 'object' && changedBlock !== null && 
-                    changedBlock.hasOwnProperty('originalType') && 
-                    changedBlock.hasOwnProperty('value')) {
-                    // This is a complete block object, use it as-is
-                    existingBlocks[key] = changedBlock;
-                } else if (typeof changedBlock === 'object' && changedBlock !== null && 
-                           changedBlock.hasOwnProperty('value')) {
-                    // This has a value but might be missing some metadata, preserve what we can
-                    if (existingBlocks[key]) {
-                        // Merge with existing block metadata
-                        existingBlocks[key] = {
-                            ...existingBlocks[key],
-                            value: changedBlock.value
-                        };
-                    } else {
-                        // Create a new block with minimal metadata
-                        existingBlocks[key] = changedBlock;
-                    }
-                } else {
-                    // This is a direct value, need to create proper block structure
-                    if (existingBlocks[key]) {
-                        // Update just the value but keep the metadata
-                        existingBlocks[key].value = changedBlock;
-                    } else {
-                        // Create new block with inferred type
-                        const originalType = typeof changedBlock;
-                        let displayValue = changedBlock;
-                        
-                        // For strings, add quotes for display
-                        if (originalType === 'string') {
-                            displayValue = `"${changedBlock}"`;
-                        }
-                        
-                        existingBlocks[key] = {
-                            value: displayValue,
-                            type: typeof changedBlock,
-                            depth: 0,
-                            key: key,
-                            editable: true,
-                            originalType: originalType
-                        };
-                    }
-                }
+                // Simply replace the existing block with the changed block
+                // This ensures we use the actual value and type, not the original type
+                existingBlocks[key] = changedBlock;
             }
         }
         
