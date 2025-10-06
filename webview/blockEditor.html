@@ -460,7 +460,7 @@
 							
 							const deleteBtn = document.createElement('button');
 							deleteBtn.className = 'delete-btn';
-							deleteBtn.textContent = '🗑️';
+							deleteBtn.innerHTML = '&#128465;'; // Unicode trash can symbol
 							deleteBtn.setAttribute('data-key', key);
 							deleteBtn.setAttribute('data-depth', selectedDepthGroup.depth);
 							blockHeader.appendChild(deleteBtn);

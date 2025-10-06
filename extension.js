@@ -219,7 +219,7 @@ function activate(context) {
 							
 							const deleteBtn = document.createElement('button');
 							deleteBtn.className = 'delete-btn';
-							deleteBtn.textContent = '🗑️'; deleteBtn.title = 'Delete';
+							deleteBtn.innerHTML = '&#128465;'; deleteBtn.title = 'Delete'; // Unicode trash can symbol
 							deleteBtn.setAttribute('data-key', key);
 							deleteBtn.setAttribute('data-depth', selectedDepthGroup.depth);
 							blockHeader.appendChild(deleteBtn);
@@ -813,6 +813,25 @@ function activate(context) {
 			
 			.open-source-btn:hover {
 				background-color: var(--vscode-button-hoverBackground);
+			}
+			
+			.delete-btn {
+				background: none;
+				border: none;
+				color: var(--vscode-errorForeground);
+				cursor: pointer;
+				font-size: 16px;
+				padding: 0;
+				width: 24px;
+				height: 24px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+			}
+			
+			.delete-btn:hover {
+				background-color: var(--vscode-toolbar-hoverBackground);
+				border-radius: 3px;
 			}
 			</style>
 			`;

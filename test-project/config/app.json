@@ -8,7 +8,11 @@
     },
     "api": {
       "baseUrl": "https://api.example.com",
-      "development": 123
+      "development": 123,
+      "auth": {
+        "username": "admin",
+        "password": "password"
+      }
     }
   },
   "ui": {
@@ -18,5 +22,5 @@
       "font": "Arial"
     }
   },
-  "foo": "bar"
+  "hello": "world222"
 }
