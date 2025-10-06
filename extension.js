@@ -3,7 +3,8 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const JsonBlockParser = require('./src/jsonBlockParser');
+const JsonBlockParser = require('./src/parser/jsonBlockParser');
+const YamlBlockParser = require('./src/parser/yamlBlockParser');
 const SyncDetector = require('./src/syncDetector');
 const BatchUpdater = require('./src/batchUpdater');
 
@@ -34,17 +35,26 @@ function activate(context) {
 
 		// Check if it's a JSON file
 		const document = editor.document;
-		if (path.extname(document.fileName) !== '.json') {
-			vscode.window.showErrorMessage('Active file is not a JSON file!');
+		const fileExtension = path.extname(document.fileName).toLowerCase();
+		if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml') {
+			vscode.window.showErrorMessage('Active file is not a JSON or YAML file!');
 			return;
 		}
 
 		try {
-			// Parse the JSON content
-			const jsonContent = JSON.parse(document.getText());
+			let depthBlocks;
 			
-			// Convert to blocks grouped by depth
-			const depthBlocks = JsonBlockParser.parseToDepthBlocks(jsonContent);
+			if (fileExtension === '.json') {
+				// Parse the JSON content
+				const jsonContent = JSON.parse(document.getText());
+				// Convert to blocks grouped by depth
+				depthBlocks = JsonBlockParser.parseToDepthBlocks(jsonContent);
+			} else {
+				// Parse the YAML content
+				const yamlContent = document.getText();
+				// Convert to blocks grouped by depth
+				depthBlocks = YamlBlockParser.parseToDepthBlocks(yamlContent);
+			}
 			
 			// Get the file name for the title
 			const fileName = path.basename(document.fileName);
@@ -934,67 +944,85 @@ function activate(context) {
 					switch (message.command) {
 						case 'save':
 							try {
-								// Get the original JSON content
-								const originalJsonContent = JSON.parse(document.getText());
+								// Get the original content
+								const originalContent = document.getText();
+								const fileExtension = path.extname(document.fileName).toLowerCase();
 								
-								// Apply block changes (including deletions) to the original content
-								const updatedJson = JsonBlockParser.applyBlockChanges(originalJsonContent, message.blocks);
+								let updatedContent;
+								if (fileExtension === '.json') {
+									// Get the original JSON content
+									const originalJsonContent = JSON.parse(originalContent);
+									
+									// Apply block changes (including deletions) to the original content
+									const updatedJson = JsonBlockParser.applyBlockChanges(originalJsonContent, message.blocks);
+									updatedContent = JSON.stringify(updatedJson, null, 2);
+								} else {
+									// Apply block changes (including deletions) to the original content
+									updatedContent = YamlBlockParser.applyBlockChanges(originalContent, message.blocks);
+								}
 								
 								// Handle deletions if any
 								if (message.deletedKeys && message.deletedKeys.length > 0) {
-									// Parse the updated JSON into blocks to work with
-									const updatedBlocks = JsonBlockParser.parseToBlocks(updatedJson);
-									
-									// Remove deleted keys
-									message.deletedKeys.forEach(key => {
-										if (updatedBlocks.hasOwnProperty(key)) {
-											delete updatedBlocks[key];
-										}
-									});
-									
-									// Convert back to JSON
-									const finalJson = JsonBlockParser.blocksToJson(updatedBlocks);
-									
-									// Update the document
-									const edit = new vscode.WorkspaceEdit();
-									const fullRange = new vscode.Range(
-										document.positionAt(0),
-										document.positionAt(document.getText().length)
-									);
-									edit.replace(document.uri, fullRange, JSON.stringify(finalJson, null, 2));
-									
-									// Mark this as an internal change
-									isInternalChange = true;
-									
-									// Apply the edit
-									await vscode.workspace.applyEdit(edit);
-								} else {
-									// No deletions, use the updated JSON directly
-									// Update the document
-									const edit = new vscode.WorkspaceEdit();
-									const fullRange = new vscode.Range(
-										document.positionAt(0),
-										document.positionAt(document.getText().length)
-									);
-									edit.replace(document.uri, fullRange, JSON.stringify(updatedJson, null, 2));
-									
-									// Mark this as an internal change
-									isInternalChange = true;
-									
-									// Apply the edit
-									await vscode.workspace.applyEdit(edit);
+									if (fileExtension === '.json') {
+										// Parse the updated JSON into blocks to work with
+										const updatedBlocks = JsonBlockParser.parseToBlocks(JSON.parse(updatedContent));
+										
+										// Remove deleted keys
+										message.deletedKeys.forEach(key => {
+											if (updatedBlocks.hasOwnProperty(key)) {
+												delete updatedBlocks[key];
+											}
+										});
+										
+										// Convert back to JSON
+										const finalJson = JsonBlockParser.blocksToJson(updatedBlocks);
+										updatedContent = JSON.stringify(finalJson, null, 2);
+									} else {
+										// For YAML, we need to parse the updated content into blocks
+										const updatedBlocks = YamlBlockParser.parseToBlocks(updatedContent);
+										
+										// Remove deleted keys
+										message.deletedKeys.forEach(key => {
+											if (updatedBlocks.hasOwnProperty(key)) {
+												delete updatedBlocks[key];
+											}
+										});
+										
+										// Convert back to YAML
+										updatedContent = YamlBlockParser.blocksToYaml(updatedBlocks);
+									}
 								}
 								
+								// Update the document
+								const edit = new vscode.WorkspaceEdit();
+								const fullRange = new vscode.Range(
+									document.positionAt(0),
+									document.positionAt(document.getText().length)
+								);
+								edit.replace(document.uri, fullRange, updatedContent);
+								
+								// Mark this as an internal change
+								isInternalChange = true;
+								
+								// Apply the edit
+								await vscode.workspace.applyEdit(edit);
+								
 								// Show success message for the current file update
-								vscode.window.showInformationMessage('JSON blocks updated successfully!');
+								vscode.window.showInformationMessage('File blocks updated successfully!');
 								
 								// Reload the webview with the latest content from the updated document
 								let updatedDepthBlocks;
 								try {
 									// Re-read the document to get the updated content
 									const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
-									const updatedJsonContent = JSON.parse(updatedDocument.getText());
-									updatedDepthBlocks = JsonBlockParser.parseToDepthBlocks(updatedJsonContent);
+									const updatedContent = updatedDocument.getText();
+									
+									if (fileExtension === '.json') {
+										const updatedJsonContent = JSON.parse(updatedContent);
+										updatedDepthBlocks = JsonBlockParser.parseToDepthBlocks(updatedJsonContent);
+									} else {
+										updatedDepthBlocks = YamlBlockParser.parseToDepthBlocks(updatedContent);
+									}
 									
 									// Update the webview with new content
 									panel.webview.postMessage({
@@ -1115,7 +1143,7 @@ function activate(context) {
 									// Nothing more to do, already updated current file and refreshed webview
 								}
 							} catch (error) {
-								vscode.window.showErrorMessage('Error updating JSON: ' + error.message);
+								vscode.window.showErrorMessage('Error updating file: ' + error.message);
 							}
 							return;
 						case 'reload':
@@ -1125,8 +1153,16 @@ function activate(context) {
 								
 								// Reload the document content
 								const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
-								const updatedJsonContent = JSON.parse(updatedDocument.getText());
-								const updatedDepthBlocks = JsonBlockParser.parseToDepthBlocks(updatedJsonContent);
+								const updatedContent = updatedDocument.getText();
+								const fileExtension = path.extname(document.fileName).toLowerCase();
+								
+								let updatedDepthBlocks;
+								if (fileExtension === '.json') {
+									const updatedJsonContent = JSON.parse(updatedContent);
+									updatedDepthBlocks = JsonBlockParser.parseToDepthBlocks(updatedJsonContent);
+								} else {
+									updatedDepthBlocks = YamlBlockParser.parseToDepthBlocks(updatedContent);
+								}
 								
 								// Update the webview with new content
 								panel.webview.postMessage({
@@ -1157,7 +1193,7 @@ function activate(context) {
 			);
 
 		} catch (error) {
-			vscode.window.showErrorMessage('Error processing JSON: ' + error.message);
+			vscode.window.showErrorMessage('Error processing file: ' + error.message);
 		}
 	});
 
@@ -1174,6 +1210,11 @@ function activate(context) {
 
 		const document = editor.document;
 		const filePath = document.fileName;
+		const fileExtension = path.extname(document.fileName).toLowerCase();
+		if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml') {
+			vscode.window.showErrorMessage('Active file is not a JSON or YAML file!');
+			return;
+		}
 
 		// Find same-named files
 		const sameNamedFiles = SyncDetector.findSameNamedFiles(filePath);
@@ -1204,8 +1245,14 @@ function activate(context) {
 			
 			// Get current document content and parse to blocks
 			const content = document.getText();
-			const jsonContent = JSON.parse(content);
-			const blocks = JsonBlockParser.parseToBlocks(jsonContent);
+			let blocks;
+			
+			if (fileExtension === '.json') {
+				const jsonContent = JSON.parse(content);
+				blocks = JsonBlockParser.parseToBlocks(jsonContent);
+			} else {
+				blocks = YamlBlockParser.parseToBlocks(content);
+			}
 			
 			// Convert to the new block format to ensure compatibility
 			const formattedBlocks = {};
@@ -1232,8 +1279,9 @@ function activate(context) {
 	
 	// Register file save event listener for automatic sync detection
 	vscode.workspace.onDidSaveTextDocument(async (document) => {
-		// Only process JSON files
-		if (path.extname(document.fileName) !== '.json') {
+		// Only process JSON and YAML files
+		const fileExtension = path.extname(document.fileName).toLowerCase();
+		if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml') {
 			return;
 		}
 		

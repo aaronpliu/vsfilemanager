@@ -1,19 +1,19 @@
 # VS File Manager
 
-Advanced JSON structure editor with file synchronization capabilities for Visual Studio Code.
+Advanced JSON and YAML structure editor with file synchronization capabilities for Visual Studio Code.
 
 ## Features
 
-- Edit JSON files in hierarchical blocks using dot notation (e.g., `config.db.host`)
+- Edit JSON and YAML files in hierarchical blocks using dot notation (e.g., `config.db.host`)
 - Synchronize changes across multiple files with same name in parent/sibling directories
-- Batch update functionality to apply changes to multiple JSON files simultaneously
+- Batch update functionality to apply changes to multiple JSON/YAML files simultaneously
 - Smart detection of same-named files with automatic sync prompts
 
 ## Commands
 
-- `Edit JSON Blocks`: Open the JSON block editor with a custom webview UI
-- `Sync Files`: Manually trigger file synchronization
-- `Batch Update JSON Files`: Apply the same changes to multiple selected JSON files
+- `Edit JSON/YAML Blocks`: Open the block editor with a custom webview UI for JSON or YAML files
+- `Sync Files`: Manually trigger file synchronization for JSON or YAML files
+- `Batch Update JSON/YAML Files`: Apply the same changes to multiple selected JSON or YAML files
 
 ## Installation
 
@@ -24,24 +24,24 @@ Advanced JSON structure editor with file synchronization capabilities for Visual
 
 ## Usage
 
-### Editing JSON Blocks
+### Editing JSON/YAML Blocks
 
-1. Open a JSON file
-2. Use the Command Palette (Ctrl+Shift+P or Cmd+Shift+P) to run "Edit JSON Blocks"
+1. Open a JSON or YAML file
+2. Use the Command Palette (Ctrl+Shift+P or Cmd+Shift+P) to run "Edit JSON/YAML Blocks"
 3. Modify values in the webview editor
 4. Click "Save Changes" to apply modifications
 5. Optionally, apply changes to other files using the batch update feature
 
 ### File Synchronization
 
-1. When you save a JSON file, the extension automatically checks for same-named files in parent or sibling directories
+1. When you save a JSON or YAML file, the extension automatically checks for same-named files in parent or sibling directories
 2. If found, you'll be prompted to synchronize your changes
 3. Choose "Sync All" to apply the same changes to all detected files
 
 ### Batch Updates
 
-1. Use the Command Palette to run "Batch Update JSON Files"
-2. Select multiple JSON files you want to update
+1. Use the Command Palette to run "Batch Update JSON/YAML Files"
+2. Select multiple JSON or YAML files you want to update
 3. Enter the block key and new value you want to apply
 4. The extension will update all selected files with the new value
 
@@ -60,3 +60,10 @@ Initial release of VS File Manager with:
 - JSON block editing capabilities
 - File synchronization features
 - Batch update functionality
+
+### 0.0.2
+
+Added YAML file support:
+- Edit YAML files with the same hierarchical block editor
+- Full type preservation for YAML values (strings, numbers, booleans, objects, arrays)
+- Seamless integration with existing JSON functionality

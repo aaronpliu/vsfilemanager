@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const JsonBlockParser = require('./jsonBlockParser');
+const JsonBlockParser = require('./parser/jsonBlockParser');
 
 /**
  * Sync Detector
