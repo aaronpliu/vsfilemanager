@@ -29,11 +29,6 @@ jobs:
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
 
-      - name: Publish to Open VSX Registry
-        run: npx ovsx publish -p ${{ secrets.OVSX_PAT }}
-        env:
-          OVSX_PAT: ${{ secrets.OVSX_PAT }}
-
       - name: Create Release
         uses: actions/create-release@v1
         id: create_release
