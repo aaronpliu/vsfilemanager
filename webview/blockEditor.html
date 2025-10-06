@@ -600,17 +600,47 @@
 								if (depthGroup.blocks[key].originalType === 'number') {
 									const numValue = Number(input.value);
 									depthGroup.blocks[key].value = !isNaN(numValue) ? numValue : input.value;
+									// Update the originalType if it's not a number anymore
+									if (isNaN(numValue)) {
+										if (input.value === 'true' || input.value === 'false') {
+											depthGroup.blocks[key].originalType = 'boolean';
+										} else {
+											depthGroup.blocks[key].originalType = 'string';
+										}
+									}
 								} else if (depthGroup.blocks[key].originalType === 'boolean') {
 									if (input.value === 'true') {
 										depthGroup.blocks[key].value = true;
+										// Update the originalType to reflect the new type
+										depthGroup.blocks[key].originalType = 'boolean';
 									} else if (input.value === 'false') {
 										depthGroup.blocks[key].value = false;
+										// Update the originalType to reflect the new type
+										depthGroup.blocks[key].originalType = 'boolean';
 									} else {
 										depthGroup.blocks[key].value = input.value;
+										// Check if it's actually a number
+										if (!isNaN(Number(input.value)) && input.value.trim() !== '') {
+											depthGroup.blocks[key].originalType = 'number';
+										} else {
+											// Keep as string
+											depthGroup.blocks[key].originalType = 'string';
+										}
 									}
 								} else if (depthGroup.blocks[key].originalType === 'string') {
-									// For strings, add quotes for display
-									depthGroup.blocks[key].value = '"' + input.value + '"';
+									// For strings, keep the actual value but update type if needed
+									depthGroup.blocks[key].value = input.value;
+									// Check if it should be a different type
+									if (input.value === 'true') {
+										depthGroup.blocks[key].originalType = 'boolean';
+									} else if (input.value === 'false') {
+										depthGroup.blocks[key].originalType = 'boolean';
+									} else if (!isNaN(Number(input.value)) && input.value.trim() !== '') {
+										depthGroup.blocks[key].originalType = 'number';
+									} else {
+										// Keep as string
+										depthGroup.blocks[key].originalType = 'string';
+									}
 								} else {
 									// For other types, use as is
 									depthGroup.blocks[key].value = input.value;
@@ -644,17 +674,47 @@
 							if (depthGroup.blocks[key].originalType === 'number') {
 								const numValue = Number(e.target.value);
 								depthGroup.blocks[key].value = !isNaN(numValue) ? numValue : e.target.value;
+								// Update the originalType if it's not a number anymore
+								if (isNaN(numValue)) {
+									if (e.target.value === 'true' || e.target.value === 'false') {
+										depthGroup.blocks[key].originalType = 'boolean';
+									} else {
+										depthGroup.blocks[key].originalType = 'string';
+									}
+								}
 							} else if (depthGroup.blocks[key].originalType === 'boolean') {
 								if (e.target.value === 'true') {
 									depthGroup.blocks[key].value = true;
+									// Update the originalType to reflect the new type
+									depthGroup.blocks[key].originalType = 'boolean';
 								} else if (e.target.value === 'false') {
 									depthGroup.blocks[key].value = false;
+									// Update the originalType to reflect the new type
+									depthGroup.blocks[key].originalType = 'boolean';
 								} else {
 									depthGroup.blocks[key].value = e.target.value;
+									// Check if it's actually a number
+									if (!isNaN(Number(e.target.value)) && e.target.value.trim() !== '') {
+										depthGroup.blocks[key].originalType = 'number';
+									} else {
+										// Keep as string
+										depthGroup.blocks[key].originalType = 'string';
+									}
 								}
 							} else if (depthGroup.blocks[key].originalType === 'string') {
-								// For strings, add quotes for display
-								depthGroup.blocks[key].value = '"' + e.target.value + '"';
+								// For strings, keep the actual value but update type if needed
+								depthGroup.blocks[key].value = e.target.value;
+								// Check if it should be a different type
+								if (e.target.value === 'true') {
+									depthGroup.blocks[key].originalType = 'boolean';
+								} else if (e.target.value === 'false') {
+									depthGroup.blocks[key].originalType = 'boolean';
+								} else if (!isNaN(Number(e.target.value)) && e.target.value.trim() !== '') {
+									depthGroup.blocks[key].originalType = 'number';
+								} else {
+									// Keep as string
+									depthGroup.blocks[key].originalType = 'string';
+								}
 							} else {
 								// For other types, use as is
 								depthGroup.blocks[key].value = e.target.value;
