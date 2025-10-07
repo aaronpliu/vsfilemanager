@@ -3,7 +3,7 @@
   "publisher": "aaronpliu",
   "displayName": "VS File Manager",
   "description": "Advanced JSON and YAML structure editor with file synchronization",
-  "version": "0.0.5",
+  "version": "0.0.13",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -26,9 +26,7 @@
     "theme": "dark"
   },
   "activationEvents": [
-    "onLanguage:json",
-    "onLanguage:yaml",
-    "onLanguage:yml"
+    "*"
   ],
   "main": "./extension.js",
   "contributes": {

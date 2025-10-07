@@ -9,8 +9,6 @@ src/test/**
 **/test-project/**
 test-project/
 
-node_modules/
-
 **/.*
 **/Thumbs.db
 

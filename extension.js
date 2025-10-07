@@ -18,43 +18,52 @@ function activate(context) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "vsfilemanager" is now active!');
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with  registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('vsfilemanager.editJsonBlocks', async function () {
-		// The code you place here will be executed every time your command is executed
-		const editor = vscode.window.activeTextEditor;
-		await BlockEditorHandler.openEditor(context, editor);
-	});
+	try {
+		// The command has been defined in the package.json file
+		// Now provide the implementation of the command with  registerCommand
+		// The commandId parameter must match the command field in package.json
+		let disposable = vscode.commands.registerCommand('vsfilemanager.editJsonBlocks', async function () {
+			// The code you place here will be executed every time your command is executed
+			console.log('vsfilemanager.editJsonBlocks command executed');
+			const editor = vscode.window.activeTextEditor;
+			await BlockEditorHandler.openEditor(context, editor);
+		});
 
-	context.subscriptions.push(disposable);
+		context.subscriptions.push(disposable);
 
-	// Register the sync files command
-	let syncDisposable = vscode.commands.registerCommand('vsfilemanager.syncFiles', async function () {
-		await SyncFilesHandler.syncFiles();
-	});
+		// Register the sync files command
+		let syncDisposable = vscode.commands.registerCommand('vsfilemanager.syncFiles', async function () {
+			console.log('vsfilemanager.syncFiles command executed');
+			await SyncFilesHandler.syncFiles();
+		});
 
-	context.subscriptions.push(syncDisposable);
-	
-	// Register batch update command
-	let batchUpdateDisposable = vscode.commands.registerCommand('vsfilemanager.batchUpdate', async function () {
-		await BatchUpdateHandler.batchUpdate();
-	});
-	
-	context.subscriptions.push(batchUpdateDisposable);
-	
-	// Register file save event listener for automatic sync detection
-	vscode.workspace.onDidSaveTextDocument(async (document) => {
-		// Only process JSON and YAML files
-		const fileExtension = path.extname(document.fileName).toLowerCase();
-		if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml') {
-			return;
-		}
+		context.subscriptions.push(syncDisposable);
 		
-		// Don't show any notifications or dialogs here
-		// The webview's save flow handles synchronization prompts
-		// This prevents interference with the correct workflow
-	});
+		// Register batch update command
+		let batchUpdateDisposable = vscode.commands.registerCommand('vsfilemanager.batchUpdate', async function () {
+			console.log('vsfilemanager.batchUpdate command executed');
+			await BatchUpdateHandler.batchUpdate();
+		});
+		
+		context.subscriptions.push(batchUpdateDisposable);
+		
+		// Register file save event listener for automatic sync detection
+		vscode.workspace.onDidSaveTextDocument(async (document) => {
+			// Only process JSON and YAML files
+			const fileExtension = path.extname(document.fileName).toLowerCase();
+			if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml') {
+				return;
+			}
+			
+			// Don't show any notifications or dialogs here
+			// The webview's save flow handles synchronization prompts
+			// This prevents interference with the correct workflow
+		});
+		
+		console.log('All commands registered successfully');
+	} catch (error) {
+		console.error('Error registering commands:', error);
+	}
 }
 
 // This method is called when your extension is deactivated

@@ -5,6 +5,54 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.13] - 2025-10-07
+
+### Fixed
+- Removed node_modules from .vscodeignore to ensure dependencies are included in the packaged extension
+- Reinstalled all dependencies to ensure they're properly included
+
+## [0.0.12] - 2025-10-07
+
+### Fixed
+- Simplified activation events to use wildcard [*] to ensure extension is always activated
+- This should resolve the "command not found" error by ensuring commands are always registered
+
+## [0.0.11] - 2025-10-07
+
+### Fixed
+- Restored explicit command activation events which were missing
+- Ensured all commands have proper activation events for production installation
+
+## [0.0.10] - 2025-10-07
+
+### Fixed
+- Added error handling and logging to command registration
+- Improved debugging for command registration issues
+
+## [0.0.9] - 2025-10-07
+
+### Fixed
+- Added console logging to help diagnose command execution issues
+- Improved debugging capabilities for command registration
+
+## [0.0.8] - 2025-10-07
+
+### Fixed
+- Replaced wildcard activation with explicit command activation events
+- Added explicit `onCommand` activation events for all commands to ensure proper registration
+
+## [0.0.7] - 2025-10-07
+
+### Fixed
+- Changed activation event from `onStartupFinished` to `*` to ensure commands are always available
+- Resolved persistent "command not found" error when running "Edit JSON/YAML Blocks" command
+
+## [0.0.6] - 2025-10-07
+
+### Fixed
+- Simplified activation events to use automatic command registration
+- Removed redundant explicit command activation events
+
 ## [0.0.5] - 2025-10-07
 
 ### Fixed
