@@ -64,6 +64,12 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.0.5
+
+Fixed critical extension activation issue:
+- Fixed extension activation events to properly register commands
+- Resolved "command 'vsfilemanager.editJsonBlocks' not found" error
+
 ### 0.0.4
 
 Refactored extension architecture:

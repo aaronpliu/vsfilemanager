@@ -6,6 +6,8 @@ src/test/**
 **/*.test.js
 **/*.spec.js
 **/test/**
+**/test-project/**
+test-project/
 
 node_modules/
 

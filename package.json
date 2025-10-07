@@ -1,8 +1,9 @@
 {
   "name": "vsfilemanager",
+  "publisher": "aaronpliu",
   "displayName": "VS File Manager",
   "description": "Advanced JSON and YAML structure editor with file synchronization",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -24,7 +25,11 @@
     "color": "#4285f4",
     "theme": "dark"
   },
-  "activationEvents": [],
+  "activationEvents": [
+    "onLanguage:json",
+    "onLanguage:yaml",
+    "onLanguage:yml"
+  ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
@@ -53,11 +58,11 @@
     "@types/node": "16.x",
     "@types/vscode": "^1.74.0",
     "@vscode/test-electron": "^2.2.0",
+    "@vscode/vsce": "^3.6.2",
     "eslint": "^8.33.0",
     "glob": "^8.1.0",
     "mocha": "^10.1.0",
-    "typescript": "^4.9.4",
-    "@vscode/vsce": "^2.17.0"
+    "typescript": "^4.9.4"
   },
   "dependencies": {
     "js-yaml": "^4.1.0"
