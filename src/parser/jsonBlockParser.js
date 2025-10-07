@@ -48,7 +48,17 @@ class JsonBlockParser {
                 const fullKey = prefix ? `${prefix}.${key}` : key;
                 const value = jsonObject[key];
 
-                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                if (Array.isArray(value)) {
+                    // This is an array, add it to current level with stringified representation
+                    currentLevelBlocks[fullKey] = {
+                        value: JSON.stringify(value),
+                        type: 'array',
+                        depth: depth,
+                        key: fullKey,
+                        editable: true, // Make it editable so users can modify the JSON directly,
+                        originalType: 'array'
+                    };
+                } else if (typeof value === 'object' && value !== null) {
                     // This is a nested object, add it to current level with stringified representation
                     hasChildren = true;
                     // Show a stringified version of the object instead of '[object]'

@@ -74,18 +74,15 @@ class YamlBlockParser {
                     Object.assign(blocks, this._parseObjectToBlocks(value, fullKey));
                 } else if (Array.isArray(value)) {
                     // This is an array
-                    const yamlString = yaml.dump(value);
+                    // Handle arrays the same way as JSON arrays
                     blocks[fullKey] = {
-                        value: yamlString,
+                        value: JSON.stringify(value),
                         type: 'array',
                         depth: 0, // Will be set properly in parseToDepthBlocks
                         key: fullKey,
                         editable: true,
                         originalType: 'array'
                     };
-                    
-                    // For arrays, we don't recursively parse elements as separate blocks
-                    // since YAML array elements don't have keys like JSON objects
                 } else {
                     // Leaf node - create a block
                     // Store original type information to preserve it when converting back
@@ -191,10 +188,10 @@ class YamlBlockParser {
                     const childBlocks = this._parseObjectToDepthBlocks(value, fullKey, depth + 1);
                     blocks.push(...childBlocks);
                 } else if (Array.isArray(value)) {
-                    // This is an array
-                    const yamlString = yaml.dump(value);
+                    // This is an array, add it to current level with stringified representation
+                    // Handle arrays the same way as JSON arrays
                     currentLevelBlocks[fullKey] = {
-                        value: yamlString,
+                        value: JSON.stringify(value),
                         type: 'array',
                         depth: depth,
                         key: fullKey,
@@ -267,9 +264,9 @@ class YamlBlockParser {
                         value = value.value;
                     }
                 } else if (value.originalType === 'array') {
-                    // Try to parse YAML strings back to arrays
+                    // Try to parse JSON strings back to arrays
                     try {
-                        const parsed = yaml.load(value.value);
+                        const parsed = JSON.parse(value.value);
                         if (Array.isArray(parsed)) {
                             value = parsed;
                         } else {
@@ -627,14 +624,14 @@ class YamlBlockParser {
                           typeof changedBlock.value === 'string') {
                     // Try to parse the string back to an array
                     try {
-                        const parsed = yaml.load(changedBlock.value);
+                        const parsed = JSON.parse(changedBlock.value);
                         if (Array.isArray(parsed)) {
                             // Successfully parsed, update the value
                             changedBlock.value = parsed;
                             changedBlock.originalType = 'array';
                         }
                     } catch (e) {
-                        // Not a valid YAML, keep as string
+                        // Not a valid JSON array, keep as string
                     }
                 }
                 
