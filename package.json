@@ -2,7 +2,7 @@
   "name": "vsfilemanager",
   "displayName": "VS File Manager",
   "description": "Advanced JSON and YAML structure editor with file synchronization",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -64,11 +64,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/aaron-lv/vsfilemanager.git"
+    "url": "https://github.com/aaronpliu/vsfilemanager.git"
   },
   "bugs": {
-    "url": "https://github.com/aaron-lv/vsfilemanager/issues"
+    "url": "https://github.com/aaronpliu/vsfilemanager/issues"
   },
-  "homepage": "https://github.com/aaron-lv/vsfilemanager/blob/main/README.md",
+  "homepage": "https://github.com/aaronpliu/vsfilemanager/blob/main/README.md",
   "license": "MIT"
 }

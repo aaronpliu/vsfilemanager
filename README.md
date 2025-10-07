@@ -1,8 +1,8 @@
 # VS File Manager
 
-[![Version](https://vsmarketplacebadge.apphb.com/version-short/aaron-lv.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaron-lv.vsfilemanager)
-[![Installs](https://vsmarketplacebadge.apphb.com/installs-short/aaron-lv.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaron-lv.vsfilemanager)
-[![Rating](https://vsmarketplacebadge.apphb.com/rating-short/aaron-lv.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaron-lv.vsfilemanager)
+[![Version](https://vsmarketplacebadge.apphb.com/version-short/aaronpliu.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaronpliu.vsfilemanager)
+[![Installs](https://vsmarketplacebadge.apphb.com/installs-short/aaronpliu.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaronpliu.vsfilemanager)
+[![Rating](https://vsmarketplacebadge.apphb.com/rating-short/aaronpliu.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaronpliu.vsfilemanager)
 
 ![VS File Manager Logo](media/icon-128.png)
 
@@ -39,7 +39,7 @@ Key features of the Block Editor:
 2. Click Install
 
 ### From VSIX (Manual Installation)
-1. Download the `.vsix` file from the [latest release](https://github.com/aaron-lv/vsfilemanager/releases)
+1. Download the `.vsix` file from the [latest release](https://github.com/aaronpliu/vsfilemanager/releases)
 2. In VS Code, open the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X`)
 3. Click the "..." menu in the top right
 4. Select "Install from VSIX..."
@@ -61,19 +61,6 @@ Key features of the Block Editor:
 4. Click "Save Changes" to apply modifications
 5. Optionally, apply changes to other files using the batch update feature
 
-### File Synchronization
-
-1. When you save a JSON or YAML file, the extension automatically checks for same-named files in parent or sibling directories
-2. If found, you'll be prompted to synchronize your changes
-3. Choose "Sync All" to apply the same changes to all detected files
-
-### Batch Updates
-
-1. Use the Command Palette to run "Batch Update JSON/YAML Files"
-2. Select multiple JSON or YAML files you want to update
-3. Enter the block key and new value you want to apply
-4. The extension will update all selected files with the new value
-
 ## Extension Settings
 
 This extension contributes the following settings:
@@ -83,12 +70,22 @@ This extension contributes the following settings:
 
 ## Release Notes
 
-### 0.0.1
+### 0.0.4
 
-Initial release of VS File Manager with:
-- JSON block editing capabilities
-- File synchronization features
-- Batch update functionality
+Refactored extension architecture:
+- Improved code organization with modular structure
+- Moved business logic to dedicated handler modules
+- Enhanced maintainability and extensibility
+- Fixed HTML rendering issues
+
+### 0.0.3
+
+Enhanced functionality and fixed critical issues:
+- Recursive workspace file search for synchronization
+- Improved nested value editing and saving
+- Fixed string quote accumulation issue
+- Fixed string editing and nested value saving issues
+- Improved type preservation when changing value types
 
 ### 0.0.2
 
@@ -96,3 +93,10 @@ Added YAML file support:
 - Edit YAML files with the same hierarchical block editor
 - Full type preservation for YAML values (strings, numbers, booleans, objects, arrays)
 - Seamless integration with existing JSON functionality
+
+### 0.0.1
+
+Initial release of VS File Manager with:
+- JSON block editing capabilities
+- File synchronization features
+- Batch update functionality
