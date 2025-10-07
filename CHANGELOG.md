@@ -5,6 +5,13 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.14] - 2025-10-07
+
+### Fixed
+- Replaced wildcard activation with specific activation events for better performance
+- Kept explicit command activation events to ensure commands are available
+- Maintained the fix for including dependencies in the package
+
 ## [0.0.13] - 2025-10-07
 
 ### Fixed
