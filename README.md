@@ -1,9 +1,5 @@
 # VS File Manager
 
-[![Version](https://vsmarketplacebadge.apphb.com/version-short/aaronpliu.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaronpliu.vsfilemanager)
-[![Installs](https://vsmarketplacebadge.apphb.com/installs-short/aaronpliu.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaronpliu.vsfilemanager)
-[![Rating](https://vsmarketplacebadge.apphb.com/rating-short/aaronpliu.vsfilemanager.svg)](https://marketplace.visualstudio.com/items?itemName=aaronpliu.vsfilemanager)
-
 ![VS File Manager Logo](media/icon-128.png)
 
 Advanced JSON and YAML structure editor with file synchronization capabilities for Visual Studio Code.
@@ -21,8 +17,6 @@ Easily edit complex JSON and YAML files using a hierarchical block editor, synch
 ## JSON/YAML Block Editor
 
 The Block Editor provides a user-friendly interface for editing JSON and YAML files with a hierarchical view:
-
-![JSON/YAML Block Editor](media/json-block-editor-screenshot.svg)
 
 Key features of the Block Editor:
 - View file contents organized by depth levels
