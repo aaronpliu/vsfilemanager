@@ -1,10 +1,10 @@
-const yaml = require('js-yaml');
-
 /**
  * YAML Block Parser
  * Parses YAML into hierarchical blocks that can be individually edited,
  * similar to the JSON block parser
  */
+const yaml = require('js-yaml');
+
 class YamlBlockParser {
     /**
      * Parse a YAML string into flat blocks with dot notation paths
@@ -242,121 +242,6 @@ class YamlBlockParser {
     static blocksToYaml(blocks) {
         const result = {};
 
-        for (const key in blocks) {
-            if (blocks.hasOwnProperty(key)) {
-                let value = blocks[key];
-                
-                // Handle different types based on original type information
-                if (typeof value === 'object' && value !== null && value.hasOwnProperty('originalType')) {
-                    // This is a block object with type information
-                    if (value.originalType === 'string') {
-                        // Remove quotes from string values
-                        if (typeof value.value === 'string' && 
-                            value.value.startsWith('"') && 
-                            value.value.endsWith('"')) {
-                            value = value.value.substring(1, value.value.length - 1);
-                        } else {
-                            value = value.value;
-                        }
-                    } else if (value.originalType === 'array') {
-                        // Try to parse YAML strings back to arrays
-                        try {
-                            const parsed = yaml.load(value.value);
-                            if (Array.isArray(parsed)) {
-                                value = parsed;
-                            } else {
-                                value = value.value;
-                            }
-                        } catch (e) {
-                            // If parsing fails, keep as string
-                            value = value.value;
-                        }
-                    } else if (value.originalType === 'object') {
-                        // Try to parse YAML strings back to objects
-                        try {
-                            const parsed = yaml.load(value.value);
-                            if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
-                                value = parsed;
-                            } else {
-                                value = value.value;
-                            }
-                        } catch (e) {
-                            // If parsing fails, keep as string
-                            value = value.value;
-                        }
-                    } else if (value.originalType === 'number') {
-                        // For numbers, use the value directly if it's already a number
-                        // or convert from the value property if it's an object
-                        if (typeof value.value === 'number') {
-                            value = value.value;
-                        } else {
-                            // Convert to number if possible
-                            const numValue = Number(value.value);
-                            value = isNaN(numValue) ? value.value : numValue;
-                        }
-                    } else if (value.originalType === 'boolean') {
-                        // For booleans, use the value directly if it's already a boolean
-                        // or convert from the value property if it's an object
-                        if (typeof value.value === 'boolean') {
-                            value = value.value;
-                        } else {
-                            // Convert to boolean
-                            if (value.value === 'true') {
-                                value = true;
-                            } else if (value.value === 'false') {
-                                value = false;
-                            } else {
-                                value = value.value;
-                            }
-                        }
-                    } else {
-                        // For other types, use the value as is
-                        value = value.value;
-                    }
-                } else if (typeof value === 'object' && value !== null) {
-                    // Handle values that are objects but don't have originalType
-                    // This might be from the old format or direct values
-                    if (value.hasOwnProperty('value')) {
-                        value = value.value;
-                    }
-                } else if (typeof value === 'string') {
-                    // Handle values that might be from the old format without type info
-                    // Check if it's a quoted string
-                    if (value.startsWith('"') && value.endsWith('"')) {
-                        // Remove the quotes
-                        value = value.substring(1, value.length - 1);
-                    } else {
-                        // Try to parse as YAML
-                        try {
-                            const parsed = yaml.load(value);
-                            if (typeof parsed === 'object') {
-                                value = parsed;
-                            }
-                        } catch (e) {
-                            // Not valid YAML, try to convert to number or keep as string
-                            const numValue = Number(value);
-                            value = isNaN(numValue) ? value : numValue;
-                        }
-                    }
-                }
-                
-                const keyParts = key.split('.');
-                let current = result;
-
-                // Traverse the key path, creating objects as needed
-                for (let i = 0; i < keyParts.length - 1; i++) {
-                    const part = keyParts[i];
-                    if (!current[part]) {
-                        current[part] = {};
-                    }
-                    current = current[part];
-                }
-
-                // Set the final value
-                current[keyParts[keyParts.length - 1]] = value;
-            }
-        }
-
         // First, let's sort the keys by depth (number of dots) so we process 
         // parent objects before their children
         const sortedKeys = Object.keys(blocks).sort((a, b) => {
@@ -483,6 +368,167 @@ class YamlBlockParser {
     }
 
     /**
+     * Convert flat blocks back to a nested JSON object
+     * @param {Object} blocks - Flattened blocks with dot notation keys
+     * @returns {Object} Nested JSON object
+     */
+    static blocksToJson(blocks) {
+        const result = {};
+
+        // First, let's sort the keys by depth (number of dots) so we process 
+        // parent objects before their children
+        const sortedKeys = Object.keys(blocks).sort((a, b) => {
+            const depthA = (a.match(/\./g) || []).length;
+            const depthB = (b.match(/\./g) || []).length;
+            return depthA - depthB;
+        });
+
+        for (const key of sortedKeys) {
+            const block = blocks[key];
+            let value = block;
+            
+            // Handle different types based on original type information
+            if (typeof value === 'object' && value !== null && value.hasOwnProperty('originalType')) {
+                // This is a block object with type information
+                if (value.originalType === 'string') {
+                    // Remove quotes from string values
+                    if (typeof value.value === 'string' && 
+                        value.value.startsWith('"') && 
+                        value.value.endsWith('"')) {
+                        value = value.value.substring(1, value.value.length - 1);
+                    } else {
+                        value = value.value;
+                    }
+                } else if (value.originalType === 'array') {
+                    // Try to parse JSON strings back to arrays
+                    try {
+                        const parsed = JSON.parse(value.value);
+                        if (Array.isArray(parsed)) {
+                            value = parsed;
+                        } else {
+                            value = value.value;
+                        }
+                    } catch (e) {
+                        // If parsing fails, keep as string
+                        value = value.value;
+                    }
+                } else if (value.originalType === 'object') {
+                    // Try to parse JSON strings back to objects
+                    try {
+                        const parsed = JSON.parse(value.value);
+                        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                            value = parsed;
+                        } else {
+                            value = value.value;
+                        }
+                    } catch (e) {
+                        // If parsing fails, keep as string
+                        value = value.value;
+                    }
+                } else if (value.originalType === 'number') {
+                    // For numbers, use the value directly if it's already a number
+                    // or convert from the value property if it's an object
+                    if (typeof value.value === 'number') {
+                        value = value.value;
+                    } else {
+                        // Convert to number if possible
+                        const numValue = Number(value.value);
+                        value = isNaN(numValue) ? value.value : numValue;
+                    }
+                } else if (value.originalType === 'boolean') {
+                    // For booleans, use the value directly if it's already a boolean
+                    // or convert from the value property if it's an object
+                    if (typeof value.value === 'boolean') {
+                        value = value.value;
+                    } else {
+                        // Convert to boolean
+                        if (value.value === 'true') {
+                            value = true;
+                        } else if (value.value === 'false') {
+                            value = false;
+                        } else {
+                            value = value.value;
+                        }
+                    }
+                } else {
+                    // For other types, use the value as is
+                    value = value.value;
+                }
+            } else if (typeof value === 'object' && value !== null) {
+                // Handle values that are objects but don't have originalType
+                // This might be from the old format or direct values
+                if (value.hasOwnProperty('value')) {
+                    value = value.value;
+                }
+            } else if (typeof value === 'string') {
+                // Handle values that might be from the old format without type info
+                // Check if it's a quoted string
+                if (value.startsWith('"') && value.endsWith('"')) {
+                    // Remove the quotes
+                    value = value.substring(1, value.length - 1);
+                } else {
+                    // Try to parse as JSON
+                    try {
+                        const parsed = JSON.parse(value);
+                        if (typeof parsed === 'object') {
+                            value = parsed;
+                        }
+                    } catch (e) {
+                        // Not valid JSON, try to convert to number or keep as string
+                        const numValue = Number(value);
+                        value = isNaN(numValue) ? value : numValue;
+                    }
+                }
+            }
+            
+            const keyParts = key.split('.');
+            let current = result;
+
+            // Traverse the key path, creating objects as needed
+            for (let i = 0; i < keyParts.length - 1; i++) {
+                const part = keyParts[i];
+                if (!current[part]) {
+                    current[part] = {};
+                }
+                current = current[part];
+            }
+
+            // Set the final value
+            current[keyParts[keyParts.length - 1]] = value;
+        }
+
+        return result;
+    }
+
+    /**
+     * Get all blocks that match a given path pattern
+     * @param {Object} blocks - Flattened blocks with dot notation keys
+     * @param {string} pattern - Pattern to match (e.g., 'config.db.*')
+     * @returns {Object} Matching blocks
+     */
+    static getBlocksByPattern(blocks, pattern) {
+        const result = {};
+        const isWildcard = pattern.endsWith('*');
+        const basePattern = isWildcard ? pattern.slice(0, -1) : pattern;
+
+        for (const key in blocks) {
+            if (blocks.hasOwnProperty(key)) {
+                if (isWildcard) {
+                    if (key.startsWith(basePattern)) {
+                        result[key] = blocks[key];
+                    }
+                } else {
+                    if (key === pattern) {
+                        result[key] = blocks[key];
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
      * Apply specific block changes to an existing YAML content
      * @param {string} existingYamlContent - The existing YAML content to update
      * @param {Object} changedBlocks - The blocks that have been changed
@@ -516,8 +562,14 @@ class YamlBlockParser {
      * @returns {string} Updated YAML string with only the specified changes applied
      */
     static applyOnlyChangedBlocks(targetYamlContent, changedBlocks) {
+        // Handle empty content case
+        let yamlContent = targetYamlContent;
+        if (!yamlContent || yamlContent.trim() === '') {
+            yamlContent = '{}';
+        }
+        
         // Parse the target content into blocks to understand its current structure
-        const targetBlocks = this.parseToBlocks(targetYamlContent);
+        const targetBlocks = this.parseToBlocks(yamlContent);
         
         // Apply only the changed blocks to the target blocks
         for (const key in changedBlocks) {

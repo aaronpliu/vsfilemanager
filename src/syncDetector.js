@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const JsonBlockParser = require('./parser/jsonBlockParser');
+const YamlBlockParser = require('./parser/yamlBlockParser');
 
 /**
  * Sync Detector
@@ -188,17 +189,14 @@ class SyncDetector {
                     
                     updatedContent = JSON.stringify(updatedJson, null, 2);
                 } else {
-                    // Validate that the target file has the structure to apply changes
-                    if (!this.validateYamlBlockCompatibility(existingContent, changedBlocks)) {
-                        failedFiles.push({ 
-                            file: targetFile, 
-                            error: 'Target file structure incompatible with changes' 
-                        });
-                        continue;
+                    // For YAML files, handle empty or invalid content
+                    let yamlContent = existingContent;
+                    if (!yamlContent || yamlContent.trim() === '') {
+                        yamlContent = '{}';
                     }
                     
                     // Apply ONLY the changed blocks to the existing content using the new method
-                    updatedContent = YamlBlockParser.applyOnlyChangedBlocks(existingContent, changedBlocks);
+                    updatedContent = YamlBlockParser.applyOnlyChangedBlocks(yamlContent, changedBlocks);
                 }
                 
                 // Write the updated content back to the file
@@ -259,24 +257,11 @@ class SyncDetector {
      * @returns {boolean} Whether the target file is compatible
      */
     static validateYamlBlockCompatibility(yamlContent, changedBlocks) {
-        try {
-            // Parse the existing content into blocks
-            const existingBlocks = YamlBlockParser.parseToBlocks(yamlContent);
-            
-            // Check if all changed blocks can be applied to the existing structure
-            for (const key in changedBlocks) {
-                if (changedBlocks.hasOwnProperty(key)) {
-                    // We can apply any block changes since we're using dot notation paths
-                    // If a path doesn't exist, it will be created
-                    // If it does exist, it will be updated
-                    // So this is always compatible
-                }
-            }
-            
-            return true;
-        } catch (error) {
-            return false;
-        }
+        // For YAML files, we can always apply changes since we're using dot notation paths
+        // If a path doesn't exist, it will be created
+        // If it does exist, it will be updated
+        // So this is always compatible regardless of the current content
+        return true;
     }
 
     /**

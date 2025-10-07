@@ -49,8 +49,16 @@ class BatchUpdater {
                     // Write back to file
                     updatedContent = JSON.stringify(updatedJson, null, 2);
                 } else if (fileExtension === '.yaml' || fileExtension === '.yml') {
+                    // For YAML files, we need to handle empty or invalid content
+                    let yamlContent = fileContent;
+                    
+                    // If the file is empty, start with an empty object
+                    if (!yamlContent || yamlContent.trim() === '') {
+                        yamlContent = '{}';
+                    }
+                    
                     // Apply ONLY the specified block changes using the new method
-                    updatedContent = YamlBlockParser.applyOnlyChangedBlocks(fileContent, blocks);
+                    updatedContent = YamlBlockParser.applyOnlyChangedBlocks(yamlContent, blocks);
                 } else {
                     throw new Error(`Unsupported file type: ${fileExtension}`);
                 }

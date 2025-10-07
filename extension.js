@@ -1330,15 +1330,41 @@ function activate(context) {
 			return;
 		}
 		
-		// Create blocks object with proper format
+		// Determine the type of the value
+		let actualValue = blockValue;
+		let originalType = 'string';
+		
+		// Try to parse as JSON to determine type
+		try {
+			const parsed = JSON.parse(blockValue);
+			actualValue = parsed;
+			originalType = typeof parsed;
+		} catch (e) {
+			// If it's not valid JSON, check if it's a number
+			if (!isNaN(Number(blockValue)) && blockValue.trim() !== '') {
+				actualValue = Number(blockValue);
+				originalType = 'number';
+			} else if (blockValue === 'true' || blockValue === 'false') {
+				actualValue = blockValue === 'true';
+				originalType = 'boolean';
+			}
+		}
+		
+		// Format value for display (this is important for proper type handling)
+		let displayValue = actualValue;
+		if (originalType === 'string') {
+			displayValue = '"' + actualValue + '"';
+		}
+		
+		// Create blocks object with proper format that matches what the webview sends
 		const blocks = {};
 		blocks[blockKey] = {
-			value: blockValue,
-			type: typeof blockValue,
+			value: displayValue,
+			type: typeof actualValue,
 			depth: 0,
 			key: blockKey,
 			editable: true,
-			originalType: typeof blockValue
+			originalType: originalType
 		};
 		
 		// Apply batch update
