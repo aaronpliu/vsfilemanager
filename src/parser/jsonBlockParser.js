@@ -283,6 +283,202 @@ class JsonBlockParser {
         // Convert back to JSON
         return this.blocksToJson(existingBlocks);
     }
+
+    /**
+     * Enhanced version that maintains consistency across all depth levels
+     * when editing nested objects
+     * @param {Object} existingJsonContent - The existing JSON content to update
+     * @param {Object} changedBlocks - The blocks that have been changed
+     * @returns {Object} Updated JSON object with consistency across depths
+     */
+    static applyBlockChangesEnhanced(existingJsonContent, changedBlocks) {
+        // Get the current structure as depth blocks
+        const currentDepthBlocks = this.parseToDepthBlocks(existingJsonContent);
+        
+        // Create a map of all current blocks
+        const allCurrentBlocks = new Map();
+        currentDepthBlocks.forEach(depthGroup => {
+            for (const key in depthGroup.blocks) {
+                allCurrentBlocks.set(key, {...depthGroup.blocks[key]});
+            }
+        });
+        
+        // Apply changes to our map
+        for (const key in changedBlocks) {
+            if (changedBlocks.hasOwnProperty(key)) {
+                const changedBlock = changedBlocks[key];
+                if (changedBlock !== undefined) {
+                    allCurrentBlocks.set(key, {...changedBlock});
+                } else {
+                    allCurrentBlocks.delete(key);
+                }
+            }
+        }
+        
+        // Now we need to ensure consistency between parent and child blocks
+        // Make a copy for updates
+        const updatedBlocks = new Map(allCurrentBlocks);
+        
+        // Process all blocks to ensure consistency
+        allCurrentBlocks.forEach((block, key) => {
+            // If this is an object that was edited as a string
+            if (block.originalType === 'object' && 
+                typeof block.value === 'string' && 
+                block.value.startsWith('{') && 
+                block.value.endsWith('}')) {
+                
+                try {
+                    // Parse the object
+                    const parsedObj = JSON.parse(block.value);
+                    
+                    // Update or create child blocks based on the parsed object
+                    const newChildBlocks = this.parseToBlocks(parsedObj, key);
+                    for (const childKey in newChildBlocks) {
+                        // Only update if not explicitly changed by user
+                        if (!changedBlocks.hasOwnProperty(childKey)) {
+                            // Create proper block structure
+                            const childValue = newChildBlocks[childKey];
+                            const childBlock = {
+                                value: childValue,
+                                type: typeof childValue,
+                                depth: (childKey.match(/\./g) || []).length,
+                                key: childKey,
+                                editable: true,
+                                originalType: typeof childValue
+                            };
+                            
+                            // Format string values properly
+                            if (childBlock.originalType === 'string') {
+                                childBlock.value = `"${childBlock.value}"`;
+                            }
+                            
+                            updatedBlocks.set(childKey, childBlock);
+                        }
+                    }
+                } catch (e) {
+                    // If parsing fails, keep the block as is
+                    console.warn(`Failed to parse object for key ${key}:`, e.message);
+                }
+            }
+        });
+        
+        // Handle the reverse case - child properties were edited, update parent representations
+        // We need to process this after all direct changes are applied
+        allCurrentBlocks.forEach((block, key) => {
+            if (key.includes('.')) {
+                // Get parent key
+                const keyParts = key.split('.');
+                for (let i = 1; i < keyParts.length; i++) {
+                    const parentKeyParts = keyParts.slice(0, keyParts.length - i);
+                    const parentKey = parentKeyParts.join('.');
+                    
+                    // If parent exists and is an object, update its string representation
+                    if (updatedBlocks.has(parentKey) && 
+                        updatedBlocks.get(parentKey).originalType === 'object') {
+                        
+                        const parentBlock = {...updatedBlocks.get(parentKey)};
+                        try {
+                            // Parse current parent object
+                            let parentObj = {};
+                            if (typeof parentBlock.value === 'string') {
+                                parentObj = JSON.parse(parentBlock.value);
+                            }
+                            
+                            // Find all child blocks that belong to this parent
+                            const parentPrefix = parentKey + '.';
+                            const childValues = {};
+                            
+                            // Collect all relevant child values
+                            updatedBlocks.forEach((childBlock, childKey) => {
+                                if (childKey.startsWith(parentPrefix)) {
+                                    const relativeKey = childKey.substring(parentPrefix.length);
+                                    // Convert value back to proper type
+                                    let value = childBlock.value;
+                                    if (childBlock.originalType === 'string' && 
+                                        typeof value === 'string' &&
+                                        value.startsWith('"') && 
+                                        value.endsWith('"')) {
+                                        value = value.substring(1, value.length - 1);
+                                    } else if (childBlock.originalType === 'number') {
+                                        value = Number(value);
+                                    } else if (childBlock.originalType === 'boolean') {
+                                        if (value === 'true') value = true;
+                                        else if (value === 'false') value = false;
+                                    }
+                                    childValues[relativeKey] = value;
+                                }
+                            });
+                            
+                            // Reconstruct the parent object using the child values
+                            function buildNestedObject(obj, path, value) {
+                                const parts = path.split('.');
+                                let current = obj;
+                                for (let i = 0; i < parts.length - 1; i++) {
+                                    if (!current[parts[i]]) current[parts[i]] = {};
+                                    current = current[parts[i]];
+                                }
+                                current[parts[parts.length - 1]] = value;
+                                return obj;
+                            }
+                            
+                            // Build the complete object from all child values
+                            let reconstructedObj = {};
+                            for (const childPath in childValues) {
+                                buildNestedObject(reconstructedObj, childPath, childValues[childPath]);
+                            }
+                            
+                            // Update parent block's string representation
+                            parentBlock.value = JSON.stringify(reconstructedObj);
+                            updatedBlocks.set(parentKey, parentBlock);
+                        } catch (e) {
+                            console.warn(`Failed to update parent object for key ${parentKey}:`, e.message);
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Convert map back to object
+        const finalBlocks = {};
+        updatedBlocks.forEach((block, key) => {
+            finalBlocks[key] = block;
+        });
+        
+        // Convert to JSON
+        return this.blocksToJson(finalBlocks);
+    }
+
+    /**
+     * Apply only the specified changed blocks to a target JSON structure
+     * This method ensures that only the provided changed blocks are applied
+     * and all other parts of the target structure remain unchanged
+     * @param {Object} targetJsonContent - The target JSON content to update
+     * @param {Object} changedBlocks - Only the blocks that should be changed
+     * @returns {Object} Updated JSON object with only the specified changes applied
+     */
+    static applyOnlyChangedBlocks(targetJsonContent, changedBlocks) {
+        // Parse the target content into blocks to understand its current structure
+        const targetBlocks = this.parseToBlocks(targetJsonContent);
+        
+        // Apply only the changed blocks to the target blocks
+        for (const key in changedBlocks) {
+            if (changedBlocks.hasOwnProperty(key)) {
+                const changedBlock = changedBlocks[key];
+                // Handle deletion (null value indicates deletion)
+                if (changedBlock === null) {
+                    if (targetBlocks.hasOwnProperty(key)) {
+                        delete targetBlocks[key];
+                    }
+                } else {
+                    // Apply the change to the target
+                    targetBlocks[key] = changedBlock;
+                }
+            }
+        }
+        
+        // Convert to JSON
+        return this.blocksToJson(targetBlocks);
+    }
 }
 
 module.exports = JsonBlockParser;

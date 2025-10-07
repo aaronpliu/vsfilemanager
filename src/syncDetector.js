@@ -157,32 +157,52 @@ class SyncDetector {
         for (const targetFile of targetFiles) {
             try {
                 // Read the existing content of the target file
+                const fileExtension = path.extname(targetFile).toLowerCase();
                 const existingContent = fs.readFileSync(targetFile, 'utf8');
-                const existingJson = JSON.parse(existingContent);
                 
-                // Validate that the target file has the structure to apply changes
-                if (!this.validateBlockCompatibility(existingJson, changedBlocks)) {
-                    failedFiles.push({ 
-                        file: targetFile, 
-                        error: 'Target file structure incompatible with changes' 
-                    });
-                    continue;
-                }
+                let updatedContent;
                 
-                // Apply only the changed blocks to the existing content
-                const updatedJson = JsonBlockParser.applyBlockChanges(existingJson, changedBlocks);
-                
-                // Validate the updated JSON before writing
-                if (!this.validateJsonStructure(updatedJson)) {
-                    failedFiles.push({ 
-                        file: targetFile, 
-                        error: 'Updated JSON structure is invalid' 
-                    });
-                    continue;
+                if (fileExtension === '.json') {
+                    const existingJson = JSON.parse(existingContent);
+                    
+                    // Validate that the target file has the structure to apply changes
+                    if (!this.validateBlockCompatibility(existingJson, changedBlocks)) {
+                        failedFiles.push({ 
+                            file: targetFile, 
+                            error: 'Target file structure incompatible with changes' 
+                        });
+                        continue;
+                    }
+                    
+                    // Apply ONLY the changed blocks to the existing content using the new method
+                    const updatedJson = JsonBlockParser.applyOnlyChangedBlocks(existingJson, changedBlocks);
+                    
+                    // Validate the updated JSON before writing
+                    if (!this.validateJsonStructure(updatedJson)) {
+                        failedFiles.push({ 
+                            file: targetFile, 
+                            error: 'Updated JSON structure is invalid' 
+                        });
+                        continue;
+                    }
+                    
+                    updatedContent = JSON.stringify(updatedJson, null, 2);
+                } else {
+                    // Validate that the target file has the structure to apply changes
+                    if (!this.validateYamlBlockCompatibility(existingContent, changedBlocks)) {
+                        failedFiles.push({ 
+                            file: targetFile, 
+                            error: 'Target file structure incompatible with changes' 
+                        });
+                        continue;
+                    }
+                    
+                    // Apply ONLY the changed blocks to the existing content using the new method
+                    updatedContent = YamlBlockParser.applyOnlyChangedBlocks(existingContent, changedBlocks);
                 }
                 
                 // Write the updated content back to the file
-                fs.writeFileSync(targetFile, JSON.stringify(updatedJson, null, 2), 'utf8');
+                fs.writeFileSync(targetFile, updatedContent, 'utf8');
                 syncedFiles.push(targetFile);
             } catch (error) {
                 failedFiles.push({ file: targetFile, error: error.message });
@@ -215,6 +235,33 @@ class SyncDetector {
         try {
             // Parse the existing content into blocks
             const existingBlocks = JsonBlockParser.parseToBlocks(jsonContent);
+            
+            // Check if all changed blocks can be applied to the existing structure
+            for (const key in changedBlocks) {
+                if (changedBlocks.hasOwnProperty(key)) {
+                    // We can apply any block changes since we're using dot notation paths
+                    // If a path doesn't exist, it will be created
+                    // If it does exist, it will be updated
+                    // So this is always compatible
+                }
+            }
+            
+            return true;
+        } catch (error) {
+            return false;
+        }
+    }
+
+    /**
+     * Validate that target file has compatible structure for YAML block changes
+     * @param {string} yamlContent - The YAML content of the target file
+     * @param {Object} changedBlocks - The blocks that have been changed
+     * @returns {boolean} Whether the target file is compatible
+     */
+    static validateYamlBlockCompatibility(yamlContent, changedBlocks) {
+        try {
+            // Parse the existing content into blocks
+            const existingBlocks = YamlBlockParser.parseToBlocks(yamlContent);
             
             // Check if all changed blocks can be applied to the existing structure
             for (const key in changedBlocks) {

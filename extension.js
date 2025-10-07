@@ -953,12 +953,12 @@ function activate(context) {
 									// Get the original JSON content
 									const originalJsonContent = JSON.parse(originalContent);
 									
-									// Apply block changes (including deletions) to the original content
-									const updatedJson = JsonBlockParser.applyBlockChanges(originalJsonContent, message.blocks);
+									// Apply block changes (including deletions) to the original content using enhanced method
+									const updatedJson = JsonBlockParser.applyBlockChangesEnhanced(originalJsonContent, message.blocks);
 									updatedContent = JSON.stringify(updatedJson, null, 2);
 								} else {
-									// Apply block changes (including deletions) to the original content
-									updatedContent = YamlBlockParser.applyBlockChanges(originalContent, message.blocks);
+									// Apply block changes (including deletions) to the original content using enhanced method
+									updatedContent = YamlBlockParser.applyBlockChangesEnhanced(originalContent, message.blocks);
 								}
 								
 								// Handle deletions if any
@@ -1053,95 +1053,113 @@ function activate(context) {
                                     return block;
                                 }
                                 
-								// Create a map of original blocks for easier comparison
-								const originalBlocksMap = {};
-								if (message.originalBlocks) {
-									message.originalBlocks.forEach(depthGroup => {
-										for (const [key, block] of Object.entries(depthGroup.blocks)) {
-											originalBlocksMap[key] = block;
-										}
-									});
-									
-									// Compare current blocks with original to find changes
-									// Use the updatedDepthBlocks we just fetched, not the message.blocks
-									if (updatedDepthBlocks) {
-										for (const depthGroup of updatedDepthBlocks) {
-											for (const [key, block] of Object.entries(depthGroup.blocks)) {
-												// Check if this is a new block or a modified one
-												if (!originalBlocksMap[key]) {
-													// This is a new block
-													changedBlocks[key] = block;
-												} else {
-													// Compare the values properly
-													const originalBlock = originalBlocksMap[key];
-													const currentBlock = block;
-													
-													// Get normalized values for comparison
-													const originalValue = getBlockValue(originalBlock);
-													const currentValue = getBlockValue(currentBlock);
-													
-													// Compare the normalized values
-													if (originalValue !== currentValue) {
-														changedBlocks[key] = currentBlock;
-													}
-												}
-											}
-										}
-									}
-								} else {
-									// If we don't have original blocks, send all current blocks
-									if (updatedDepthBlocks) {
-										for (const depthGroup of updatedDepthBlocks) {
-											Object.assign(changedBlocks, depthGroup.blocks);
-										}
-									}
-								}
-								
-								// Ask if user wants to apply batch update
-								const batchAction = await vscode.window.showInformationMessage(
-									'Would you like to apply these changes to other files?',
-									{ modal: true },
-									'Batch Update',
-									'No'
-								);
-								
-								// Only proceed with batch update if user explicitly selects "Batch Update"
-								// If user selects "No" or closes dialog, do nothing further
-								if (batchAction === 'Batch Update') {
-									// Find same-named files
-									const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
-									
-									if (sameNamedFiles.length === 0) {
-										vscode.window.showInformationMessage('No same-named files found for synchronization.');
-										return;
-									}
-									
-									// Create quick pick items for file selection
-									const quickPickItems = sameNamedFiles.map(file => ({
-										label: path.basename(file),
-										description: file,
-										picked: true // Selected by default
-									}));
-									
-									// Show quick pick dialog for file selection
-									const selectedItems = await vscode.window.showQuickPick(quickPickItems, {
-										canPickMany: true,
-										placeHolder: 'Select files to synchronize (press SPACE to toggle selection)',
-										title: 'Select Files to Synchronize',
-										ignoreFocusOut: true
-									});
-									
-									if (selectedItems && selectedItems.length > 0) {
-										// Extract file paths from selected items
-										const filePaths = selectedItems.map(item => item.description);
-										
-										// Synchronize only the changed blocks, not the entire file content
-										SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
-									}
-								} else if (batchAction === 'No' || batchAction === undefined) {
-									// User selected "No" or closed the dialog
-									// Nothing more to do, already updated current file and refreshed webview
-								}
+                                // Create a map of original blocks for easier comparison
+                                const originalBlocksMap = {};
+                                if (message.originalBlocks) {
+                                    message.originalBlocks.forEach(depthGroup => {
+                                        for (const [key, block] of Object.entries(depthGroup.blocks)) {
+                                            originalBlocksMap[key] = block;
+                                        }
+                                    });
+                                    
+                                    // Compare the blocks sent by the webview with original to find changes
+                                    for (const key in message.blocks) {
+                                        if (message.blocks.hasOwnProperty(key)) {
+                                            const currentBlock = message.blocks[key];
+                                            
+                                            // Check if this is a new block or a modified one
+                                            if (!originalBlocksMap[key]) {
+                                                // This is a new block
+                                                changedBlocks[key] = currentBlock;
+                                            } else {
+                                                // Compare the values properly
+                                                const originalBlock = originalBlocksMap[key];
+                                                
+                                                // Get normalized values for comparison
+                                                const originalValue = getBlockValue(originalBlock);
+                                                const currentValue = getBlockValue(currentBlock);
+                                                
+                                                // Compare the normalized values
+                                                if (originalValue !== currentValue) {
+                                                    changedBlocks[key] = currentBlock;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    // Check for deleted blocks
+                                    message.originalBlocks.forEach(depthGroup => {
+                                        for (const [key, block] of Object.entries(depthGroup.blocks)) {
+                                            // Check if this key exists in the current blocks
+                                            let exists = false;
+                                            for (const currentKey in message.blocks) {
+                                                if (currentKey === key) {
+                                                    exists = true;
+                                                    break;
+                                                }
+                                            }
+                                            
+                                            if (!exists) {
+                                                // Mark as deleted with null value
+                                                changedBlocks[key] = null;
+                                            }
+                                        }
+                                    });
+                                } else {
+                                    // If we don't have original blocks, send all current blocks
+                                    for (const key in message.blocks) {
+                                        if (message.blocks.hasOwnProperty(key)) {
+                                            changedBlocks[key] = message.blocks[key];
+                                        }
+                                    }
+                                }
+                                
+                                // Ask if user wants to apply batch update
+                                const batchAction = await vscode.window.showInformationMessage(
+                                    'Would you like to apply these changes to other files?',
+                                    { modal: true },
+                                    'Batch Update',
+                                    'No'
+                                );
+                                
+                                // Only proceed with batch update if user explicitly selects "Batch Update"
+                                // If user selects "No" or closes dialog, do nothing further
+                                if (batchAction === 'Batch Update') {
+                                    // Find same-named files
+                                    const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
+                                    
+                                    if (sameNamedFiles.length === 0) {
+                                        vscode.window.showInformationMessage('No same-named files found for synchronization.');
+                                        return;
+                                    }
+                                    
+                                    // Create quick pick items for file selection
+                                    const quickPickItems = sameNamedFiles.map(file => ({
+                                        label: path.basename(file),
+                                        description: file,
+                                        picked: true // Selected by default
+                                    }));
+                                    
+                                    // Show quick pick dialog for file selection
+                                    const selectedItems = await vscode.window.showQuickPick(quickPickItems, {
+                                        canPickMany: true,
+                                        placeHolder: 'Select files to synchronize (press SPACE to toggle selection)',
+                                        title: 'Select Files to Synchronize',
+                                        ignoreFocusOut: true
+                                    });
+                                    
+                                    if (selectedItems && selectedItems.length > 0) {
+                                        // Extract file paths from selected items
+                                        const filePaths = selectedItems.map(item => item.description);
+                                        
+                                        // Synchronize only the CHANGED blocks, not the entire file content
+                                        SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
+                                    }
+                                } else if (batchAction === 'No' || batchAction === undefined) {
+                                    // User selected "No" or closed the dialog
+                                    // Nothing more to do, already updated current file and refreshed webview
+                                }
+
 							} catch (error) {
 								vscode.window.showErrorMessage('Error updating file: ' + error.message);
 							}
@@ -1249,29 +1267,26 @@ function activate(context) {
 			
 			if (fileExtension === '.json') {
 				const jsonContent = JSON.parse(content);
-				blocks = JsonBlockParser.parseToBlocks(jsonContent);
+				// For the sync command, we send all current blocks since we don't have
+				// a reference to original blocks like in the save flow
+				const depthBlocks = JsonBlockParser.parseToDepthBlocks(jsonContent);
+				// Convert to flat blocks for synchronization
+				blocks = {};
+				depthBlocks.forEach(depthGroup => {
+					for (const key in depthGroup.blocks) {
+						if (depthGroup.blocks.hasOwnProperty(key)) {
+							blocks[key] = depthGroup.blocks[key];
+						}
+					}
+				});
 			} else {
 				blocks = YamlBlockParser.parseToBlocks(content);
 			}
 			
-			// Convert to the new block format to ensure compatibility
-			const formattedBlocks = {};
-			for (const key in blocks) {
-				if (blocks.hasOwnProperty(key)) {
-					const value = blocks[key];
-					formattedBlocks[key] = {
-						value: typeof value === 'string' ? `"${value}"` : value,
-						type: typeof value,
-						depth: 0,
-						key: key,
-						editable: true,
-						originalType: typeof value
-					};
-				}
-			}
-			
-			// Synchronize only the changed blocks, not the entire file content
-			SyncDetector.synchronizeBlockChanges(filePath, formattedBlocks, filePaths);
+			// Synchronize only the current blocks, not the entire file content
+			// NOTE: This is different from the save flow where we only send changed blocks
+			// because we don't have access to original state in this command
+			SyncDetector.synchronizeBlockChanges(filePath, blocks, filePaths);
 		}
 	});
 

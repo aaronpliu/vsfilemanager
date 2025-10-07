@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const JsonBlockParser = require('./parser/jsonBlockParser');
+const YamlBlockParser = require('./parser/yamlBlockParser');
 
 /**
  * Batch Updater
@@ -34,15 +35,27 @@ class BatchUpdater {
             try {
                 // Read the file
                 const fileContent = fs.readFileSync(filePath, 'utf8');
+                const fileExtension = path.extname(filePath).toLowerCase();
                 
-                // Parse as JSON
-                const jsonContent = JSON.parse(fileContent);
+                let updatedContent;
                 
-                // Apply changes using the JsonBlockParser
-                const updatedJson = JsonBlockParser.applyBlockChanges(jsonContent, blocks);
+                if (fileExtension === '.json') {
+                    // Parse as JSON
+                    const jsonContent = JSON.parse(fileContent);
+                    
+                    // Apply ONLY the specified block changes using the new method
+                    const updatedJson = JsonBlockParser.applyOnlyChangedBlocks(jsonContent, blocks);
+                    
+                    // Write back to file
+                    updatedContent = JSON.stringify(updatedJson, null, 2);
+                } else if (fileExtension === '.yaml' || fileExtension === '.yml') {
+                    // Apply ONLY the specified block changes using the new method
+                    updatedContent = YamlBlockParser.applyOnlyChangedBlocks(fileContent, blocks);
+                } else {
+                    throw new Error(`Unsupported file type: ${fileExtension}`);
+                }
                 
-                // Write back to file
-                fs.writeFileSync(filePath, JSON.stringify(updatedJson, null, 2), 'utf8');
+                fs.writeFileSync(filePath, updatedContent, 'utf8');
                 
                 results.successful.push(filePath);
             } catch (error) {
@@ -80,7 +93,8 @@ class BatchUpdater {
             canSelectMany: true,
             openLabel: 'Select Files for Batch Update',
             filters: {
-                'JSON Files': ['json']
+                'JSON Files': ['json'],
+                'YAML Files': ['yaml', 'yml']
             }
         };
 

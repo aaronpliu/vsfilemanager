@@ -506,6 +506,95 @@ class YamlBlockParser {
         // Convert back to YAML
         return this.blocksToYaml(existingBlocks);
     }
+
+    /**
+     * Apply only the specified changed blocks to a target YAML structure
+     * This method ensures that only the provided changed blocks are applied
+     * and all other parts of the target structure remain unchanged
+     * @param {string} targetYamlContent - The target YAML content to update
+     * @param {Object} changedBlocks - Only the blocks that should be changed
+     * @returns {string} Updated YAML string with only the specified changes applied
+     */
+    static applyOnlyChangedBlocks(targetYamlContent, changedBlocks) {
+        // Parse the target content into blocks to understand its current structure
+        const targetBlocks = this.parseToBlocks(targetYamlContent);
+        
+        // Apply only the changed blocks to the target blocks
+        for (const key in changedBlocks) {
+            if (changedBlocks.hasOwnProperty(key)) {
+                const changedBlock = changedBlocks[key];
+                // Handle deletion (null value indicates deletion)
+                if (changedBlock === null) {
+                    if (targetBlocks.hasOwnProperty(key)) {
+                        delete targetBlocks[key];
+                    }
+                } else {
+                    // Apply the change to the target
+                    targetBlocks[key] = changedBlock;
+                }
+            }
+        }
+        
+        // Convert to YAML
+        return this.blocksToYaml(targetBlocks);
+    }
+
+    /**
+     * Enhanced version of applyBlockChanges that properly handles nested objects
+     * when editing at different depths
+     * @param {string} existingYamlContent - The existing YAML content to update
+     * @param {Object} changedBlocks - The blocks that have been changed
+     * @returns {string} Updated YAML string with only the changed blocks applied
+     */
+    static applyBlockChangesEnhanced(existingYamlContent, changedBlocks) {
+        // Parse the existing content into blocks
+        const existingBlocks = this.parseToBlocks(existingYamlContent);
+        
+        // Apply the changed blocks to the existing blocks
+        for (const key in changedBlocks) {
+            if (changedBlocks.hasOwnProperty(key)) {
+                const changedBlock = changedBlocks[key];
+                
+                // Check if this is an object that was edited as a string at a higher level
+                if (changedBlock && 
+                    changedBlock.originalType === 'object' && 
+                    typeof changedBlock.value === 'string') {
+                    // Try to parse the string back to an object
+                    try {
+                        const parsed = yaml.load(changedBlock.value);
+                        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+                            // Successfully parsed, update the value
+                            changedBlock.value = parsed;
+                            changedBlock.originalType = 'object';
+                        }
+                    } catch (e) {
+                        // Not a valid YAML, keep as string
+                    }
+                } else if (changedBlock && 
+                          changedBlock.originalType === 'array' && 
+                          typeof changedBlock.value === 'string') {
+                    // Try to parse the string back to an array
+                    try {
+                        const parsed = yaml.load(changedBlock.value);
+                        if (Array.isArray(parsed)) {
+                            // Successfully parsed, update the value
+                            changedBlock.value = parsed;
+                            changedBlock.originalType = 'array';
+                        }
+                    } catch (e) {
+                        // Not a valid YAML, keep as string
+                    }
+                }
+                
+                // Simply replace the existing block with the changed block
+                // This ensures we use the actual value and type, not the original type
+                existingBlocks[key] = changedBlock;
+            }
+        }
+        
+        // Convert back to YAML
+        return this.blocksToYaml(existingBlocks);
+    }
 }
 
 module.exports = YamlBlockParser;
