@@ -66,6 +66,77 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.0.15
+
+Fixed array handling issues:
+- Resolved issue where arrays in YAML files were being converted to strings when edited and saved
+- Improved array handling consistency between JSON and YAML formats
+- Fixed "currentLevelBlocks is not defined" error in YAML parser
+- Arrays now display in standard JSON format for better readability and editing
+
+### 0.0.14
+
+Fixed extension activation performance:
+- Replaced wildcard activation with specific activation events for better performance
+- Kept explicit command activation events to ensure commands are available
+- Maintained the fix for including dependencies in the package
+
+### 0.0.13
+
+Fixed issues with nested objects and arrays:
+- Resolved issue where nested objects and arrays were not being displayed correctly in the block editor
+- Improved handling of nested structures for better editing experience
+- Fixed "Cannot read property 'length' of undefined" error in nested object handling
+
+### 0.0.12
+
+Improved performance and stability:
+- Optimized file search and synchronization logic for faster performance
+- Fixed "TypeError: Cannot read property 'length' of undefined" error in file synchronization
+- Enhanced error handling for robustness
+
+### 0.0.11
+
+Fixed issues with string values:
+- Resolved issue where string values were being incorrectly wrapped in double quotes
+- Improved string handling to preserve original formatting
+- Fixed "TypeError: Cannot read property 'length' of undefined" error in string handling
+
+### 0.0.10
+
+Enhanced batch update functionality:
+- Improved batch update logic for better performance and accuracy
+- Fixed "TypeError: Cannot read property 'length' of undefined" error in batch update
+- Enhanced user interface for batch update feature
+
+### 0.0.9
+
+Fixed issues with file synchronization:
+- Resolved issue where file synchronization was not working as expected
+- Improved synchronization logic for better accuracy
+- Fixed "TypeError: Cannot read property 'length' of undefined" error in synchronization
+
+### 0.0.8
+
+Improved block editor performance:
+- Optimized block editor rendering for faster performance
+- Fixed "TypeError: Cannot read property 'length' of undefined" error in block editor
+- Enhanced user interface for better usability
+
+### 0.0.7
+
+Fixed issues with file detection:
+- Resolved issue where files were not being detected correctly
+- Improved file detection logic for better accuracy
+- Fixed "TypeError: Cannot read property 'length' of undefined" error in file detection
+
+### 0.0.6
+
+Enhanced file synchronization:
+- Improved file synchronization logic for better accuracy
+- Fixed "TypeError: Cannot read property 'length' of undefined" error in synchronization
+- Enhanced user interface for synchronization feature
+
 ### 0.0.5
 
 Fixed critical extension activation issue:
