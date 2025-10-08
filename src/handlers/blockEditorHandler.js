@@ -124,7 +124,12 @@ class BlockEditorHandler {
             // Store the original blocks
             const originalBlocks = ${JSON.stringify(depthBlocks)};
             let currentBlocks = JSON.parse(JSON.stringify(originalBlocks));
-            let maxDepth = 2; // Default depth is 2 - matching the HTML selector
+            
+            // Set initial depth to 2 (default selected depth)
+            let maxDepth = 2;
+            
+            // Calculate the maximum depth from the actual data (for populating selectors)
+            const actualMaxDepth = Math.max(...originalBlocks.map(block => block.depth), 2); // Default to 2 if no blocks
             let documentVersion = ${document.version}; // Track document version
             
             // Search state
@@ -144,6 +149,47 @@ class BlockEditorHandler {
                 const saveBtn = document.getElementById('saveBtn');
                 if (saveBtn) {
                     saveBtn.disabled = true; // Disable save button by default
+                }
+            }
+            
+            // Function to populate depth selector options
+            function populateDepthSelector() {
+                const depthSelector = document.getElementById('depthSelector');
+                depthSelector.innerHTML = '';
+                
+                // Calculate the maximum depth from the actual data
+                const maxDepthInFile = Math.max(...currentBlocks.map(block => block.depth), 2); // Default to 2 if no blocks
+                
+                // Create options from 0 to maxDepthInFile (no fixed minimum)
+                for (let i = 0; i <= maxDepthInFile; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    option.textContent = i;
+                    if (i === 2) { // Default selected depth
+                        option.selected = true;
+                    }
+                    depthSelector.appendChild(option);
+                }
+            }
+            
+            // Function to populate new block depth selector options
+            function populateNewBlockDepthSelector() {
+                const newBlockDepthSelector = document.getElementById('newBlockDepth');
+                newBlockDepthSelector.innerHTML = '';
+                
+                // Calculate the maximum depth from the actual data
+                const maxDepthInFile = Math.max(...currentBlocks.map(block => block.depth), 2); // Default to 2 if no blocks
+                
+                // Create options from 0 to maxDepthInFile (no fixed minimum)
+                for (let i = 0; i <= maxDepthInFile; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+                    if (i === 0) {
+                        option.textContent = i + ' (Top Level)';
+                    } else {
+                        option.textContent = 'Depth ' + i;
+                    }
+                    newBlockDepthSelector.appendChild(option);
                 }
             }
             
@@ -525,6 +571,8 @@ class BlockEditorHandler {
             }
             
             // Initial render
+            populateDepthSelector();
+            populateNewBlockDepthSelector();
             renderBlocks();
             // Disable save button by default
             resetSaveButtonState();
@@ -532,6 +580,8 @@ class BlockEditorHandler {
             // Handle Add Block button
             document.getElementById('addBlockBtn').addEventListener('click', () => {
                 document.getElementById('newBlockForm').classList.remove('hidden');
+                // Populate the new block depth selector
+                populateNewBlockDepthSelector();
                 // Set the depth selector to match the current view depth
                 document.getElementById('newBlockDepth').value = maxDepth;
             });
@@ -697,6 +747,8 @@ class BlockEditorHandler {
                 switch (message.command) {
                     case 'update':
                         currentBlocks = JSON.parse(JSON.stringify(message.blocks));
+                        populateDepthSelector();
+                        populateNewBlockDepthSelector();
                         renderBlocks();
                         // Disable save button after successful update
                         resetSaveButtonState();
