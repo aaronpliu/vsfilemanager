@@ -67,6 +67,14 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 0.0.17
+
+Improved TOML processing stability:
+- Fixed "Invalid TOML format: Cannot add value of type InlineTable to array of type Array" error
+- Enhanced error handling in TOML parser with graceful fallbacks for complex object serialization
+- Corrected sample TOML file to comply with TOML specification (no mixed-type arrays)
+- Added better error handling for tomlify-j0.4 library integration
+
 ### 0.0.16
 
 Added XML and TOML file support:

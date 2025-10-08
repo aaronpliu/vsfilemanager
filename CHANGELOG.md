@@ -5,6 +5,18 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.17] - 2025-10-08
+
+### Fixed
+- Fixed "Invalid TOML format: Cannot add value of type InlineTable to array of type Array" error
+- Improved error handling in TOML parser with graceful fallbacks for complex object serialization
+- Corrected sample TOML file to comply with TOML specification (no mixed-type arrays)
+- Enhanced TOML parser to handle edge cases with nested objects and arrays
+
+### Improved
+- Added better error handling for tomlify-j0.4 library integration
+- Improved robustness of TOML processing pipeline
+
 ## [0.0.16] - 2025-10-08
 
 ### Added
