@@ -67,6 +67,15 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.1.0
+
+New features and bug fixes:
+- Added visual highlighting for newly added blocks in the editor
+- Enhanced user experience with animated highlighting for newly created blocks
+- Fixed issue where block keys were incorrectly converted to numbers after saving or reloading
+- Resolved data format inconsistency between parser output and webview expectations
+- Improved reliability of Save Changes, Reload, and Reload Document functions
+
 ### 1.0.0
 
 Major improvements and enhancements:
