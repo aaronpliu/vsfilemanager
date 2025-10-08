@@ -63,7 +63,13 @@ class TomlBlockParser {
             if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                 // This is a nested object
                 // Show a TOML stringified version of the object
-                const tomlString = tomlify.toToml(value, { space: 2 });
+                let tomlString;
+                try {
+                    tomlString = tomlify.toToml(value, { space: 2 });
+                } catch (e) {
+                    // If we can't convert to TOML, show the JSON representation
+                    tomlString = JSON.stringify(value, null, 2);
+                }
                 blocks[fullKey] = {
                     value: tomlString,
                     type: 'object',
@@ -178,7 +184,13 @@ class TomlBlockParser {
                 // This is a nested object
                 hasChildren = true;
                 // Show a TOML stringified version of the object
-                const tomlString = tomlify.toToml(value, { space: 2 });
+                let tomlString;
+                try {
+                    tomlString = tomlify.toToml(value, { space: 2 });
+                } catch (e) {
+                    // If we can't convert to TOML, show the JSON representation
+                    tomlString = JSON.stringify(value, null, 2);
+                }
                 currentLevelBlocks[fullKey] = {
                     value: tomlString,
                     type: 'object',
