@@ -3,7 +3,7 @@
   "publisher": "aaronpliu",
   "displayName": "VS File Manager",
   "description": "Advanced JSON, YAML, XML, and TOML structure editor with file synchronization",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "engines": {
     "vscode": "^1.75.0"
   },
