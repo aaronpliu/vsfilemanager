@@ -99,6 +99,8 @@ class BlockEditorHandler {
                     } else {
                         // Reset the flag for next change
                         isInternalChange = false;
+                        // Also reset the notification flag since we made an internal change
+                        isExternalChangeNotified = false;
                     }
                 }
             });
@@ -234,6 +236,7 @@ class BlockEditorHandler {
                         for (const [key, block] of Object.entries(selectedDepthGroup.blocks)) {
                             const blockItem = document.createElement('div');
                             blockItem.className = 'block-item';
+                            blockItem.setAttribute('data-key', key); // Add data attribute for easier selection
                             
                             // Highlight block if it's part of search results
                             if (searchResults.length > 0) {
@@ -242,8 +245,7 @@ class BlockEditorHandler {
                                     // If this is the current search result, add special class
                                     if (currentSearchIndex >= 0 && searchResults[currentSearchIndex] === key) {
                                         blockItem.classList.add('current-search-result');
-                                        // Scroll to the element
-                                        blockItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                        // Note: We don't scroll here anymore, it's handled by scrollToCurrentResult function
                                     }
                                 }
                             }
@@ -601,10 +603,18 @@ class BlockEditorHandler {
                 const depth = parseInt(document.getElementById('newBlockDepth').value);
                 
                 if (key) {
-                    // Add to selected depth level
-                    let depthGroup = currentBlocks.find(dg => dg.depth === depth);
+                    // Determine the prefix for grouping
+                    let prefix = '';
+                    const parts = key.split('.');
+                    if (parts.length > 1) {
+                        // Use all parts except the last one as the prefix
+                        prefix = parts.slice(0, parts.length - 1).join('.');
+                    }
+                    
+                    // Add to selected depth level with proper grouping
+                    let depthGroup = currentBlocks.find(dg => dg.depth === depth && dg.prefix === prefix);
                     if (!depthGroup) {
-                        depthGroup = { depth: depth, blocks: {} };
+                        depthGroup = { depth: depth, prefix: prefix, blocks: {} };
                         currentBlocks.push(depthGroup);
                     }
                     
@@ -746,12 +756,57 @@ class BlockEditorHandler {
                 const message = event.data;
                 switch (message.command) {
                     case 'update':
-                        currentBlocks = JSON.parse(JSON.stringify(message.blocks));
+                        // When we receive updated blocks, we need to reorganize them into the proper grouped structure
+                        const updatedBlocks = JSON.parse(JSON.stringify(message.blocks));
+                        currentBlocks = [];
+                        
+                        // Store the currently selected depth
+                        const currentSelectedDepth = maxDepth;
+                        
+                        // Group blocks by depth and prefix
+                        const groupedBlocks = {};
+                        
+                        // First, group by depth and prefix
+                        for (const [key, block] of Object.entries(updatedBlocks)) {
+                            const depth = block.depth;
+                            // Determine prefix from key
+                            let prefix = '';
+                            const parts = key.split('.');
+                            if (parts.length > 1) {
+                                prefix = parts.slice(0, parts.length - 1).join('.');
+                            }
+                            
+                            const groupKey = depth + '-' + prefix;
+                            if (!groupedBlocks[groupKey]) {
+                                groupedBlocks[groupKey] = {
+                                    depth: depth,
+                                    prefix: prefix,
+                                    blocks: {}
+                                };
+                            }
+                            groupedBlocks[groupKey].blocks[key] = block;
+                        }
+                        
+                        // Convert to array format
+                        for (const groupKey in groupedBlocks) {
+                            currentBlocks.push(groupedBlocks[groupKey]);
+                        }
+                        
                         populateDepthSelector();
                         populateNewBlockDepthSelector();
+                        
+                        // Restore the previously selected depth
+                        maxDepth = currentSelectedDepth;
+                        const depthSelector = document.getElementById('depthSelector');
+                        if (depthSelector) {
+                            depthSelector.value = maxDepth;
+                        }
+                        
                         renderBlocks();
                         // Disable save button after successful update
                         resetSaveButtonState();
+                        // Also reset the external change notification flag
+                        isExternalChangeNotified = false;
                         break;
                     case 'documentChanged':
                         // Show a notification that the document has been modified. Would you like to reload the latest content?
@@ -798,6 +853,7 @@ class BlockEditorHandler {
                     searchResults = [];
                     currentSearchIndex = -1;
                     searchResultsElement.textContent = '';
+                    hideSearchNavigationBar();
                     renderBlocks();
                     return;
                 }
@@ -815,9 +871,12 @@ class BlockEditorHandler {
                 if (searchResults.length > 0) {
                     currentSearchIndex = 0;
                     searchResultsElement.textContent = 'Found ' + searchResults.length + ' result(s). Use Enter or Search button to navigate.';
+                    showSearchNavigationBar();
+                    updateSearchNavigationCounter();
                 } else {
                     currentSearchIndex = -1;
                     searchResultsElement.textContent = 'No matching blocks found.';
+                    hideSearchNavigationBar();
                 }
                 
                 renderBlocks();
@@ -828,9 +887,10 @@ class BlockEditorHandler {
                 if (searchResults.length === 0) return;
                 
                 currentSearchIndex = (currentSearchIndex + 1) % searchResults.length;
-                document.getElementById('searchResults').textContent = 
-                    'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+                updateSearchNavigationCounter();
+                updateSearchResultsText();
                 renderBlocks();
+                scrollToCurrentResult();
             }
             
             // Function to navigate to previous search result
@@ -838,9 +898,49 @@ class BlockEditorHandler {
                 if (searchResults.length === 0) return;
                 
                 currentSearchIndex = (currentSearchIndex - 1 + searchResults.length) % searchResults.length;
-                document.getElementById('searchResults').textContent = 
-                    'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+                updateSearchNavigationCounter();
+                updateSearchResultsText();
                 renderBlocks();
+                scrollToCurrentResult();
+            }
+            
+            // Function to scroll to the current search result
+            function scrollToCurrentResult() {
+                if (searchResults.length > 0 && currentSearchIndex >= 0) {
+                    const currentKey = searchResults[currentSearchIndex];
+                    const blockItem = document.querySelector(\`.block-item[data-key="\${currentKey}"]\`);
+                    if (blockItem) {
+                        blockItem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            }
+            
+            // Function to update search navigation counter
+            function updateSearchNavigationCounter() {
+                if (searchResults.length > 0) {
+                    document.getElementById('currentResultIndex').textContent = currentSearchIndex + 1;
+                    document.getElementById('totalResults').textContent = searchResults.length;
+                }
+            }
+            
+            // Function to update search results text
+            function updateSearchResultsText() {
+                if (searchResults.length > 0) {
+                    document.getElementById('searchResults').textContent = 
+                        'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+                }
+            }
+            
+            // Function to show search navigation bar
+            function showSearchNavigationBar() {
+                const searchBar = document.getElementById('searchNavigationBar');
+                searchBar.style.display = 'flex';
+            }
+            
+            // Function to hide search navigation bar
+            function hideSearchNavigationBar() {
+                const searchBar = document.getElementById('searchNavigationBar');
+                searchBar.style.display = 'none';
             }
             
             // Function to clear search
@@ -849,8 +949,37 @@ class BlockEditorHandler {
                 searchResults = [];
                 currentSearchIndex = -1;
                 document.getElementById('searchResults').textContent = '';
+                hideSearchNavigationBar();
                 renderBlocks();
             }
+            
+            // Handle next result button
+            document.getElementById('nextResultBtn').addEventListener('click', nextSearchResult);
+            
+            // Handle previous result button
+            document.getElementById('prevResultBtn').addEventListener('click', previousSearchResult);
+            
+            // Handle close search navigation button
+            document.getElementById('closeSearchNavBtn').addEventListener('click', clearSearch);
+            
+            // Handle keyboard navigation (Enter and Shift+Enter)
+            document.addEventListener('keydown', (e) => {
+                // Only handle if search results exist and we're not in an input field
+                if (searchResults.length > 0 && 
+                    e.target.tagName !== 'INPUT' && 
+                    e.target.tagName !== 'TEXTAREA') {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        nextSearchResult();
+                        e.preventDefault();
+                    } else if (e.key === 'Enter' && e.shiftKey) {
+                        previousSearchResult();
+                        e.preventDefault();
+                    }
+                }
+            });
+            
+            // Add data-key attribute to block items for easier selection
+            // This is in the renderBlocks function
             </script>`;
             
             // Add the file path to the HTML
@@ -1064,10 +1193,20 @@ class BlockEditorHandler {
                                         updatedDepthBlocks = Parser.parseToDepthBlocks(updatedContent);
                                     }
                                     
+                                    // Convert array format to object format expected by the webview
+                                    const blocksObject = {};
+                                    updatedDepthBlocks.forEach(depthGroup => {
+                                        for (const key in depthGroup.blocks) {
+                                            if (depthGroup.blocks.hasOwnProperty(key)) {
+                                                blocksObject[key] = depthGroup.blocks[key];
+                                            }
+                                        }
+                                    });
+                                    
                                     // Update the webview with new content
                                     panel.webview.postMessage({
                                         command: 'update',
-                                        blocks: updatedDepthBlocks
+                                        blocks: blocksObject
                                     });
                                 } catch (error) {
                                     console.error('Error reloading webview content:', error);
@@ -1228,10 +1367,20 @@ class BlockEditorHandler {
                                     updatedDepthBlocks = Parser.parseToDepthBlocks(updatedContent);
                                 }
                                 
+                                // Convert array format to object format expected by the webview
+                                const blocksObject = {};
+                                updatedDepthBlocks.forEach(depthGroup => {
+                                    for (const key in depthGroup.blocks) {
+                                        if (depthGroup.blocks.hasOwnProperty(key)) {
+                                            blocksObject[key] = depthGroup.blocks[key];
+                                        }
+                                    }
+                                });
+                                
                                 // Update the webview with new content
                                 panel.webview.postMessage({
                                     command: 'update',
-                                    blocks: updatedDepthBlocks
+                                    blocks: blocksObject
                                 });
                                 
                                 // Update our version tracking

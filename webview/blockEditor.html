@@ -163,15 +163,6 @@
             cursor: not-allowed;
         }
         
-        .add-block {
-            background-color: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-        }
-        
-        .add-block:hover {
-            background-color: var(--vscode-button-secondaryHoverBackground);
-        }
-        
         .open-source-btn {
             background-color: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
@@ -216,37 +207,92 @@
             border-radius: 3px;
         }
         
-        .hidden {
-            display: none;
+        /* Floating search navigation bar */
+        .search-navigation-bar {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--vscode-button-background);
+            border: 2px solid var(--vscode-focusBorder);
+            border-radius: 4px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+        }
+        
+        .search-navigation-bar button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: 1px solid var(--vscode-button-border);
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 30px;
+            font-weight: bold;
+        }
+        
+        .search-navigation-bar button:hover {
+            background-color: var(--vscode-button-hoverBackground);
+            border-color: var(--vscode-button-border);
+        }
+        
+        .search-navigation-bar .counter {
+            font-size: 12px;
+            color: var(--vscode-button-foreground);
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
         }
         
         .new-block-form {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
-            padding: 10px;
-            border: 1px dashed var(--vscode-panel-border);
-            border-radius: 3px;
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 5px;
+            background-color: var(--vscode-editorWidget-background);
+            display: block;
+        }
+        
+        .new-block-form.hidden {
+            display: none !important;
+        }
+        
+        .new-block-form h3 {
+            margin-top: 0;
+            color: var(--vscode-editor-foreground);
         }
         
         .form-row {
-            display: flex;
-            gap: 10px;
+            margin-bottom: 15px;
         }
         
-        .form-row input {
-            flex: 1;
-            padding: 5px;
+        .form-row input,
+        .form-row select {
+            width: 100%;
+            padding: 8px;
             background-color: var(--vscode-input-background);
             border: 1px solid var(--vscode-input-border);
             color: var(--vscode-input-foreground);
             font-family: var(--vscode-editor-font-family);
+            border-radius: 2px;
+            box-sizing: border-box;
         }
         
-        .form-row input:focus {
+        .form-row input:focus,
+        .form-row select:focus {
             outline: none;
             border-color: var(--vscode-focusBorder);
+        }
+        
+        .form-row button {
+            margin-right: 10px;
         }
         
         .document-changed-notification {
@@ -280,19 +326,6 @@
             background-color: var(--vscode-button-hoverBackground);
         }
         
-        .cancel-edit-btn {
-            background-color: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            border: none;
-            padding: 5px 10px;
-            border-radius: 2px;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .cancel-edit-btn:hover {
-            background-color: var(--vscode-button-secondaryHoverBackground);
-        }
     </style>
 </head>
 <body>
@@ -345,6 +378,16 @@
             <button id="confirmAddBtn">Add Block</button>
             <button id="cancelAddBtn">Cancel</button>
         </div>
+    </div>
+    
+    <!-- Floating search navigation bar -->
+    <div id="searchNavigationBar" class="search-navigation-bar" style="display: none;">
+        <button id="prevResultBtn">↑</button>
+        <div class="counter">
+            <span id="currentResultIndex">0</span> / <span id="totalResults">0</span>
+        </div>
+        <button id="nextResultBtn">↓</button>
+        <button id="closeSearchNavBtn">×</button>
     </div>
 </body>
 </html>
