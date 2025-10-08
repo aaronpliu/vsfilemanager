@@ -22,9 +22,9 @@ function activate(context) {
 		// The command has been defined in the package.json file
 		// Now provide the implementation of the command with  registerCommand
 		// The commandId parameter must match the command field in package.json
-		let disposable = vscode.commands.registerCommand('vsfilemanager.editJsonBlocks', async function () {
+		let disposable = vscode.commands.registerCommand('vsfilemanager.editStructuredBlocks', async function () {
 			// The code you place here will be executed every time your command is executed
-			console.log('vsfilemanager.editJsonBlocks command executed');
+			console.log('vsfilemanager.editStructuredBlocks command executed');
 			const editor = vscode.window.activeTextEditor;
 			await BlockEditorHandler.openEditor(context, editor);
 		});
@@ -49,9 +49,10 @@ function activate(context) {
 		
 		// Register file save event listener for automatic sync detection
 		vscode.workspace.onDidSaveTextDocument(async (document) => {
-			// Only process JSON and YAML files
+			// Only process supported file types
 			const fileExtension = path.extname(document.fileName).toLowerCase();
-			if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml') {
+			if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml' &&
+				fileExtension !== '.xml' && fileExtension !== '.toml') {
 				return;
 			}
 			

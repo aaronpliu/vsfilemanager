@@ -5,6 +5,25 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.16] - 2025-10-08
+
+### Added
+- Added support for editing XML files with the block editor
+- Added support for editing TOML files with the block editor
+- Extended synchronization and batch update features to XML and TOML files
+- Updated UI to be format-agnostic
+- Updated command names to be more generic (Edit Structured Blocks)
+
+### Fixed
+- Fixed batch update functionality for XML and TOML files
+- Fixed synchronization issues with XML and TOML files
+- Fixed sync files command to support XML and TOML files
+
+### Improved
+- Refactored codebase to use centralized file type utility for better extensibility
+- Improved code maintainability by reducing repetitive conditional logic
+- Made it easier to add support for new file types in the future
+
 ## [0.0.15] - 2025-10-07
 
 ### Fixed

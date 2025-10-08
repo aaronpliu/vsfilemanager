@@ -1,8 +1,7 @@
 const vscode = require('vscode');
 const path = require('path');
 const SyncDetector = require('../syncDetector');
-const JsonBlockParser = require('../parser/jsonBlockParser');
-const YamlBlockParser = require('../parser/yamlBlockParser');
+const { FileTypeUtils } = require('../utils/fileTypeUtils');
 
 class SyncFilesHandler {
     static async syncFiles() {
@@ -15,9 +14,10 @@ class SyncFilesHandler {
 
         const document = editor.document;
         const filePath = document.fileName;
-        const fileExtension = path.extname(document.fileName).toLowerCase();
-        if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml') {
-            vscode.window.showErrorMessage('Active file is not a JSON or YAML file!');
+        const validation = FileTypeUtils.validateFile(filePath);
+        
+        if (!validation.isValid) {
+            vscode.window.showErrorMessage(`Active file is not a supported structured file! Supported types: ${FileTypeUtils.getSupportedExtensions().join(', ')}`);
             return;
         }
 
@@ -52,11 +52,18 @@ class SyncFilesHandler {
             const content = document.getText();
             let blocks;
             
-            if (fileExtension === '.json') {
+            // Get the appropriate parser
+            const Parser = FileTypeUtils.getParser(validation.fileExtension);
+            if (!Parser) {
+                vscode.window.showErrorMessage(`Parser not found for file type: ${validation.fileExtension}`);
+                return;
+            }
+            
+            if (validation.fileExtension === '.json') {
                 const jsonContent = JSON.parse(content);
                 // For the sync command, we send all current blocks since we don't have
                 // a reference to original blocks like in the save flow
-                const depthBlocks = JsonBlockParser.parseToDepthBlocks(jsonContent);
+                const depthBlocks = Parser.parseToDepthBlocks(jsonContent);
                 // Convert to flat blocks for synchronization
                 blocks = {};
                 depthBlocks.forEach(depthGroup => {
@@ -67,7 +74,7 @@ class SyncFilesHandler {
                     }
                 });
             } else {
-                blocks = YamlBlockParser.parseToBlocks(content);
+                blocks = Parser.parseToBlocks(content);
             }
             
             // Synchronize only the current blocks, not the entire file content

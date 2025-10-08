@@ -2,8 +2,8 @@
   "name": "vsfilemanager",
   "publisher": "aaronpliu",
   "displayName": "VS File Manager",
-  "description": "Advanced JSON and YAML structure editor with file synchronization",
-  "version": "0.0.15",
+  "description": "Advanced JSON, YAML, XML, and TOML structure editor with file synchronization",
+  "version": "0.0.16",
   "engines": {
     "vscode": "^1.75.0"
   },
@@ -14,6 +14,8 @@
   "keywords": [
     "json",
     "yaml",
+    "xml",
+    "toml",
     "editor",
     "block",
     "sync",
@@ -28,22 +30,24 @@
   "activationEvents": [
     "onLanguage:json",
     "onLanguage:yaml",
-    "onLanguage:yml"
+    "onLanguage:yml",
+    "onLanguage:xml",
+    "onLanguage:toml"
   ],
   "main": "./extension.js",
   "contributes": {
     "commands": [
       {
-        "command": "vsfilemanager.editJsonBlocks",
-        "title": "Edit JSON/YAML Blocks"
+        "command": "vsfilemanager.editStructuredBlocks",
+        "title": "Edit Structured Blocks"
       },
       {
         "command": "vsfilemanager.syncFiles",
-        "title": "Sync JSON/YAML Files"
+        "title": "Sync Structured Files"
       },
       {
         "command": "vsfilemanager.batchUpdate",
-        "title": "Batch Update JSON/YAML Files"
+        "title": "Batch Update Structured Files"
       }
     ]
   },
@@ -65,7 +69,10 @@
     "typescript": "^4.9.4"
   },
   "dependencies": {
-    "js-yaml": "^4.1.0"
+    "fast-xml-parser": "^4.2.5",
+    "js-yaml": "^4.1.0",
+    "toml": "^3.0.0",
+    "tomlify-j0.4": "^3.0.0"
   },
   "repository": {
     "type": "git",

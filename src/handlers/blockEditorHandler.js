@@ -1,8 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const JsonBlockParser = require('../parser/jsonBlockParser');
-const YamlBlockParser = require('../parser/yamlBlockParser');
+const { FileTypeUtils } = require('../utils/fileTypeUtils');
 const SyncDetector = require('../syncDetector');
 
 class BlockEditorHandler {
@@ -13,33 +12,41 @@ class BlockEditorHandler {
             return;
         }
 
-        // Check if it's a JSON file
+        // Check if it's a supported file type
         const document = editor.document;
-        const fileExtension = path.extname(document.fileName).toLowerCase();
-        if (fileExtension !== '.json' && fileExtension !== '.yaml' && fileExtension !== '.yml') {
-            vscode.window.showErrorMessage('Active file is not a JSON or YAML file!');
+        const validation = FileTypeUtils.validateFile(document.fileName);
+        
+        if (!validation.isValid) {
+            vscode.window.showErrorMessage(`Active file is not a supported structured file! Supported types: ${FileTypeUtils.getSupportedExtensions().join(', ')}`);
             return;
         }
 
         try {
             let depthBlocks;
             
-            if (fileExtension === '.json') {
+            // Get the appropriate parser
+            const Parser = FileTypeUtils.getParser(validation.fileExtension);
+            if (!Parser) {
+                vscode.window.showErrorMessage(`Parser not found for file type: ${validation.fileExtension}`);
+                return;
+            }
+            
+            if (validation.fileExtension === '.json') {
                 // Parse the JSON content
                 const jsonContent = JSON.parse(document.getText());
                 // Convert to blocks grouped by depth
-                depthBlocks = JsonBlockParser.parseToDepthBlocks(jsonContent);
+                depthBlocks = Parser.parseToDepthBlocks(jsonContent);
             } else {
-                // Parse the YAML content
-                const yamlContent = document.getText();
+                // Parse the content
+                const content = document.getText();
                 // Convert to blocks grouped by depth
-                depthBlocks = YamlBlockParser.parseToDepthBlocks(yamlContent);
+                depthBlocks = Parser.parseToDepthBlocks(content);
             }
             
             // Create and show a webview panel
             const panel = vscode.window.createWebviewPanel(
-                'jsonBlockEditor', // Identifies the type of the webview. Used internally
-                `JSON/YAML Block Editor`, // Title of the panel displayed to the user
+                'structuredBlockEditor', // Identifies the type of the webview. Used internally
+                `${validation.typeName} Block Editor`, // Title of the panel displayed to the user
                 vscode.ViewColumn.One, // Editor column to show the new webview panel in.
                 {
                     // Enable scripts in the webview
@@ -796,8 +803,8 @@ class BlockEditorHandler {
             
             // Add the file path to the HTML
             htmlContent = htmlContent.replace(
-                '<h1>JSON/YAML Block Editor</h1>',
-                '<h1>JSON/YAML Block Editor</h1>\n        <div style="display: flex; align-items: center; gap: 10px;">\n          <p style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin: 0; flex-grow: 1;">' + document.fileName + '</p>\n          <button id="openSourceBtn" class="open-source-btn">Open Source File</button>\n        </div>'
+                '<h1>Structured Block Editor</h1>',
+                '<h1>' + validation.typeName + ' Block Editor</h1>\n        <div style="display: flex; align-items: center; gap: 10px;">\n          <p style="color: var(--vscode-descriptionForeground); font-size: 0.9em; margin: 0; flex-grow: 1;">' + document.fileName + '</p>\n          <button id="openSourceBtn" class="open-source-btn">Open Source File</button>\n        </div>'
             );
             
             // Add CSS for the notification
@@ -916,26 +923,32 @@ class BlockEditorHandler {
                             try {
                                 // Get the original content
                                 const originalContent = document.getText();
-                                const fileExtension = path.extname(document.fileName).toLowerCase();
+                                
+                                // Get the appropriate parser
+                                const Parser = FileTypeUtils.getParser(validation.fileExtension);
+                                if (!Parser) {
+                                    vscode.window.showErrorMessage(`Parser not found for file type: ${validation.fileExtension}`);
+                                    return;
+                                }
                                 
                                 let updatedContent;
-                                if (fileExtension === '.json') {
+                                if (validation.fileExtension === '.json') {
                                     // Get the original JSON content
                                     const originalJsonContent = JSON.parse(originalContent);
                                     
                                     // Apply block changes (including deletions) to the original content using enhanced method
-                                    const updatedJson = JsonBlockParser.applyBlockChangesEnhanced(originalJsonContent, message.blocks);
+                                    const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, message.blocks);
                                     updatedContent = JSON.stringify(updatedJson, null, 2);
                                 } else {
                                     // Apply block changes (including deletions) to the original content using enhanced method
-                                    updatedContent = YamlBlockParser.applyBlockChangesEnhanced(originalContent, message.blocks);
+                                    updatedContent = Parser.applyBlockChangesEnhanced(originalContent, message.blocks);
                                 }
                                 
                                 // Handle deletions if any
                                 if (message.deletedKeys && message.deletedKeys.length > 0) {
-                                    if (fileExtension === '.json') {
-                                        // Parse the updated JSON into blocks to work with
-                                        const updatedBlocks = JsonBlockParser.parseToBlocks(JSON.parse(updatedContent));
+                                    if (validation.fileExtension === '.json') {
+                                        // For JSON files, we need to parse the updated content into blocks
+                                        const updatedBlocks = Parser.parseToBlocks(JSON.parse(updatedContent));
                                         
                                         // Remove deleted keys
                                         message.deletedKeys.forEach(key => {
@@ -945,11 +958,11 @@ class BlockEditorHandler {
                                         });
                                         
                                         // Convert back to JSON
-                                        const finalJson = JsonBlockParser.blocksToJson(updatedBlocks);
+                                        const finalJson = Parser.blocksToJson(updatedBlocks);
                                         updatedContent = JSON.stringify(finalJson, null, 2);
                                     } else {
-                                        // For YAML, we need to parse the updated content into blocks
-                                        const updatedBlocks = YamlBlockParser.parseToBlocks(updatedContent);
+                                        // For other formats, we need to parse the updated content into blocks
+                                        const updatedBlocks = Parser.parseToBlocks(updatedContent);
                                         
                                         // Remove deleted keys
                                         message.deletedKeys.forEach(key => {
@@ -958,8 +971,12 @@ class BlockEditorHandler {
                                             }
                                         });
                                         
-                                        // Convert back to YAML
-                                        updatedContent = YamlBlockParser.blocksToYaml(updatedBlocks);
+                                        // Convert back to the appropriate format
+                                        updatedContent = Parser.blocksToContent ?
+                                            Parser.blocksToContent(updatedBlocks) :
+                                            (Parser.blocksToYaml ? Parser.blocksToYaml(updatedBlocks) :
+                                                (Parser.blocksToXml ? Parser.blocksToXml(updatedBlocks) :
+                                                    Parser.blocksToToml(updatedBlocks)));
                                     }
                                 }
                                 
@@ -987,11 +1004,11 @@ class BlockEditorHandler {
                                     const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
                                     const updatedContent = updatedDocument.getText();
                                     
-                                    if (fileExtension === '.json') {
+                                    if (validation.fileExtension === '.json') {
                                         const updatedJsonContent = JSON.parse(updatedContent);
-                                        updatedDepthBlocks = JsonBlockParser.parseToDepthBlocks(updatedJsonContent);
+                                        updatedDepthBlocks = Parser.parseToDepthBlocks(updatedJsonContent);
                                     } else {
-                                        updatedDepthBlocks = YamlBlockParser.parseToDepthBlocks(updatedContent);
+                                        updatedDepthBlocks = Parser.parseToDepthBlocks(updatedContent);
                                     }
                                     
                                     // Update the webview with new content
@@ -1142,14 +1159,20 @@ class BlockEditorHandler {
                                 // Reload the document content
                                 const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
                                 const updatedContent = updatedDocument.getText();
-                                const fileExtension = path.extname(document.fileName).toLowerCase();
+                                
+                                // Get the appropriate parser
+                                const Parser = FileTypeUtils.getParser(validation.fileExtension);
+                                if (!Parser) {
+                                    vscode.window.showErrorMessage(`Parser not found for file type: ${validation.fileExtension}`);
+                                    return;
+                                }
                                 
                                 let updatedDepthBlocks;
-                                if (fileExtension === '.json') {
+                                if (validation.fileExtension === '.json') {
                                     const updatedJsonContent = JSON.parse(updatedContent);
-                                    updatedDepthBlocks = JsonBlockParser.parseToDepthBlocks(updatedJsonContent);
+                                    updatedDepthBlocks = Parser.parseToDepthBlocks(updatedJsonContent);
                                 } else {
-                                    updatedDepthBlocks = YamlBlockParser.parseToDepthBlocks(updatedContent);
+                                    updatedDepthBlocks = Parser.parseToDepthBlocks(updatedContent);
                                 }
                                 
                                 // Update the webview with new content

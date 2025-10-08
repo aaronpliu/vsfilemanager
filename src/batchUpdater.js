@@ -1,8 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const JsonBlockParser = require('./parser/jsonBlockParser');
-const YamlBlockParser = require('./parser/yamlBlockParser');
+const { FileTypeUtils } = require('./utils/fileTypeUtils');
 
 /**
  * Batch Updater
@@ -33,34 +32,36 @@ class BatchUpdater {
         // Process each file
         for (const filePath of filePaths) {
             try {
-                // Read the file
-                const fileContent = fs.readFileSync(filePath, 'utf8');
                 const fileExtension = path.extname(filePath).toLowerCase();
                 
-                let updatedContent;
-                
-                if (fileExtension === '.json') {
-                    // Parse as JSON
-                    const jsonContent = JSON.parse(fileContent);
-                    
-                    // Apply ONLY the specified block changes using the new method
-                    const updatedJson = JsonBlockParser.applyOnlyChangedBlocks(jsonContent, blocks);
-                    
-                    // Write back to file
-                    updatedContent = JSON.stringify(updatedJson, null, 2);
-                } else if (fileExtension === '.yaml' || fileExtension === '.yml') {
-                    // For YAML files, we need to handle empty or invalid content
-                    let yamlContent = fileContent;
-                    
-                    // If the file is empty, start with an empty object
-                    if (!yamlContent || yamlContent.trim() === '') {
-                        yamlContent = '{}';
-                    }
-                    
-                    // Apply ONLY the specified block changes using the new method
-                    updatedContent = YamlBlockParser.applyOnlyChangedBlocks(yamlContent, blocks);
-                } else {
+                // Validate file type
+                if (!FileTypeUtils.isSupportedFileType(fileExtension)) {
                     throw new Error(`Unsupported file type: ${fileExtension}`);
+                }
+                
+                // Get the appropriate parser
+                const Parser = FileTypeUtils.getParser(fileExtension);
+                if (!Parser) {
+                    throw new Error(`Parser not found for file type: ${fileExtension}`);
+                }
+                
+                // Read the file
+                let fileContent = fs.readFileSync(filePath, 'utf8');
+                
+                // Handle empty files
+                if (!fileContent || fileContent.trim() === '') {
+                    fileContent = FileTypeUtils.getEmptyContent(fileExtension);
+                }
+                
+                let updatedContent;
+                if (fileExtension === '.json') {
+                    // For JSON files, we need to parse, apply changes, and stringify
+                    const jsonContent = JSON.parse(fileContent);
+                    const updatedJson = Parser.applyOnlyChangedBlocks(jsonContent, blocks);
+                    updatedContent = JSON.stringify(updatedJson, null, 2);
+                } else {
+                    // For other formats, use the parser's applyOnlyChangedBlocks method directly
+                    updatedContent = Parser.applyOnlyChangedBlocks(fileContent, blocks);
                 }
                 
                 fs.writeFileSync(filePath, updatedContent, 'utf8');
@@ -100,10 +101,7 @@ class BatchUpdater {
         const options = {
             canSelectMany: true,
             openLabel: 'Select Files for Batch Update',
-            filters: {
-                'JSON Files': ['json'],
-                'YAML Files': ['yaml', 'yml']
-            }
+            filters: FileTypeUtils.getFileFilter()
         };
 
         const uris = await vscode.window.showOpenDialog(options);

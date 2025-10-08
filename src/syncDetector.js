@@ -1,8 +1,7 @@
 const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
-const JsonBlockParser = require('./parser/jsonBlockParser');
-const YamlBlockParser = require('./parser/yamlBlockParser');
+const { FileTypeUtils } = require('./utils/fileTypeUtils');
 
 /**
  * Sync Detector
@@ -157,46 +156,44 @@ class SyncDetector {
 
         for (const targetFile of targetFiles) {
             try {
-                // Read the existing content of the target file
                 const fileExtension = path.extname(targetFile).toLowerCase();
-                const existingContent = fs.readFileSync(targetFile, 'utf8');
+                
+                // Validate file type
+                if (!FileTypeUtils.isSupportedFileType(fileExtension)) {
+                    failedFiles.push({ 
+                        file: targetFile, 
+                        error: `Unsupported file type: ${fileExtension}` 
+                    });
+                    continue;
+                }
+                
+                // Get the appropriate parser
+                const Parser = FileTypeUtils.getParser(fileExtension);
+                if (!Parser) {
+                    failedFiles.push({ 
+                        file: targetFile, 
+                        error: `Parser not found for file type: ${fileExtension}` 
+                    });
+                    continue;
+                }
+                
+                // Read the existing content of the target file
+                let existingContent = fs.readFileSync(targetFile, 'utf8');
+                
+                // Handle empty files
+                if (!existingContent || existingContent.trim() === '') {
+                    existingContent = FileTypeUtils.getEmptyContent(fileExtension);
+                }
                 
                 let updatedContent;
-                
                 if (fileExtension === '.json') {
-                    const existingJson = JSON.parse(existingContent);
-                    
-                    // Validate that the target file has the structure to apply changes
-                    if (!this.validateBlockCompatibility(existingJson, changedBlocks)) {
-                        failedFiles.push({ 
-                            file: targetFile, 
-                            error: 'Target file structure incompatible with changes' 
-                        });
-                        continue;
-                    }
-                    
-                    // Apply ONLY the changed blocks to the existing content using the new method
-                    const updatedJson = JsonBlockParser.applyOnlyChangedBlocks(existingJson, changedBlocks);
-                    
-                    // Validate the updated JSON before writing
-                    if (!this.validateJsonStructure(updatedJson)) {
-                        failedFiles.push({ 
-                            file: targetFile, 
-                            error: 'Updated JSON structure is invalid' 
-                        });
-                        continue;
-                    }
-                    
+                    // For JSON files, we need to parse, apply changes, and stringify
+                    const jsonContent = JSON.parse(existingContent);
+                    const updatedJson = Parser.applyOnlyChangedBlocks(jsonContent, changedBlocks);
                     updatedContent = JSON.stringify(updatedJson, null, 2);
                 } else {
-                    // For YAML files, handle empty or invalid content
-                    let yamlContent = existingContent;
-                    if (!yamlContent || yamlContent.trim() === '') {
-                        yamlContent = '{}';
-                    }
-                    
-                    // Apply ONLY the changed blocks to the existing content using the new method
-                    updatedContent = YamlBlockParser.applyOnlyChangedBlocks(yamlContent, changedBlocks);
+                    // For other formats, use the parser's applyOnlyChangedBlocks method directly
+                    updatedContent = Parser.applyOnlyChangedBlocks(existingContent, changedBlocks);
                 }
                 
                 // Write the updated content back to the file
@@ -225,14 +222,28 @@ class SyncDetector {
 
     /**
      * Validate that target file has compatible structure for block changes
-     * @param {Object} jsonContent - The JSON content of the target file
+     * @param {Object} content - The content of the target file
      * @param {Object} changedBlocks - The blocks that have been changed
+     * @param {string} fileExtension - File extension
      * @returns {boolean} Whether the target file is compatible
      */
-    static validateBlockCompatibility(jsonContent, changedBlocks) {
+    static validateBlockCompatibility(content, changedBlocks, fileExtension) {
         try {
-            // Parse the existing content into blocks
-            const existingBlocks = JsonBlockParser.parseToBlocks(jsonContent);
+            // Get the appropriate parser
+            const Parser = FileTypeUtils.getParser(fileExtension);
+            if (!Parser) {
+                return false;
+            }
+            
+            let existingBlocks;
+            if (fileExtension === '.json') {
+                // For JSON files, parse the content first
+                const jsonContent = JSON.parse(content);
+                existingBlocks = Parser.parseToBlocks(jsonContent);
+            } else {
+                // For other formats, parse directly
+                existingBlocks = Parser.parseToBlocks(content);
+            }
             
             // Check if all changed blocks can be applied to the existing structure
             for (const key in changedBlocks) {
@@ -248,20 +259,6 @@ class SyncDetector {
         } catch (error) {
             return false;
         }
-    }
-
-    /**
-     * Validate that target file has compatible structure for YAML block changes
-     * @param {string} yamlContent - The YAML content of the target file
-     * @param {Object} changedBlocks - The blocks that have been changed
-     * @returns {boolean} Whether the target file is compatible
-     */
-    static validateYamlBlockCompatibility(yamlContent, changedBlocks) {
-        // For YAML files, we can always apply changes since we're using dot notation paths
-        // If a path doesn't exist, it will be created
-        // If it does exist, it will be updated
-        // So this is always compatible regardless of the current content
-        return true;
     }
 
     /**

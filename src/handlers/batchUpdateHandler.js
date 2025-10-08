@@ -1,5 +1,6 @@
 const vscode = require('vscode');
 const BatchUpdater = require('../batchUpdater');
+const { FileTypeUtils } = require('../utils/fileTypeUtils');
 
 class BatchUpdateHandler {
     static async batchUpdate() {

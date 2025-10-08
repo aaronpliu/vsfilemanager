@@ -2,21 +2,22 @@
 
 ![VS File Manager Logo](media/icons/icon-128.png)
 
-Advanced JSON and YAML structure editor with file synchronization capabilities for Visual Studio Code.
+Advanced structured file editor with file synchronization capabilities for Visual Studio Code.
 
-Easily edit complex JSON and YAML files using a hierarchical block editor, synchronize changes across multiple files, and perform batch updates efficiently.
+Easily edit complex JSON, YAML, XML, and TOML files using a hierarchical block editor, synchronize changes across multiple files, and perform batch updates efficiently.
 
 ## Features
 
-- **Block Editor**: Edit JSON and YAML files in a hierarchical block view using dot notation (e.g., `config.db.host`)
+- **Block Editor**: Edit structured files in a hierarchical block view using dot notation (e.g., `config.db.host`)
 - **File Synchronization**: Automatically detect and synchronize changes across multiple files with same name in your project
-- **Batch Updates**: Apply the same changes to multiple JSON/YAML files simultaneously
-- **Multi-format Support**: Works seamlessly with both JSON and YAML file formats
+- **Batch Updates**: Apply the same changes to multiple structured files simultaneously
+- **Multi-format Support**: Works seamlessly with JSON, YAML, XML, and TOML file formats
 - **Smart Detection**: Automatic detection of same-named files with configurable sync prompts
+- **Extensible Architecture**: Easily extendable to support additional structured file formats
 
-## JSON/YAML Block Editor
+## Structured Block Editor
 
-The Block Editor provides a user-friendly interface for editing JSON and YAML files with a hierarchical view:
+The Block Editor provides a user-friendly interface for editing structured files with a hierarchical view:
 
 ![JSON Block Editor](media/json-block-editor.png)
 
@@ -43,16 +44,16 @@ Key features of the Block Editor:
 
 ## Commands
 
-- `Edit JSON/YAML Blocks`: Open the block editor with a custom webview UI for JSON or YAML files
-- `Sync Files`: Manually trigger file synchronization for JSON or YAML files
-- `Batch Update JSON/YAML Files`: Apply the same changes to multiple selected JSON or YAML files
+- `Edit Structured Blocks`: Open the block editor with a custom webview UI for structured files
+- `Sync Files`: Manually trigger file synchronization for structured files
+- `Batch Update Structured Files`: Apply the same changes to multiple selected structured files
 
 ## Usage
 
-### Editing JSON/YAML Blocks
+### Editing Structured Blocks
 
-1. Open a JSON or YAML file
-2. Use the Command Palette (Ctrl+Shift+P or Cmd+Shift+P) to run "Edit JSON/YAML Blocks"
+1. Open a JSON, YAML, XML, or TOML file
+2. Use the Command Palette (Ctrl+Shift+P or Cmd+Shift+P) to run "Edit Structured Blocks"
 3. Modify values in the webview editor
 4. Click "Save Changes" to apply modifications
 5. Optionally, apply changes to other files using the batch update feature
@@ -65,6 +66,16 @@ This extension contributes the following settings:
 * `vsfilemanager.syncPrompt`: Enable/disable automatic sync prompts
 
 ## Release Notes
+
+### 0.0.16
+
+Added XML and TOML file support:
+- Added support for editing XML files with the block editor
+- Added support for editing TOML files with the block editor
+- Extended synchronization and batch update features to XML and TOML files
+- Updated UI to be format-agnostic
+- Updated command names to be more generic (Edit Structured Blocks)
+- Refactored codebase for better extensibility and maintainability
 
 ### 0.0.15
 
