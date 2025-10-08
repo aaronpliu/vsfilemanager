@@ -863,8 +863,9 @@ class BlockEditorHandler {
             const styleInsert = `
             <style>
             .document-changed-notification {
-                background-color: var(--vscode-editorWarning-foreground);
-                color: var(--vscode-input-foreground);
+                background-color: var(--vscode-editorWarning-background);
+                color: var(--vscode-editorWarning-foreground);
+                border: 1px solid var(--vscode-editorWarning-border);
                 padding: 10px;
                 margin-bottom: 15px;
                 border-radius: 3px;
