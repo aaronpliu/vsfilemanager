@@ -5,6 +5,21 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2025-10-08
+
+### Added
+- Added dynamic depth selector that adjusts based on file structure
+- Added improved theming for notifications in both light and dark VS Code themes
+
+### Changed
+- Refactored depth selector to use dynamic values instead of fixed ranges
+- Improved depth selector initialization to properly show depth level 2 by default
+- Enhanced notification styling to work better with VS Code's built-in theme variables
+
+### Fixed
+- Fixed issue where initial depth level was showing maximum depth instead of default depth level 2
+- Fixed notification background colors to properly adapt to both light and dark themes
+
 ## [0.0.17] - 2025-10-08
 
 ### Fixed

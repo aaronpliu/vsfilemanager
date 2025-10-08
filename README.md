@@ -67,6 +67,14 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.0.0
+
+Major improvements and enhancements:
+- Added dynamic depth selector that adjusts based on file structure
+- Improved theming for notifications in both light and dark VS Code themes
+- Fixed issue where initial depth level was showing maximum depth instead of default depth level 2
+- Enhanced notification styling to work better with VS Code's built-in theme variables
+
 ### 0.0.17
 
 Improved TOML processing stability:
