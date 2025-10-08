@@ -25,9 +25,21 @@ jobs:
         run: npx vsce package
 
       - name: Publish to VS Code Marketplace
-        run: npx vsce publish -p "$VSCE_PAT"
+        run: |
+          echo "Publishing to VS Code Marketplace..."
+          npx vsce publish -p "${VSCE_PAT}"
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        if: env.VSCE_PAT != ''
+
+      - name: Handle Publish Failure
+        if: failure()
+        run: |
+          echo "Publishing failed. Please check:"
+          echo "1. That your VSCE_PAT secret is correctly set in GitHub repository settings"
+          echo "2. That the PAT has the correct permissions (Marketplace publish)"
+          echo "3. That the PAT hasn't expired"
+          echo "See PUBLISHING.md for detailed instructions."
 
       - name: Create Release and Upload Asset
         uses: softprops/action-gh-release@v2

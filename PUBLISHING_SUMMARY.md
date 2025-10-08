@@ -21,6 +21,7 @@ This document summarizes the changes made to prepare the VS File Manager extensi
 
 4. **Configuration**
    - `.vscodeignore` - Specifies files and folders that should not be included in the packaged extension
+   - `.github/workflows/publish.yml` - GitHub Actions workflow for automated publishing
 
 ## Modified Files
 
@@ -47,10 +48,32 @@ This document summarizes the changes made to prepare the VS File Manager extensi
    vsce package
    ```
 
-4. Publish to marketplace:
+4. Publish to marketplace manually:
    ```
    vsce publish
    ```
+
+5. Or publish automatically with GitHub Actions:
+   - Create a tag starting with "v" (e.g., `v1.0.0`)
+   - Push the tag to trigger the workflow
+
+## Common Issues and Solutions
+
+### TF400813: The user is not authorized to access this resource
+
+When publishing via GitHub Actions, this error typically means your PAT is not properly configured. Ensure:
+
+1. You've created a new PAT with the correct settings:
+   - Organization: "All accessible organizations"
+   - Scopes: "Full access" or at minimum "Marketplace (publish)"
+
+2. You've added the PAT as a secret named `VSCE_PAT` in your GitHub repository settings
+
+3. The PAT has not expired
+
+### Failed to open credential store
+
+This warning is normal in CI environments and can be safely ignored.
 
 ## Additional Notes
 
