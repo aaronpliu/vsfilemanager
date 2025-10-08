@@ -138,6 +138,9 @@ class BlockEditorHandler {
             let searchResults = [];
             let currentSearchIndex = -1;
             
+            // Newly added blocks tracking
+            let newlyAddedBlocks = [];
+            
             // Function to check if there are any changes and update save button state
             function updateSaveButtonState() {
                 const saveBtn = document.getElementById('saveBtn');
@@ -248,6 +251,11 @@ class BlockEditorHandler {
                                         // Note: We don't scroll here anymore, it's handled by scrollToCurrentResult function
                                     }
                                 }
+                            }
+                            
+                            // Highlight block if it's newly added
+                            if (newlyAddedBlocks.includes(key)) {
+                                blockItem.classList.add('newly-added');
                             }
                             
                             const blockHeader = document.createElement('div');
@@ -652,6 +660,10 @@ class BlockEditorHandler {
                         editable: true,
                         originalType: originalType
                     };
+                    
+                    // Track newly added block
+                    newlyAddedBlocks.push(key);
+                    
                     renderBlocks();
                     // Enable save button when new block is added
                     updateSaveButtonState();
@@ -729,6 +741,9 @@ class BlockEditorHandler {
                     });
                 }
                 
+                // Clear newly added blocks tracking on save
+                newlyAddedBlocks = [];
+                
                 vscode.postMessage({
                     command: 'save',
                     blocks: flattenedBlocks,
@@ -801,6 +816,9 @@ class BlockEditorHandler {
                         if (depthSelector) {
                             depthSelector.value = maxDepth;
                         }
+                        
+                        // Clear newly added blocks tracking after update
+                        newlyAddedBlocks = [];
                         
                         renderBlocks();
                         // Disable save button after successful update
@@ -1007,6 +1025,17 @@ class BlockEditorHandler {
                 display: flex;
                 align-items: center;
                 gap: 15px;
+            }
+            
+            .newly-added {
+                border-left: 3px solid #4EC9B0;
+                background-color: rgba(78, 201, 176, 0.1);
+                animation: highlightAdded 2s ease-out;
+            }
+            
+            @keyframes highlightAdded {
+                0% { border-left-width: 10px; }
+                100% { border-left-width: 3px; }
             }
             
             .reload-btn-notification, .dismiss-btn {
