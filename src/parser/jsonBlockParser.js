@@ -391,7 +391,13 @@ class JsonBlockParser {
                             // Parse current parent object
                             let parentObj = {};
                             if (typeof parentBlock.value === 'string') {
-                                parentObj = JSON.parse(parentBlock.value);
+                                // Make sure we're working with a valid JSON string
+                                if (parentBlock.value.startsWith('{') && parentBlock.value.endsWith('}')) {
+                                    parentObj = JSON.parse(parentBlock.value);
+                                }
+                            } else if (typeof parentBlock.value === 'object' && parentBlock.value !== null) {
+                                // If it's already an object, use it directly
+                                parentObj = parentBlock.value;
                             }
                             
                             // Find all child blocks that belong to this parent
@@ -423,16 +429,24 @@ class JsonBlockParser {
                             function buildNestedObject(obj, path, value) {
                                 const parts = path.split('.');
                                 let current = obj;
+                                
+                                // Navigate/create the path, ensuring all intermediate objects exist
                                 for (let i = 0; i < parts.length - 1; i++) {
-                                    if (!current[parts[i]]) current[parts[i]] = {};
-                                    current = current[parts[i]];
+                                    const part = parts[i];
+                                    if (!(part in current) || current[part] === null || typeof current[part] !== 'object') {
+                                        current[part] = {}; // Create object if it doesn't exist or is not an object
+                                    }
+                                    current = current[part];
                                 }
-                                current[parts[parts.length - 1]] = value;
+                                
+                                // Set the final value
+                                const finalPart = parts[parts.length - 1];
+                                current[finalPart] = value;
                                 return obj;
                             }
                             
                             // Build the complete object from all child values
-                            let reconstructedObj = {};
+                            let reconstructedObj = {...parentObj}; // Start with existing parent object
                             for (const childPath in childValues) {
                                 buildNestedObject(reconstructedObj, childPath, childValues[childPath]);
                             }
