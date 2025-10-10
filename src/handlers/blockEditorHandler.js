@@ -901,24 +901,30 @@ class BlockEditorHandler {
                     return;
                 }
                 
-                // Find all matching blocks across all depths
+                // Find all matching blocks only within the current depth level
                 searchResults = [];
-                currentBlocks.forEach(depthGroup => {
-                    for (const key in depthGroup.blocks) {
-                        if (key.toLowerCase().includes(searchTerm)) {
-                            searchResults.push(key);
+                const currentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                
+                if (currentDepthGroups.length > 0) {
+                    currentDepthGroups.forEach(depthGroup => {
+                        for (const key in depthGroup.blocks) {
+                            if (key.toLowerCase().includes(searchTerm)) {
+                                searchResults.push(key);
+                            }
                         }
-                    }
-                });
+                    });
+                }
                 
                 if (searchResults.length > 0) {
                     currentSearchIndex = 0;
-                    searchResultsElement.textContent = 'Found ' + searchResults.length + ' result(s). Use Enter or Search button to navigate.';
+                    searchResultsElement.textContent = 'Found ' + searchResults.length + ' result(s) at depth ' + maxDepth + '. Use bottom bar to navigate.';
+                    searchResultsElement.className = ''; // Remove any existing classes
                     showSearchNavigationBar();
                     updateSearchNavigationCounter();
                 } else {
                     currentSearchIndex = -1;
-                    searchResultsElement.textContent = 'No matching blocks found.';
+                    searchResultsElement.textContent = 'No matching blocks found at depth ' + maxDepth + '.';
+                    searchResultsElement.className = 'no-search-results'; // Add the highlight class
                     hideSearchNavigationBar();
                 }
                 
@@ -991,7 +997,9 @@ class BlockEditorHandler {
                 document.getElementById('searchInput').value = '';
                 searchResults = [];
                 currentSearchIndex = -1;
-                document.getElementById('searchResults').textContent = '';
+                const searchResultsElement = document.getElementById('searchResults');
+                searchResultsElement.textContent = '';
+                searchResultsElement.className = ''; // Remove any classes
                 hideSearchNavigationBar();
                 renderBlocks();
             }
@@ -1080,6 +1088,10 @@ class BlockEditorHandler {
             .current-search-result {
                 background-color: var(--vscode-editor-findMatchBackground);
                 color: var(--vscode-editor-findMatchForeground);
+            }
+            
+            .no-search-results {
+                color: var(--vscode-errorForeground);
             }
             
             .reload-btn-notification:hover, .dismiss-btn:hover {
