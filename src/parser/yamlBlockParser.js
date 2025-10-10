@@ -165,59 +165,70 @@ class YamlBlockParser {
             return blocks;
         }
 
-        for (const key in yamlObject) {
-            if (yamlObject.hasOwnProperty(key)) {
-                const fullKey = prefix ? `${prefix}.${key}` : key;
-                const value = yamlObject[key];
+        // Use Object.keys() instead of for...in with hasOwnProperty to avoid issues
+        // with non-plain objects
+        const keys = Object.keys(yamlObject);
+        for (const key of keys) {
+            const fullKey = prefix ? `${prefix}.${key}` : key;
+            const value = yamlObject[key];
 
-                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                    // This is a nested object
-                    hasChildren = true;
-                    // Show a YAML stringified version of the object
-                    const yamlString = yaml.dump(value);
-                    currentLevelBlocks[fullKey] = {
-                        value: yamlString,
-                        type: 'object',
-                        depth: depth,
-                        key: fullKey,
-                        editable: true,
-                        originalType: 'object'
-                    };
-                    
-                    // Recursively parse children
-                    const childBlocks = this._parseObjectToDepthBlocks(value, fullKey, depth + 1);
-                    blocks.push(...childBlocks);
-                } else if (Array.isArray(value)) {
-                    // This is an array, add it to current level with stringified representation
-                    // Handle arrays the same way as JSON arrays
-                    currentLevelBlocks[fullKey] = {
-                        value: JSON.stringify(value),
-                        type: 'array',
-                        depth: depth,
-                        key: fullKey,
-                        editable: true,
-                        originalType: 'array'
-                    };
-                } else {
-                    // Leaf node - create a block
-                    // Store original type information to preserve it when converting back
-                    const originalType = typeof value;
-                    let displayValue = value;
-                    
-                    // For strings, wrap in quotes for display but keep track of original type
-                    if (originalType === 'string') {
-                        displayValue = `"${value}"`;
+            if (Array.isArray(value)) {
+                // This is an array, add it to current level with stringified representation
+                // Format with proper indentation for better readability
+                currentLevelBlocks[fullKey] = {
+                    value: JSON.stringify(value, null, 2),
+                    type: 'array',
+                    depth: depth,
+                    key: fullKey,
+                    editable: true,
+                    originalType: 'array'
+                };
+            } else if (typeof value === 'object' && value !== null) {
+                // This is a nested object
+                hasChildren = true;
+                // Show a YAML stringified version of the object
+                let yamlString;
+                try {
+                    yamlString = yaml.dump(value, { indent: 2 });
+                    // Remove trailing newline if present
+                    if (yamlString.endsWith('\n')) {
+                        yamlString = yamlString.slice(0, -1);
                     }
-                    
-                    currentLevelBlocks[fullKey] = {
-                        value: displayValue,
-                        type: typeof value,
-                        depth: depth,
-                        key: fullKey,
-                        editable: true,
-                        originalType: originalType
-                    };
+                } catch (e) {
+                    // If we can't convert to YAML, show the JSON representation
+                    yamlString = JSON.stringify(value, null, 2);
                 }
+                currentLevelBlocks[fullKey] = {
+                    value: yamlString,
+                    type: 'object',
+                    depth: depth,
+                    key: fullKey,
+                    editable: true,
+                    originalType: 'object'
+                };
+                
+                // Recursively parse children
+                const childBlocks = this._parseObjectToDepthBlocks(value, fullKey, depth + 1);
+                blocks.push(...childBlocks);
+            } else {
+                // Leaf node - create a block
+                // Store original type information to preserve it when converting back
+                const originalType = typeof value;
+                let displayValue = value;
+                
+                // For strings, wrap in quotes for display but keep track of original type
+                if (originalType === 'string') {
+                    displayValue = `"${value}"`;
+                }
+                
+                currentLevelBlocks[fullKey] = {
+                    value: displayValue,
+                    type: typeof value,
+                    depth: depth,
+                    key: fullKey,
+                    editable: true,
+                    originalType: originalType
+                };
             }
         }
 

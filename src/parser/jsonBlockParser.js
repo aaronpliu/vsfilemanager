@@ -50,8 +50,9 @@ class JsonBlockParser {
 
                 if (Array.isArray(value)) {
                     // This is an array, add it to current level with stringified representation
+                    // But format it nicely for better readability
                     currentLevelBlocks[fullKey] = {
-                        value: JSON.stringify(value),
+                        value: JSON.stringify(value, null, 2),
                         type: 'array',
                         depth: depth,
                         key: fullKey,
@@ -63,7 +64,7 @@ class JsonBlockParser {
                     hasChildren = true;
                     // Show a stringified version of the object instead of '[object]'
                     currentLevelBlocks[fullKey] = {
-                        value: JSON.stringify(value),
+                        value: JSON.stringify(value, null, 2),
                         type: 'object',
                         depth: depth,
                         key: fullKey,

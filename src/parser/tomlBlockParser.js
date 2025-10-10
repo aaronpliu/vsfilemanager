@@ -124,23 +124,7 @@ class TomlBlockParser {
      * @param {number} depth - Current depth level (used internally)
      * @returns {Array} Array of block groups with metadata
      */
-    static parseToDepthBlocks(tomlString, prefix = '', depth = 0) {
-        try {
-            const tomlObject = toml.parse(tomlString);
-            return this._parseObjectToDepthBlocks(tomlObject, prefix, depth);
-        } catch (e) {
-            throw new Error('Invalid TOML format: ' + e.message);
-        }
-    }
-
-    /**
-     * Parse a TOML object into hierarchical blocks grouped by depth
-     * @param {Object} tomlObject - The TOML object to parse
-     * @param {string} prefix - Prefix for nested objects (used internally)
-     * @param {number} depth - Current depth level (used internally)
-     * @returns {Array} Array of block groups with metadata
-     */
-    static _parseObjectToDepthBlocks(tomlObject, prefix = '', depth = 0) {
+    static parseToDepthBlocks(tomlObject, prefix = '', depth = 0) {
         const blocks = [];
         const currentLevelBlocks = {};
         let hasChildren = false;

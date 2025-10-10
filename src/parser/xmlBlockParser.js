@@ -201,7 +201,8 @@ class XmlBlockParser {
                         attributeNamePrefix: '@_',
                         textNodeName: '#text',
                         allowBooleanAttributes: true,
-                        format: true
+                        format: true,
+                        indentBy: '  ' // Use 2 spaces for indentation
                     };
                     const builder = new XMLBuilder(options);
                     const xmlString = builder.build(value);
