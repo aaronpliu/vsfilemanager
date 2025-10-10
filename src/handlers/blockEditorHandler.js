@@ -1280,17 +1280,11 @@ class BlockEditorHandler {
                                                 // This is a new block
                                                 changedBlocks[key] = currentBlock;
                                             } else {
-                                                // Compare the values properly
-                                                const originalBlock = originalBlocksMap[key];
-                                                
-                                                // Get normalized values for comparison
-                                                const originalValue = getBlockValue(originalBlock);
-                                                const currentValue = getBlockValue(currentBlock);
-                                                
-                                                // Compare the normalized values
-                                                if (originalValue !== currentValue) {
-                                                    changedBlocks[key] = currentBlock;
-                                                }
+                                                // Include all blocks in changedBlocks for batch update,
+                                                // regardless of whether they've changed from the original values
+                                                // This ensures that when a value is reverted to its original state,
+                                                // it's still properly synchronized to other files
+                                                changedBlocks[key] = currentBlock;
                                             }
                                         }
                                     }
