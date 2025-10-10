@@ -69,12 +69,13 @@ This extension contributes the following settings:
 
 ### 1.1.0
 
-New features and bug fixes:
-- Added visual highlighting for newly added blocks in the editor
-- Enhanced user experience with animated highlighting for newly created blocks
-- Fixed issue where block keys were incorrectly converted to numbers after saving or reloading
-- Resolved data format inconsistency between parser output and webview expectations
-- Improved reliability of Save Changes, Reload, and Reload Document functions
+- Added support for editing structured files (JSON, YAML, TOML, XML) with a custom webview UI
+- Added support for batch updating same-named files across the workspace
+- Added file synchronization detection and prompt
+- Added depth-based navigation for complex nested structures
+- Added search functionality within the block editor
+- Added ability to add and delete blocks
+- Fixed issue where initial depth level was showing maximum depth instead of default depth level 1
 
 ### 1.0.0
 

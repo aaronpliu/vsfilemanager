@@ -127,11 +127,11 @@ class BlockEditorHandler {
             const originalBlocks = ${JSON.stringify(depthBlocks)};
             let currentBlocks = JSON.parse(JSON.stringify(originalBlocks));
             
-            // Set initial depth to 2 (default selected depth)
-            let maxDepth = 2;
+            // Set initial depth to 1 (default selected depth)
+            let maxDepth = 1;
             
             // Calculate the maximum depth from the actual data (for populating selectors)
-            const actualMaxDepth = Math.max(...originalBlocks.map(block => block.depth), 2); // Default to 2 if no blocks
+            const actualMaxDepth = Math.max(...originalBlocks.map(block => block.depth), 1); // Default to 1 if no blocks
             let documentVersion = ${document.version}; // Track document version
             
             // Search state
@@ -163,14 +163,14 @@ class BlockEditorHandler {
                 depthSelector.innerHTML = '';
                 
                 // Calculate the maximum depth from the actual data
-                const maxDepthInFile = Math.max(...currentBlocks.map(block => block.depth), 2); // Default to 2 if no blocks
+                const maxDepthInFile = Math.max(...currentBlocks.map(block => block.depth), 1); // Default to 1 if no blocks
                 
                 // Create options from 0 to maxDepthInFile (no fixed minimum)
                 for (let i = 0; i <= maxDepthInFile; i++) {
                     const option = document.createElement('option');
                     option.value = i;
                     option.textContent = i;
-                    if (i === 2) { // Default selected depth
+                    if (i === 1) { // Default selected depth
                         option.selected = true;
                     }
                     depthSelector.appendChild(option);
@@ -183,7 +183,7 @@ class BlockEditorHandler {
                 newBlockDepthSelector.innerHTML = '';
                 
                 // Calculate the maximum depth from the actual data
-                const maxDepthInFile = Math.max(...currentBlocks.map(block => block.depth), 2); // Default to 2 if no blocks
+                const maxDepthInFile = Math.max(...currentBlocks.map(block => block.depth), 1); // Default to 1 if no blocks
                 
                 // Create options from 0 to maxDepthInFile (no fixed minimum)
                 for (let i = 0; i <= maxDepthInFile; i++) {
@@ -228,10 +228,6 @@ class BlockEditorHandler {
                             const groupHeader = document.createElement('div');
                             groupHeader.className = 'group-prefix-header';
                             groupHeader.textContent = 'Group: ' + selectedDepthGroup.prefix;
-                            groupHeader.style.fontWeight = 'bold';
-                            groupHeader.style.marginTop = '10px';
-                            groupHeader.style.paddingBottom = '5px';
-                            groupHeader.style.borderBottom = '1px solid var(--vscode-panel-border)';
                             blocksContainer.appendChild(groupHeader);
                         }
                         
