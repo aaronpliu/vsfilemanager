@@ -275,14 +275,43 @@ class BlockEditorHandler {
                             blockValueContainer.className = 'block-value-container';
                             
                             if (block.editable) {
-                                const input = document.createElement('input');
-                                input.type = 'text';
-                                input.className = 'block-value';
-                                input.value = block.value;
-                                input.setAttribute('readonly', 'readonly');
-                                input.setAttribute('data-key', key);
-                                input.setAttribute('data-depth', selectedDepthGroup.depth);
-                                blockValueContainer.appendChild(input);
+                                // Check if the value is an array or object to use textarea instead of input
+                                const isComplexType = block.originalType === 'array' || block.originalType === 'object';
+                                
+                                if (isComplexType) {
+                                    const textarea = document.createElement('textarea');
+                                    textarea.className = 'block-value';
+                                    // Format the value for better display
+                                    if (typeof block.value === 'string' && 
+                                        ((block.value.startsWith('[') && block.value.endsWith(']')) || 
+                                         (block.value.startsWith('{') && block.value.endsWith('}')))) {
+                                        try {
+                                            // Pretty format JSON if it's a valid JSON string
+                                            const parsed = JSON.parse(block.value);
+                                            textarea.value = JSON.stringify(parsed, null, 2);
+                                        } catch (e) {
+                                            textarea.value = block.value;
+                                        }
+                                    } else {
+                                        textarea.value = block.value;
+                                    }
+                                    textarea.setAttribute('readonly', 'readonly');
+                                    textarea.setAttribute('data-key', key);
+                                    textarea.setAttribute('data-depth', selectedDepthGroup.depth);
+                                    // Set rows based on content
+                                    const lineCount = textarea.value.split('\\n').length;
+                                    textarea.rows = Math.min(Math.max(lineCount, 3), 15);
+                                    blockValueContainer.appendChild(textarea);
+                                } else {
+                                    const input = document.createElement('input');
+                                    input.type = 'text';
+                                    input.className = 'block-value';
+                                    input.value = block.value;
+                                    input.setAttribute('readonly', 'readonly');
+                                    input.setAttribute('data-key', key);
+                                    input.setAttribute('data-depth', selectedDepthGroup.depth);
+                                    blockValueContainer.appendChild(input);
+                                }
                                 
                                 const editBtn = document.createElement('button');
                                 editBtn.className = 'edit-toggle-btn';
@@ -494,7 +523,7 @@ class BlockEditorHandler {
                     });
                 });
                 
-                // Add event listeners to value inputs
+                // Add event listeners to value inputs and textareas
                 document.querySelectorAll('.block-value').forEach(input => {
                     input.addEventListener('input', (e) => {
                         const key = e.target.getAttribute('data-key');
@@ -1108,6 +1137,38 @@ class BlockEditorHandler {
             .delete-btn:hover {
                 background-color: var(--vscode-toolbar-hoverBackground);
                 border-radius: 3px;
+            }
+            
+            .block-value {
+                flex: 1;
+                padding: 5px;
+                background-color: var(--vscode-input-background);
+                border: 1px solid var(--vscode-input-border);
+                color: var(--vscode-input-foreground);
+                font-family: var(--vscode-editor-font-family);
+                resize: vertical;
+                min-height: 2em;
+            }
+            
+            .block-value:focus {
+                outline: none;
+                border-color: var(--vscode-focusBorder);
+            }
+            
+            .block-value[readonly] {
+                background-color: var(--vscode-input-background);
+                opacity: 0.7;
+            }
+            
+            .block-value-readonly {
+                flex: 1;
+                padding: 5px;
+                background-color: var(--vscode-input-background);
+                border: 1px solid var(--vscode-input-border);
+                color: var(--vscode-input-foreground);
+                font-family: var(--vscode-editor-font-family);
+                opacity: 0.7;
+                min-height: 2em;
             }
             </style>
             `;
