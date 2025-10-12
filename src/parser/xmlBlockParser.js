@@ -89,15 +89,70 @@ class XmlBlockParser {
                     Object.assign(blocks, this._parseObjectToBlocks(value, fullKey));
                 } else if (Array.isArray(value)) {
                     // This is an array
-                    // Handle arrays the same way as JSON arrays
-                    blocks[fullKey] = {
-                        value: JSON.stringify(value, null, 2),
-                        type: 'array',
-                        depth: 0, // Will be set properly in parseToDepthBlocks
-                        key: fullKey,
-                        editable: true,
-                        originalType: 'array'
-                    };
+                    // Check if array contains objects/maps that should be further divided
+                    let hasComplexElements = value.some(item => 
+                        typeof item === 'object' && item !== null);
+                    
+                    if (hasComplexElements) {
+                        // For arrays with objects, create individual blocks for each element
+                        // This allows editing individual array elements
+                        for (let i = 0; i < value.length; i++) {
+                            const elementKey = `${fullKey}[${i}]`;
+                            const elementValue = value[i];
+                            
+                            if (typeof elementValue === 'object' && elementValue !== null) {
+                                // Element is an object, show XML representation
+                                const options = {
+                                    ignoreAttributes: false,
+                                    attributeNamePrefix: '@_',
+                                    textNodeName: '#text',
+                                    allowBooleanAttributes: true,
+                                    format: true
+                                };
+                                const builder = new XMLBuilder(options);
+                                const xmlString = builder.build(elementValue);
+                                blocks[elementKey] = {
+                                    value: xmlString,
+                                    type: 'object',
+                                    depth: 0, // Will be set properly in parseToDepthBlocks
+                                    key: elementKey,
+                                    editable: true,
+                                    originalType: 'object'
+                                };
+                                
+                                // Recursively parse children of this object
+                                Object.assign(blocks, this._parseObjectToBlocks(elementValue, elementKey));
+                            } else {
+                                // Element is a primitive value
+                                const originalType = typeof elementValue;
+                                let displayValue = elementValue;
+                                
+                                // For strings, wrap in quotes for display but keep track of original type
+                                if (originalType === 'string') {
+                                    displayValue = `"${elementValue}"`;
+                                }
+                                
+                                blocks[elementKey] = {
+                                    value: displayValue,
+                                    type: typeof elementValue,
+                                    depth: 0, // Will be set properly in parseToDepthBlocks
+                                    key: elementKey,
+                                    editable: true,
+                                    originalType: originalType
+                                };
+                            }
+                        }
+                    } else {
+                        // Handle arrays the same way as JSON arrays
+                        blocks[fullKey] = {
+                            value: JSON.stringify(value, null, 2),
+                            type: 'array',
+                            depth: 0, // Will be set properly in parseToDepthBlocks
+                            key: fullKey,
+                            editable: true,
+                            originalType: 'array'
+                        };
+                    }
                 } else {
                     // Leaf node - create a block
                     // Store original type information to preserve it when converting back
@@ -220,15 +275,73 @@ class XmlBlockParser {
                     blocks.push(...childBlocks);
                 } else if (Array.isArray(value)) {
                     // This is an array, add it to current level with stringified representation
-                    // Handle arrays the same way as JSON arrays
-                    currentLevelBlocks[fullKey] = {
-                        value: JSON.stringify(value, null, 2),
-                        type: 'array',
-                        depth: depth,
-                        key: fullKey,
-                        editable: true,
-                        originalType: 'array'
-                    };
+                    // Check if array contains objects/maps that should be further divided
+                    let hasComplexElements = value.some(item => 
+                        typeof item === 'object' && item !== null);
+                    
+                    if (hasComplexElements) {
+                        // For arrays with objects, create individual blocks for each element
+                        // This allows editing individual array elements
+                        for (let i = 0; i < value.length; i++) {
+                            const elementKey = `${fullKey}[${i}]`;
+                            const elementValue = value[i];
+                            
+                            if (typeof elementValue === 'object' && elementValue !== null) {
+                                // Element is an object, show XML representation
+                                const options = {
+                                    ignoreAttributes: false,
+                                    attributeNamePrefix: '@_',
+                                    textNodeName: '#text',
+                                    allowBooleanAttributes: true,
+                                    format: true,
+                                    indentBy: '  ' // Use 2 spaces for indentation
+                                };
+                                const builder = new XMLBuilder(options);
+                                const xmlString = builder.build(elementValue);
+                                currentLevelBlocks[elementKey] = {
+                                    value: xmlString,
+                                    type: 'object',
+                                    depth: depth,
+                                    key: elementKey,
+                                    editable: true,
+                                    originalType: 'object'
+                                };
+                                
+                                // Recursively parse children of this object
+                                const childBlocks = this._parseObjectToDepthBlocks(elementValue, elementKey, depth + 1);
+                                blocks.push(...childBlocks);
+                            } else {
+                                // Element is a primitive value
+                                const originalType = typeof elementValue;
+                                let displayValue = elementValue;
+                                
+                                // For strings, wrap in quotes for display but keep track of original type
+                                if (originalType === 'string') {
+                                    displayValue = `"${elementValue}"`;
+                                }
+                                
+                                currentLevelBlocks[elementKey] = {
+                                    value: displayValue,
+                                    type: typeof elementValue,
+                                    depth: depth,
+                                    key: elementKey,
+                                    editable: true,
+                                    originalType: originalType
+                                };
+                            }
+                        }
+                    } else {
+                        // Simple array with primitive values only
+                        // Handle arrays the same way as JSON arrays
+                        currentLevelBlocks[fullKey] = {
+                            value: JSON.stringify(value, null, 2),
+                            type: 'array',
+                            depth: depth,
+                            key: fullKey,
+                            editable: true,
+                            originalType: 'array'
+                        };
+                    }
                 } else {
                     // Leaf node - create a block
                     // Store original type information to preserve it when converting back
@@ -390,20 +503,65 @@ class XmlBlockParser {
                 }
             }
             
-            const keyParts = key.split('.');
+            // Handle array indexing in keys (e.g., "key[0]", "key[1]", "parent.child[0].prop")
+            // Extract the base key and process nested array notation
             let current = result;
-
-            // Traverse the key path, creating objects as needed
-            for (let i = 0; i < keyParts.length - 1; i++) {
-                const part = keyParts[i];
-                if (!current[part]) {
-                    current[part] = {};
+            
+            // Split the key by dots and process each part
+            const parts = baseKey.split('.');
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                
+                if (i === parts.length - 1) {
+                    // This is the final part, set the value
+                    // Check if this part has array notation
+                    if (part.includes('[')) {
+                        const arrayMatch = part.match(/^([^\[]+)\[(\d+)\]$/);
+                        if (arrayMatch) {
+                            const arrayName = arrayMatch[1];
+                            const arrayIndex = parseInt(arrayMatch[2], 10);
+                            
+                            if (!current[arrayName]) {
+                                current[arrayName] = [];
+                            }
+                            current[arrayName][arrayIndex] = value;
+                        } else {
+                            current[part] = value;
+                        }
+                    } else {
+                        current[part] = value;
+                    }
+                } else {
+                    // This is an intermediate part
+                    // Check if this part has array notation
+                    if (part.includes('[')) {
+                        const arrayMatch = part.match(/^([^\[]+)\[(\d+)\]$/);
+                        if (arrayMatch) {
+                            const arrayName = arrayMatch[1];
+                            const arrayIndex = parseInt(arrayMatch[2], 10);
+                            
+                            if (!current[arrayName]) {
+                                current[arrayName] = [];
+                            }
+                            
+                            if (!current[arrayName][arrayIndex]) {
+                                current[arrayName][arrayIndex] = {};
+                            }
+                            current = current[arrayName][arrayIndex];
+                        } else {
+                            if (!current[part]) {
+                                current[part] = {};
+                            }
+                            current = current[part];
+                        }
+                    } else {
+                        if (!current[part]) {
+                            current[part] = {};
+                        }
+                        current = current[part];
+                    }
                 }
-                current = current[part];
             }
-
-            // Set the final value
-            current[keyParts[keyParts.length - 1]] = value;
         }
 
         const options = {

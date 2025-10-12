@@ -21,9 +21,81 @@ class JsonBlockParser {
                 if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                     // Recursively parse nested objects
                     Object.assign(blocks, this.parseToBlocks(value, fullKey));
+                } else if (Array.isArray(value)) {
+                    // Check if array contains objects/maps that should be further divided
+                    let hasComplexElements = value.some(item => 
+                        typeof item === 'object' && item !== null);
+                    
+                    if (hasComplexElements) {
+                        // For arrays with objects, create individual blocks for each element
+                        // This allows editing individual array elements
+                        for (let i = 0; i < value.length; i++) {
+                            const elementKey = `${fullKey}[${i}]`;
+                            const elementValue = value[i];
+                            
+                            if (typeof elementValue === 'object' && elementValue !== null) {
+                                // Element is an object, show JSON representation
+                                blocks[elementKey] = {
+                                    value: JSON.stringify(elementValue, null, 2),
+                                    type: 'object',
+                                    depth: 0,
+                                    key: elementKey,
+                                    editable: true,
+                                    originalType: 'object'
+                                };
+                                
+                                // Recursively parse children of this object
+                                Object.assign(blocks, this.parseToBlocks(elementValue, elementKey));
+                            } else {
+                                // Element is a primitive value
+                                const originalType = typeof elementValue;
+                                let displayValue = elementValue;
+                                
+                                // For strings, wrap in quotes for display but keep track of original type
+                                if (originalType === 'string') {
+                                    displayValue = `"${elementValue}"`;
+                                }
+                                
+                                blocks[elementKey] = {
+                                    value: displayValue,
+                                    type: typeof elementValue,
+                                    depth: 0,
+                                    key: elementKey,
+                                    editable: true,
+                                    originalType: originalType
+                                };
+                            }
+                        }
+                    } else {
+                        // Leaf node - create a block
+                        blocks[fullKey] = {
+                            value: JSON.stringify(value, null, 2),
+                            type: 'array',
+                            depth: 0,
+                            key: fullKey,
+                            editable: true,
+                            originalType: 'array'
+                        };
+                    }
                 } else {
                     // Leaf node - create a block
-                    blocks[fullKey] = value;
+                    // Store original type information to preserve it when converting back
+                    const originalType = typeof value;
+                    let displayValue = value;
+                    
+                    // For strings, wrap in quotes for display but keep track of original type
+                    if (originalType === 'string') {
+                        displayValue = `"${value}"`;
+                    }
+                    
+                    blocks[fullKey] = {
+                        value: displayValue,
+                        type: typeof value,
+                        depth: 0,
+                        key: fullKey,
+                        editable: true,
+                        originalType: originalType
+                    };
                 }
             }
         }
@@ -50,15 +122,63 @@ class JsonBlockParser {
 
                 if (Array.isArray(value)) {
                     // This is an array, add it to current level with stringified representation
-                    // But format it nicely for better readability
-                    currentLevelBlocks[fullKey] = {
-                        value: JSON.stringify(value, null, 2),
-                        type: 'array',
-                        depth: depth,
-                        key: fullKey,
-                        editable: true, // Make it editable so users can modify the JSON directly,
-                        originalType: 'array'
-                    };
+                    // Check if array contains objects/maps that should be further divided
+                    let hasComplexElements = value.some(item => 
+                        typeof item === 'object' && item !== null);
+                    
+                    if (hasComplexElements) {
+                        // For arrays with objects, create individual blocks for each element
+                        // This allows editing individual array elements
+                        for (let i = 0; i < value.length; i++) {
+                            const elementKey = `${fullKey}[${i}]`;
+                            const elementValue = value[i];
+                            
+                            if (typeof elementValue === 'object' && elementValue !== null) {
+                                // Element is an object, show JSON representation
+                                currentLevelBlocks[elementKey] = {
+                                    value: JSON.stringify(elementValue, null, 2),
+                                    type: 'object',
+                                    depth: depth,
+                                    key: elementKey,
+                                    editable: true,
+                                    originalType: 'object'
+                                };
+                                
+                                // Recursively parse children of this object
+                                const childBlocks = this.parseToDepthBlocks(elementValue, elementKey, depth + 1);
+                                blocks.push(...childBlocks);
+                            } else {
+                                // Element is a primitive value
+                                const originalType = typeof elementValue;
+                                let displayValue = elementValue;
+                                
+                                // For strings, wrap in quotes for display but keep track of original type
+                                if (originalType === 'string') {
+                                    displayValue = `"${elementValue}"`;
+                                }
+                                
+                                currentLevelBlocks[elementKey] = {
+                                    value: displayValue,
+                                    type: typeof elementValue,
+                                    depth: depth,
+                                    key: elementKey,
+                                    editable: true,
+                                    originalType: originalType
+                                };
+                            }
+                        }
+                    } else {
+                        // Simple array with primitive values only
+                        // But format it nicely for better readability
+                        currentLevelBlocks[fullKey] = {
+                            value: JSON.stringify(value, null, 2),
+                            type: 'array',
+                            depth: depth,
+                            key: fullKey,
+                            editable: true, // Make it editable so users can modify the JSON directly,
+                            originalType: 'array'
+                        };
+                    }
                 } else if (typeof value === 'object' && value !== null) {
                     // This is a nested object, add it to current level with stringified representation
                     hasChildren = true;
@@ -218,21 +338,65 @@ class JsonBlockParser {
                 }
             }
             
-            // Set the value in the result object
-            const keyParts = key.split('.');
+            // Handle array indexing in keys (e.g., "key[0]", "key[1]", "parent.child[0].prop")
+            // Extract the base key and process nested array notation
             let current = result;
-
-            // Traverse the key path, creating objects as needed
-            for (let i = 0; i < keyParts.length - 1; i++) {
-                const part = keyParts[i];
-                if (!current[part]) {
-                    current[part] = {};
+            
+            // Split the key by dots and process each part
+            const parts = key.split('.');
+            for (let i = 0; i < parts.length; i++) {
+                const part = parts[i];
+                
+                if (i === parts.length - 1) {
+                    // This is the final part, set the value
+                    // Check if this part has array notation
+                    if (part.includes('[')) {
+                        const arrayMatch = part.match(/^([^\[]+)\[(\d+)\]$/);
+                        if (arrayMatch) {
+                            const arrayName = arrayMatch[1];
+                            const arrayIndex = parseInt(arrayMatch[2], 10);
+                            
+                            if (!current[arrayName]) {
+                                current[arrayName] = [];
+                            }
+                            current[arrayName][arrayIndex] = value;
+                        } else {
+                            current[part] = value;
+                        }
+                    } else {
+                        current[part] = value;
+                    }
+                } else {
+                    // This is an intermediate part
+                    // Check if this part has array notation
+                    if (part.includes('[')) {
+                        const arrayMatch = part.match(/^([^\[]+)\[(\d+)\]$/);
+                        if (arrayMatch) {
+                            const arrayName = arrayMatch[1];
+                            const arrayIndex = parseInt(arrayMatch[2], 10);
+                            
+                            if (!current[arrayName]) {
+                                current[arrayName] = [];
+                            }
+                            
+                            if (!current[arrayName][arrayIndex]) {
+                                current[arrayName][arrayIndex] = {};
+                            }
+                            current = current[arrayName][arrayIndex];
+                        } else {
+                            if (!current[part]) {
+                                current[part] = {};
+                            }
+                            current = current[part];
+                        }
+                    } else {
+                        if (!current[part]) {
+                            current[part] = {};
+                        }
+                        current = current[part];
+                    }
                 }
-                current = current[part];
             }
-
-            // Set the final value
-            current[keyParts[keyParts.length - 1]] = value;
         }
 
         return result;
