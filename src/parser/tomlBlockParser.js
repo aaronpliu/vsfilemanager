@@ -124,7 +124,13 @@ class TomlBlockParser {
                                 displayValue = `"${elementValue}"`;
                             }
                             
-                            blocks[elementKey] = {
+                            // Store the original string representation for numbers to preserve formatting
+                            let originalStringValue = null;
+                            if (originalType === 'number') {
+                                originalStringValue = elementValue.toString();
+                            }
+                            
+                            const blockObj = {
                                 value: displayValue,
                                 type: typeof elementValue,
                                 depth: 0, // Will be set properly in parseToDepthBlocks
@@ -132,6 +138,13 @@ class TomlBlockParser {
                                 editable: true,
                                 originalType: originalType
                             };
+                            
+                            // Add original string value for numbers
+                            if (originalStringValue !== null) {
+                                blockObj.originalStringValue = originalStringValue;
+                            }
+                            
+                            blocks[elementKey] = blockObj;
                         }
                     }
                 } else {
@@ -156,7 +169,13 @@ class TomlBlockParser {
                     displayValue = `"${value}"`;
                 }
                 
-                blocks[fullKey] = {
+                // Store the original string representation for numbers to preserve formatting
+                let originalStringValue = null;
+                if (originalType === 'number') {
+                    originalStringValue = value.toString();
+                }
+                
+                const blockObj = {
                     value: displayValue,
                     type: typeof value,
                     depth: 0, // Will be set properly in parseToDepthBlocks
@@ -164,6 +183,13 @@ class TomlBlockParser {
                     editable: true,
                     originalType: originalType
                 };
+                
+                // Add original string value for numbers
+                if (originalStringValue !== null) {
+                    blockObj.originalStringValue = originalStringValue;
+                }
+                
+                blocks[fullKey] = blockObj;
             }
         }
 
@@ -294,7 +320,13 @@ class TomlBlockParser {
                                 displayValue = `"${elementValue}"`;
                             }
                             
-                            currentLevelBlocks[elementKey] = {
+                            // Store the original string representation for numbers to preserve formatting
+                            let originalStringValue = null;
+                            if (originalType === 'number') {
+                                originalStringValue = elementValue.toString();
+                            }
+                            
+                            const blockObj = {
                                 value: displayValue,
                                 type: typeof elementValue,
                                 depth: depth,
@@ -302,6 +334,13 @@ class TomlBlockParser {
                                 editable: true,
                                 originalType: originalType
                             };
+                            
+                            // Add original string value for numbers
+                            if (originalStringValue !== null) {
+                                blockObj.originalStringValue = originalStringValue;
+                            }
+                            
+                            currentLevelBlocks[elementKey] = blockObj;
                         }
                     }
                 } else {
@@ -327,7 +366,13 @@ class TomlBlockParser {
                     displayValue = `"${value}"`;
                 }
                 
-                currentLevelBlocks[fullKey] = {
+                // Store the original string representation for numbers to preserve formatting
+                let originalStringValue = null;
+                if (originalType === 'number') {
+                    originalStringValue = value.toString();
+                }
+                
+                const blockObj = {
                     value: displayValue,
                     type: typeof value,
                     depth: depth,
@@ -335,6 +380,13 @@ class TomlBlockParser {
                     editable: true,
                     originalType: originalType
                 };
+                
+                // Add original string value for numbers
+                if (originalStringValue !== null) {
+                    blockObj.originalStringValue = originalStringValue;
+                }
+                
+                currentLevelBlocks[fullKey] = blockObj;
             }
         }
 

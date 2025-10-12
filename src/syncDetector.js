@@ -189,9 +189,11 @@ class SyncDetector {
                 let updatedContent;
                 if (fileExtension === '.json') {
                     // For JSON files, we need to parse, apply changes, and stringify
+                    // Extract original number formats before parsing
+                    const originalNumberFormats = Parser.extractOriginalNumberFormats(existingContent);
                     const jsonContent = JSON.parse(existingContent);
                     // Use applyBlockChangesEnhanced for consistency with other parsers
-                    const updatedJson = Parser.applyBlockChangesEnhanced(jsonContent, changedBlocks);
+                    const updatedJson = Parser.applyBlockChangesEnhanced(jsonContent, changedBlocks, originalNumberFormats);
                     updatedContent = JSON.stringify(updatedJson, null, 2);
                 } else if (fileExtension === '.yaml' || fileExtension === '.yml') {
                     // For YAML files, use the enhanced method to properly handle nested object updates

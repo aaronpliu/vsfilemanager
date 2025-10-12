@@ -56,10 +56,12 @@ class BatchUpdater {
                 let updatedContent;
                 if (fileExtension === '.json') {
                     // For JSON files, we need to parse, apply changes, and stringify
+                    // Extract original number formats before parsing
+                    const originalNumberFormats = Parser.extractOriginalNumberFormats(fileContent);
                     const jsonContent = JSON.parse(fileContent);
                     // Use applyBlockChangesEnhanced for consistency with other parsers
-                    const updatedJson = Parser.applyBlockChangesEnhanced(jsonContent, blocks);
-                    updatedContent = JSON.stringify(updatedJson, null, 2);
+                    const updatedJson = Parser.applyBlockChangesEnhanced(jsonContent, blocks, originalNumberFormats);
+                    updatedContent = this.stringifyJsonPreservingNumberFormat(updatedJson);
                 } else if (fileExtension === '.yaml' || fileExtension === '.yml') {
                     // For YAML files, use the enhanced method to properly handle nested object updates
                     updatedContent = Parser.applyBlockChangesEnhanced(fileContent, blocks);
@@ -146,6 +148,27 @@ class BatchUpdater {
             blocks: blocks,
             filePaths: filePaths
         };
+    }
+
+    /**
+     * Custom JSON stringifier that preserves original number formatting
+     * @param {Object} obj - The object to stringify
+     * @returns {string} Formatted JSON string with preserved number formatting
+     */
+    static stringifyJsonPreservingNumberFormat(obj) {
+        // First convert to JSON string with our special handling
+        const jsonString = JSON.stringify(obj, function(key, value) {
+            // Check if this is our special object for preserving .0 format
+            if (value && typeof value === 'object' && value.__PRESERVE_DOT_ZERO__ === true) {
+                // Create a special marker that we'll replace later
+                return "__DOT_ZERO_NUMBER_MARKER__:" + value.value;
+            }
+            // For all other values, use default behavior
+            return value;
+        }, 2);
+        
+        // Then replace our special markers with properly formatted numbers
+        return jsonString.replace(/"__DOT_ZERO_NUMBER_MARKER__:(\d+)"/g, '$1.0');
     }
 }
 

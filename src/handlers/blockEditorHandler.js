@@ -313,7 +313,12 @@ class BlockEditorHandler {
                                     const input = document.createElement('input');
                                     input.type = 'text';
                                     input.className = 'block-value';
-                                    input.value = block.value;
+                                    // Use originalStringValue for display if available (to preserve .0 format)
+                                    if (block.originalType === 'number' && block.hasOwnProperty('originalStringValue')) {
+                                        input.value = block.originalStringValue;
+                                    } else {
+                                        input.value = block.value;
+                                    }
                                     input.setAttribute('readonly', 'readonly');
                                     input.setAttribute('data-key', key);
                                     input.setAttribute('data-depth', selectedDepthGroup.depth);
@@ -458,6 +463,10 @@ class BlockEditorHandler {
                                 if (depthGroup.blocks[key].originalType === 'number') {
                                     const numValue = Number(input.value);
                                     depthGroup.blocks[key].value = !isNaN(numValue) ? numValue : input.value;
+                                    // Update the originalStringValue to preserve format
+                                    if (!isNaN(numValue)) {
+                                        depthGroup.blocks[key].originalStringValue = input.value;
+                                    }
                                     // Update the originalType if it's not a number anymore
                                     if (isNaN(numValue)) {
                                         if (input.value === 'true' || input.value === 'false') {
@@ -480,6 +489,8 @@ class BlockEditorHandler {
                                         // Check if it's actually a number
                                         if (!isNaN(Number(input.value)) && input.value.trim() !== '') {
                                             depthGroup.blocks[key].originalType = 'number';
+                                            // Store the original string value for format preservation
+                                            depthGroup.blocks[key].originalStringValue = input.value;
                                         } else {
                                             // Keep as string
                                             depthGroup.blocks[key].originalType = 'string';
@@ -495,6 +506,8 @@ class BlockEditorHandler {
                                         depthGroup.blocks[key].originalType = 'boolean';
                                     } else if (!isNaN(Number(input.value)) && input.value.trim() !== '') {
                                         depthGroup.blocks[key].originalType = 'number';
+                                        // Store the original string value for format preservation
+                                        depthGroup.blocks[key].originalStringValue = input.value;
                                     } else {
                                         // Check if it's a JSON object or array
                                         try {
@@ -543,6 +556,10 @@ class BlockEditorHandler {
                             if (depthGroup.blocks[key].originalType === 'number') {
                                 const numValue = Number(e.target.value);
                                 depthGroup.blocks[key].value = !isNaN(numValue) ? numValue : e.target.value;
+                                // Update the originalStringValue to preserve format
+                                if (!isNaN(numValue)) {
+                                    depthGroup.blocks[key].originalStringValue = e.target.value;
+                                }
                                 // Update the originalType if it's not a number anymore
                                 if (isNaN(numValue)) {
                                     if (e.target.value === 'true' || e.target.value === 'false') {
@@ -565,6 +582,8 @@ class BlockEditorHandler {
                                     // Check if it's actually a number
                                     if (!isNaN(Number(e.target.value)) && e.target.value.trim() !== '') {
                                         depthGroup.blocks[key].originalType = 'number';
+                                        // Store the original string value for format preservation
+                                        depthGroup.blocks[key].originalStringValue = e.target.value;
                                     } else {
                                         // Keep as string
                                         depthGroup.blocks[key].originalType = 'string';
@@ -580,6 +599,8 @@ class BlockEditorHandler {
                                     depthGroup.blocks[key].originalType = 'boolean';
                                 } else if (!isNaN(Number(e.target.value)) && e.target.value.trim() !== '') {
                                     depthGroup.blocks[key].originalType = 'number';
+                                    // Store the original string value for format preservation
+                                    depthGroup.blocks[key].originalStringValue = e.target.value;
                                 } else {
                                     // Check if it's a JSON object or array
                                     try {
@@ -599,15 +620,10 @@ class BlockEditorHandler {
                                 // For other types, use as is
                                 depthGroup.blocks[key].value = e.target.value;
                             }
-                            // Check if value has actually changed from original
-                            const originalValue = e.target.getAttribute('data-original-value');
-                            if (originalValue !== undefined && originalValue !== e.target.value) {
-                                // Enable save button when value changes
-                                updateSaveButtonState();
-                            } else {
-                                resetSaveButtonState();
-                            }
                         }
+                                    
+                        // Enable save button when user makes changes
+                        updateSaveButtonState();
                     });
                 });
             }
@@ -1208,10 +1224,12 @@ class BlockEditorHandler {
                                 let updatedContent;
                                 if (validation.fileExtension === '.json') {
                                     // Get the original JSON content
+                                    // Extract original number formats before parsing
+                                    const originalNumberFormats = Parser.extractOriginalNumberFormats(originalContent);
                                     const originalJsonContent = JSON.parse(originalContent);
                                     
                                     // Apply block changes (including deletions) to the original content using enhanced method
-                                    const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, message.blocks);
+                                    const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, message.blocks, originalNumberFormats);
                                     updatedContent = JSON.stringify(updatedJson, null, 2);
                                 } else {
                                     // Apply block changes (including deletions) to the original content using enhanced method

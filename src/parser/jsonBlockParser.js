@@ -8,9 +8,10 @@ class JsonBlockParser {
      * Parse a JSON object into flat blocks with dot notation paths
      * @param {Object} jsonObject - The JSON object to parse
      * @param {string} prefix - Prefix for nested objects (used internally)
+     * @param {Object} originalNumberFormats - Map of paths to original number string formats (used internally)
      * @returns {Object} Flattened object with dot notation keys
      */
-    static parseToBlocks(jsonObject, prefix = '') {
+    static parseToBlocks(jsonObject, prefix = '', originalNumberFormats = {}) {
         const blocks = {};
 
         for (const key in jsonObject) {
@@ -20,7 +21,7 @@ class JsonBlockParser {
 
                 if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
                     // Recursively parse nested objects
-                    Object.assign(blocks, this.parseToBlocks(value, fullKey));
+                    Object.assign(blocks, this.parseToBlocks(value, fullKey, originalNumberFormats));
                 } else if (Array.isArray(value)) {
                     // Check if array contains objects/maps that should be further divided
                     let hasComplexElements = value.some(item => 
@@ -45,7 +46,7 @@ class JsonBlockParser {
                                 };
                                 
                                 // Recursively parse children of this object
-                                Object.assign(blocks, this.parseToBlocks(elementValue, elementKey));
+                                Object.assign(blocks, this.parseToBlocks(elementValue, elementKey, originalNumberFormats));
                             } else {
                                 // Element is a primitive value
                                 const originalType = typeof elementValue;
@@ -56,7 +57,18 @@ class JsonBlockParser {
                                     displayValue = `"${elementValue}"`;
                                 }
                                 
-                                blocks[elementKey] = {
+                                // Store the original string representation for numbers to preserve formatting
+                                let originalStringValue = null;
+                                if (originalType === 'number') {
+                                    // Check if we have the original format from the JSON string
+                                    if (originalNumberFormats.hasOwnProperty(elementKey)) {
+                                        originalStringValue = originalNumberFormats[elementKey];
+                                    } else {
+                                        originalStringValue = elementValue.toString();
+                                    }
+                                }
+                                
+                                const blockObj = {
                                     value: displayValue,
                                     type: typeof elementValue,
                                     depth: 0,
@@ -64,6 +76,13 @@ class JsonBlockParser {
                                     editable: true,
                                     originalType: originalType
                                 };
+                                
+                                // Add original string value for numbers
+                                if (originalStringValue !== null) {
+                                    blockObj.originalStringValue = originalStringValue;
+                                }
+                                
+                                blocks[elementKey] = blockObj;
                             }
                         }
                     } else {
@@ -88,7 +107,18 @@ class JsonBlockParser {
                         displayValue = `"${value}"`;
                     }
                     
-                    blocks[fullKey] = {
+                    // Store the original string representation for numbers to preserve formatting
+                    let originalStringValue = null;
+                    if (originalType === 'number') {
+                        // Check if we have the original format from the JSON string
+                        if (originalNumberFormats.hasOwnProperty(fullKey)) {
+                            originalStringValue = originalNumberFormats[fullKey];
+                        } else {
+                            originalStringValue = value.toString();
+                        }
+                    }
+                    
+                    const blockObj = {
                         value: displayValue,
                         type: typeof value,
                         depth: 0,
@@ -96,6 +126,13 @@ class JsonBlockParser {
                         editable: true,
                         originalType: originalType
                     };
+                    
+                    // Add original string value for numbers
+                    if (originalStringValue !== null) {
+                        blockObj.originalStringValue = originalStringValue;
+                    }
+                    
+                    blocks[fullKey] = blockObj;
                 }
             }
         }
@@ -108,9 +145,10 @@ class JsonBlockParser {
      * @param {Object} jsonObject - The JSON object to parse
      * @param {string} prefix - Prefix for nested objects (used internally)
      * @param {number} depth - Current depth level (used internally)
+     * @param {Object} originalNumberFormats - Map of paths to original number string formats (used internally)
      * @returns {Array} Array of block groups with metadata
      */
-    static parseToDepthBlocks(jsonObject, prefix = '', depth = 0) {
+    static parseToDepthBlocks(jsonObject, prefix = '', depth = 0, originalNumberFormats = {}) {
         const blocks = [];
         const currentLevelBlocks = {};
         let hasChildren = false;
@@ -145,7 +183,7 @@ class JsonBlockParser {
                                 };
                                 
                                 // Recursively parse children of this object
-                                const childBlocks = this.parseToDepthBlocks(elementValue, elementKey, depth + 1);
+                                const childBlocks = this.parseToDepthBlocks(elementValue, elementKey, depth + 1, originalNumberFormats);
                                 blocks.push(...childBlocks);
                             } else {
                                 // Element is a primitive value
@@ -157,7 +195,18 @@ class JsonBlockParser {
                                     displayValue = `"${elementValue}"`;
                                 }
                                 
-                                currentLevelBlocks[elementKey] = {
+                                // Store the original string representation for numbers to preserve formatting
+                                let originalStringValue = null;
+                                if (originalType === 'number') {
+                                    // Check if we have the original format from the JSON string
+                                    if (originalNumberFormats.hasOwnProperty(elementKey)) {
+                                        originalStringValue = originalNumberFormats[elementKey];
+                                    } else {
+                                        originalStringValue = elementValue.toString();
+                                    }
+                                }
+                                
+                                const blockObj = {
                                     value: displayValue,
                                     type: typeof elementValue,
                                     depth: depth,
@@ -165,6 +214,13 @@ class JsonBlockParser {
                                     editable: true,
                                     originalType: originalType
                                 };
+                                
+                                // Add original string value for numbers
+                                if (originalStringValue !== null) {
+                                    blockObj.originalStringValue = originalStringValue;
+                                }
+                                
+                                currentLevelBlocks[elementKey] = blockObj;
                             }
                         }
                     } else {
@@ -193,7 +249,7 @@ class JsonBlockParser {
                     };
                     
                     // Recursively parse children
-                    const childBlocks = this.parseToDepthBlocks(value, fullKey, depth + 1);
+                    const childBlocks = this.parseToDepthBlocks(value, fullKey, depth + 1, originalNumberFormats);
                     blocks.push(...childBlocks);
                 } else {
                     // Leaf node - create a block
@@ -288,9 +344,28 @@ class JsonBlockParser {
                     if (typeof value.value === 'number') {
                         value = value.value;
                     } else {
-                        // Convert to number if possible
-                        const numValue = Number(value.value);
-                        value = isNaN(numValue) ? value.value : numValue;
+                        // Check if we have an original string representation
+                        if (value.hasOwnProperty('originalStringValue')) {
+                            // Check if the original string value was a whole number with .0
+                            // In this case, we want to preserve that format
+                            if (value.originalStringValue.endsWith('.0') && 
+                                Number.isInteger(parseFloat(value.originalStringValue))) {
+                                // Instead of using a special marker, create a special object
+                                // that our custom stringifier can recognize
+                                value = {
+                                    __PRESERVE_DOT_ZERO__: true,
+                                    value: parseFloat(value.originalStringValue)
+                                };
+                            } else {
+                                // Convert to number for other cases
+                                const numValue = Number(value.originalStringValue);
+                                value = isNaN(numValue) ? value.value : numValue;
+                            }
+                        } else {
+                            // Convert to number if possible
+                            const numValue = Number(value.value);
+                            value = isNaN(numValue) ? value.value : numValue;
+                        }
                     }
                 } else if (value.originalType === 'boolean') {
                     // For booleans, use the value directly if it's already a boolean
@@ -436,11 +511,12 @@ class JsonBlockParser {
      * and all other parts of the target structure remain unchanged
      * @param {Object} targetJsonContent - The target JSON content to update
      * @param {Object} changedBlocks - Only the blocks that should be changed
+     * @param {Object} originalNumberFormats - Map of paths to original number string formats
      * @returns {Object} Updated JSON object with only the specified changes applied
      */
-    static applyOnlyChangedBlocks(targetJsonContent, changedBlocks) {
+    static applyOnlyChangedBlocks(targetJsonContent, changedBlocks, originalNumberFormats = {}) {
         // Parse the target content into blocks to understand its current structure
-        const targetBlocks = this.parseToBlocks(targetJsonContent);
+        const targetBlocks = this.parseToBlocks(targetJsonContent, '', originalNumberFormats);
         
         // Apply only the changed blocks to the target blocks
         for (const key in changedBlocks) {
@@ -492,12 +568,80 @@ class JsonBlockParser {
      * when editing at different depths
      * @param {Object} existingJsonContent - The existing JSON content to update
      * @param {Object} changedBlocks - The blocks that have been changed
+     * @param {Object} originalNumberFormats - Map of paths to original number string formats
      * @returns {Object} Updated JSON object with only the changed blocks applied
      */
-    static applyBlockChangesEnhanced(existingJsonContent, changedBlocks) {
+    static applyBlockChangesEnhanced(existingJsonContent, changedBlocks, originalNumberFormats = {}) {
         // For JSON, we should use applyOnlyChangedBlocks to properly handle selective updates
         // and preserve the existing structure
-        return this.applyOnlyChangedBlocks(existingJsonContent, changedBlocks);
+        return this.applyOnlyChangedBlocks(existingJsonContent, changedBlocks, originalNumberFormats);
+    }
+
+    /**
+     * Extract original number formats from a JSON string before parsing
+     * @param {string} jsonString - The JSON string to analyze
+     * @param {string} prefix - Prefix for nested objects (used internally)
+     * @returns {Object} Map of paths to original number string formats
+     */
+    static extractOriginalNumberFormats(jsonString, prefix = '') {
+        const formats = {};
+        
+        // Remove whitespace for more reliable parsing
+        const cleanJsonString = jsonString.replace(/\s+/g, '');
+        
+        // Regex to match key-value pairs with decimal numbers
+        // This pattern matches "key":number.decimal format
+        const numberPattern = /"([^"]+)":(\d+\.\d+)/g;
+        let match;
+        
+        while ((match = numberPattern.exec(cleanJsonString)) !== null) {
+            const key = match[1];
+            const value = match[2];
+            const fullKey = prefix ? `${prefix}.${key}` : key;
+            formats[fullKey] = value;
+        }
+        
+        // Also handle nested objects
+        // Regex to match nested objects
+        const objectPattern = /"([^"]+)":(\{[^{}]*\})/g;
+        let objectMatch;
+        
+        while ((objectMatch = objectPattern.exec(cleanJsonString)) !== null) {
+            const key = objectMatch[1];
+            const value = objectMatch[2];
+            const fullKey = prefix ? `${prefix}.${key}` : key;
+            
+            // Recursively extract formats from nested objects
+            const nestedFormats = this.extractOriginalNumberFormats(value, fullKey);
+            Object.assign(formats, nestedFormats);
+        }
+        
+        // Handle arrays with objects
+        const arrayPattern = /"([^"]+)":($$[^$$]*$$)/g;
+        let arrayMatch;
+        
+        while ((arrayMatch = arrayPattern.exec(cleanJsonString)) !== null) {
+            const key = arrayMatch[1];
+            const value = arrayMatch[2];
+            const fullKey = prefix ? `${prefix}.${key}` : key;
+            
+            // Handle array elements with indices
+            // Look for objects within the array
+            const arrayObjectPattern = /($$\d+$$):(\{[^{}]*\})/g;
+            let arrayObjectMatch;
+            
+            while ((arrayObjectMatch = arrayObjectPattern.exec(value)) !== null) {
+                const index = arrayObjectMatch[1].replace(/[\$\$]/g, '');
+                const objectValue = arrayObjectMatch[2];
+                const elementKey = `${fullKey}[${index}]`;
+                
+                // Recursively extract formats from nested objects in arrays
+                const nestedFormats = this.extractOriginalNumberFormats(objectValue, elementKey);
+                Object.assign(formats, nestedFormats);
+            }
+        }
+        
+        return formats;
     }
 }
 

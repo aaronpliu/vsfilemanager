@@ -119,7 +119,13 @@ class YamlBlockParser {
                                     displayValue = `"${elementValue}"`;
                                 }
                                 
-                                blocks[elementKey] = {
+                                // Store the original string representation for numbers to preserve formatting
+                                let originalStringValue = null;
+                                if (originalType === 'number') {
+                                    originalStringValue = elementValue.toString();
+                                }
+                                
+                                const blockObj = {
                                     value: displayValue,
                                     type: typeof elementValue,
                                     depth: 0, // Will be set properly in parseToDepthBlocks
@@ -127,6 +133,13 @@ class YamlBlockParser {
                                     editable: true,
                                     originalType: originalType
                                 };
+                                
+                                // Add original string value for numbers
+                                if (originalStringValue !== null) {
+                                    blockObj.originalStringValue = originalStringValue;
+                                }
+                                
+                                blocks[elementKey] = blockObj;
                             }
                         }
                     } else {
@@ -151,7 +164,13 @@ class YamlBlockParser {
                         displayValue = `"${value}"`;
                     }
                     
-                    blocks[fullKey] = {
+                    // Store the original string representation for numbers to preserve formatting
+                    let originalStringValue = null;
+                    if (originalType === 'number') {
+                        originalStringValue = value.toString();
+                    }
+                    
+                    const blockObj = {
                         value: displayValue,
                         type: typeof value,
                         depth: 0, // Will be set properly in parseToDepthBlocks
@@ -159,6 +178,13 @@ class YamlBlockParser {
                         editable: true,
                         originalType: originalType
                     };
+                    
+                    // Add original string value for numbers
+                    if (originalStringValue !== null) {
+                        blockObj.originalStringValue = originalStringValue;
+                    }
+                    
+                    blocks[fullKey] = blockObj;
                 }
             }
         }
@@ -277,7 +303,13 @@ class YamlBlockParser {
                                 displayValue = `"${elementValue}"`;
                             }
                             
-                            currentLevelBlocks[elementKey] = {
+                            // Store the original string representation for numbers to preserve formatting
+                            let originalStringValue = null;
+                            if (originalType === 'number') {
+                                originalStringValue = elementValue.toString();
+                            }
+                            
+                            const blockObj = {
                                 value: displayValue,
                                 type: typeof elementValue,
                                 depth: depth,
@@ -285,6 +317,13 @@ class YamlBlockParser {
                                 editable: true,
                                 originalType: originalType
                             };
+                            
+                            // Add original string value for numbers
+                            if (originalStringValue !== null) {
+                                blockObj.originalStringValue = originalStringValue;
+                            }
+                            
+                            currentLevelBlocks[elementKey] = blockObj;
                         }
                     }
                 } else {
@@ -337,7 +376,13 @@ class YamlBlockParser {
                     displayValue = `"${value}"`;
                 }
                 
-                currentLevelBlocks[fullKey] = {
+                // Store the original string representation for numbers to preserve formatting
+                let originalStringValue = null;
+                if (originalType === 'number') {
+                    originalStringValue = value.toString();
+                }
+                
+                const blockObj = {
                     value: displayValue,
                     type: typeof value,
                     depth: depth,
@@ -345,6 +390,13 @@ class YamlBlockParser {
                     editable: true,
                     originalType: originalType
                 };
+                
+                // Add original string value for numbers
+                if (originalStringValue !== null) {
+                    blockObj.originalStringValue = originalStringValue;
+                }
+                
+                currentLevelBlocks[fullKey] = blockObj;
             }
         }
 
