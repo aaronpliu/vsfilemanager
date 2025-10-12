@@ -1117,20 +1117,7 @@ class BlockEditorHandler {
                 cursor: not-allowed;
             }
             
-            .open-source-btn {
-                background-color: var(--vscode-button-background);
-                color: var(--vscode-button-foreground);
-                border: none;
-                padding: 4px 8px;
-                border-radius: 2px;
-                cursor: pointer;
-                font-size: 0.8em;
-                white-space: nowrap;
-            }
             
-            .open-source-btn:hover {
-                background-color: var(--vscode-button-hoverBackground);
-            }
             
             .delete-btn {
                 background: none;
