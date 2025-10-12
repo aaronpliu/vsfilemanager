@@ -1021,6 +1021,23 @@ class BlockEditorHandler {
                 searchBar.style.display = 'none';
             }
             
+            // Function to show scroll to top button
+            function showScrollToTopButton() {
+                const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+                scrollToTopBtn.style.display = 'flex';
+            }
+            
+            // Function to hide scroll to top button
+            function hideScrollToTopButton() {
+                const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+                scrollToTopBtn.style.display = 'none';
+            }
+            
+            // Function to scroll to top of the page
+            function scrollToTop() {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+            
             // Function to clear search
             function clearSearch() {
                 document.getElementById('searchInput').value = '';
@@ -1041,6 +1058,24 @@ class BlockEditorHandler {
             
             // Handle close search navigation button
             document.getElementById('closeSearchNavBtn').addEventListener('click', clearSearch);
+            
+            // Handle scroll to top button
+            document.getElementById('scrollToTopBtn').addEventListener('click', scrollToTop);
+            
+            // Handle window scroll to show/hide scroll to top button
+            window.addEventListener('scroll', function() {
+                const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+                if (window.scrollY > 300) {
+                    // Show button when scrolled down 300px
+                    scrollToTopBtn.style.display = 'flex';
+                } else {
+                    // Hide button when near the top
+                    scrollToTopBtn.style.display = 'none';
+                }
+            });
+            
+            // Hide scroll to top button initially
+            hideScrollToTopButton();
             
             // Handle keyboard navigation (Enter and Shift+Enter)
             document.addEventListener('keydown', (e) => {

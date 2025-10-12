@@ -257,6 +257,31 @@
             font-weight: bold;
         }
         
+        /* Floating scroll to top button */
+        .scroll-to-top-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: 2px solid var(--vscode-focusBorder);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 999;
+        }
+        
+        .scroll-to-top-btn:hover {
+            background-color: var(--vscode-button-hoverBackground);
+        }
+        
         .new-block-form {
             margin-top: 20px;
             padding: 15px;
@@ -395,5 +420,8 @@
         <button id="nextResultBtn">↓</button>
         <button id="closeSearchNavBtn">×</button>
     </div>
+    
+    <!-- Floating scroll to top button -->
+    <button id="scrollToTopBtn" class="scroll-to-top-btn" style="display: none;">↑</button>
 </body>
 </html>
