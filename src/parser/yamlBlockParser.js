@@ -529,7 +529,7 @@ class YamlBlockParser {
             let current = result;
             
             // Split the key by dots and process each part
-            const parts = baseKey.split('.');
+            const parts = key.split('.');
             for (let i = 0; i < parts.length; i++) {
                 const part = parts[i];
                 
