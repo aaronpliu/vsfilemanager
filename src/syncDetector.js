@@ -2,6 +2,7 @@ const vscode = require('vscode');
 const fs = require('fs');
 const path = require('path');
 const { FileTypeUtils } = require('./utils/fileTypeUtils');
+const toml = require('toml');
 
 /**
  * Sync Detector
@@ -247,6 +248,10 @@ class SyncDetector {
                 // For JSON files, parse the content first
                 const jsonContent = JSON.parse(content);
                 existingBlocks = Parser.parseToBlocks(jsonContent);
+            } else if (fileExtension === '.toml') {
+                // For TOML files, parse the content first
+                const tomlObject = toml.parse(content);
+                existingBlocks = Parser.parseToBlocks(tomlObject);
             } else {
                 // For other formats, parse directly
                 existingBlocks = Parser.parseToBlocks(content);

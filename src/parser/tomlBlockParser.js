@@ -119,15 +119,25 @@ class TomlBlockParser {
 
     /**
      * Parse a TOML string into hierarchical blocks grouped by depth
-     * @param {string} tomlString - The TOML string to parse
+     * @param {string|object} tomlData - The TOML string or parsed object to parse
      * @param {string} prefix - Prefix for nested objects (used internally)
      * @param {number} depth - Current depth level (used internally)
      * @returns {Array} Array of block groups with metadata
      */
-    static parseToDepthBlocks(tomlObject, prefix = '', depth = 0) {
+    static parseToDepthBlocks(tomlData, prefix = '', depth = 0) {
         const blocks = [];
         const currentLevelBlocks = {};
         let hasChildren = false;
+
+        // Parse tomlData if it's a string
+        let tomlObject = tomlData;
+        if (typeof tomlData === 'string') {
+            try {
+                tomlObject = toml.parse(tomlData);
+            } catch (e) {
+                throw new Error('Invalid TOML format: ' + e.message);
+            }
+        }
 
         if (typeof tomlObject !== 'object' || tomlObject === null) {
             // Handle scalar values
@@ -185,7 +195,7 @@ class TomlBlockParser {
                 };
                 
                 // Recursively parse children
-                const childBlocks = this._parseObjectToDepthBlocks(value, fullKey, depth + 1);
+                const childBlocks = this.parseToDepthBlocks(value, fullKey, depth + 1);
                 blocks.push(...childBlocks);
             } else if (Array.isArray(value)) {
                 // This is an array, add it to current level with stringified representation

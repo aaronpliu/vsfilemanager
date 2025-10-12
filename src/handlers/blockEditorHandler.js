@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { FileTypeUtils } = require('../utils/fileTypeUtils');
 const SyncDetector = require('../syncDetector');
+const toml = require('toml');
 
 class BlockEditorHandler {
     static async openEditor(context, editor) {
@@ -36,6 +37,12 @@ class BlockEditorHandler {
                 const jsonContent = JSON.parse(document.getText());
                 // Convert to blocks grouped by depth
                 depthBlocks = Parser.parseToDepthBlocks(jsonContent);
+            } else if (validation.fileExtension === '.toml') {
+                // Parse the TOML content
+                const tomlContent = document.getText();
+                // Parse TOML string to object first, then convert to blocks grouped by depth
+                const tomlObject = toml.parse(tomlContent);
+                depthBlocks = Parser.parseToDepthBlocks(tomlObject);
             } else {
                 // Parse the content
                 const content = document.getText();
