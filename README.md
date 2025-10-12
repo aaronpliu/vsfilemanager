@@ -67,6 +67,18 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.2.0
+
+Major enhancements to the editing experience:
+- Enhanced block editor to use textareas instead of textboxes for array and map objects
+- Improved search functionality to only search within the currently selected depth level
+- Added visual highlighting for search results with no matches using error color
+- Fixed nested value update propagation in batch operations
+- Fixed batch update for same-named files when values are reverted to original
+- Fixed webview display for arrays and map objects with proper formatting
+- Added visual highlighting for newly added blocks in the editor
+- Enhanced user experience with animated highlighting for newly created blocks
+
 ### 1.1.1
 
 Enhanced editing experience and search functionality:
