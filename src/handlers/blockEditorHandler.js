@@ -739,7 +739,13 @@ class BlockEditorHandler {
             // Handle Enter key in search input
             document.getElementById('searchInput').addEventListener('keyup', (e) => {
                 if (e.key === 'Enter') {
-                    performSearch();
+                    // If we already have search results, navigate to next result
+                    if (searchResults.length > 0) {
+                        nextSearchResult();
+                    } else {
+                        // Otherwise, perform a new search
+                        performSearch();
+                    }
                 }
             });
             
@@ -939,19 +945,19 @@ class BlockEditorHandler {
                 }
                 
                 if (searchResults.length > 0) {
-                    currentSearchIndex = 0;
-                    searchResultsElement.textContent = 'Found ' + searchResults.length + ' result(s) at depth ' + maxDepth + '. Use bottom bar to navigate.';
-                    searchResultsElement.className = ''; // Remove any existing classes
+                    currentSearchIndex = 0; // Automatically navigate to the first result
+                    searchResultsElement.textContent = 'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
                     showSearchNavigationBar();
                     updateSearchNavigationCounter();
+                    renderBlocks();
+                    scrollToCurrentResult(); // Scroll to the first result
                 } else {
                     currentSearchIndex = -1;
                     searchResultsElement.textContent = 'No matching blocks found at depth ' + maxDepth + '.';
                     searchResultsElement.className = 'no-search-results'; // Add the highlight class
                     hideSearchNavigationBar();
+                    renderBlocks();
                 }
-                
-                renderBlocks();
             }
             
             // Function to navigate to next search result
