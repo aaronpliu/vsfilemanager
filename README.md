@@ -69,15 +69,18 @@ This extension contributes the following settings:
 
 ### 1.2.0
 
-Major enhancements to the editing experience:
-- Enhanced block editor to use textareas instead of textboxes for array and map objects
-- Improved search functionality to only search within the currently selected depth level
-- Added visual highlighting for search results with no matches using error color
-- Fixed nested value update propagation in batch operations
-- Fixed batch update for same-named files when values are reverted to original
-- Fixed webview display for arrays and map objects with proper formatting
-- Added visual highlighting for newly added blocks in the editor
-- Enhanced user experience with animated highlighting for newly created blocks
+Latest improvements and fixes:
+- Added up arrow button for quick navigation back to top
+- Navigate to the first search result automatically
+- Enhanced nested array handling in all four parsers (JSON, YAML, XML, TOML)
+- Fixed various parser errors, especially with TOML arrays
+- Fixed file parser errors
+- Fixed position issues when batch updating XML files
+- Fixed search result clearing when switching depth levels
+- Handled empty object cases properly
+- Enhanced number value updates
+- Improved batch update behavior for changed values
+- Fine-tuned button styles in the UI
 
 ### 1.1.1
 

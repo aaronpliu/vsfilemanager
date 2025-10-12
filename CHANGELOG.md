@@ -8,23 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.2.0] - 2025-10-13
 
 ### Added
-- Enhanced block editor to use textareas instead of textboxes for array and map objects
-- Improved search functionality to only search within the currently selected depth level
-- Added visual highlighting for search results with no matches using error color
+- Added up arrow button to quick back to top
+- Navigate to the first search result automatically
+- Enhanced the nested array handling in all four parsers
 
 ### Fixed
-- Fixed nested value update propagation in batch operations
+- Fixed TOML parser error for array
+- Fixed file parser error
+- Fixed position when batch update for XML file
+- Fixed position after batch update
+- Fixed the nested value update propagation in batch operations
 - Fixed batch update for same-named files when values are reverted to original
 - Fixed webview display for arrays and map objects with proper formatting
 - Fixed search function to be scoped to current depth level instead of entire file
+- Fixed empty object handling
+- Fixed clear search result when switch depth
+- Enhanced number to update
+- Enhanced batch update for changed value
 
 ### Improved
-- Optimized object display in webview with better formatting for complex data structures
-- Updated search prompt text to accurately reflect navigation method
-- Enhanced UI grouping titles for better visual organization
-- Set default depth to 1 for improved user experience
-- Added visual highlighting for newly added blocks in the editor
-- Enhanced user experience with animated highlighting for newly created blocks
+- Fine-tuned button style
 
 ## [1.1.1] - 2025-10-10
 
