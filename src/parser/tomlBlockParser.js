@@ -85,7 +85,7 @@ class TomlBlockParser {
                 // This is an array
                 // Check if array contains objects/maps that should be further divided
                 let hasComplexElements = value.some(item => 
-                    typeof item === 'object' && item !== null);
+                    typeof item === 'object' && item !== null && !Array.isArray(item));
                 
                 if (hasComplexElements) {
                     // For arrays with objects, create individual blocks for each element
@@ -280,7 +280,7 @@ class TomlBlockParser {
                 // This is an array, add it to current level with stringified representation
                 // Check if array contains objects/maps that should be further divided
                 let hasComplexElements = value.some(item => 
-                    typeof item === 'object' && item !== null);
+                    typeof item === 'object' && item !== null && !Array.isArray(item));
                 
                 if (hasComplexElements) {
                     // For arrays with objects, create individual blocks for each element
@@ -435,7 +435,15 @@ class TomlBlockParser {
                 } else if (value.originalType === 'array') {
                     // Try to parse JSON strings back to arrays
                     try {
-                        const parsed = JSON.parse(value.value);
+                        // First try to parse as TOML (for TOML array format)
+                        let parsed;
+                        try {
+                            parsed = toml.parse(`temp = ${value.value}`).temp;
+                        } catch (tomlError) {
+                            // If that fails, try to parse as JSON
+                            parsed = JSON.parse(value.value);
+                        }
+                        
                         if (Array.isArray(parsed)) {
                             value = parsed;
                         } else {
@@ -532,7 +540,12 @@ class TomlBlockParser {
                             const arrayName = arrayMatch[1];
                             const arrayIndex = parseInt(arrayMatch[2], 10);
                             
+                            // Ensure the array exists and is actually an array, not a string
                             if (!current[arrayName]) {
+                                current[arrayName] = [];
+                            } else if (!Array.isArray(current[arrayName])) {
+                                // If it's not an array, we need to convert it
+                                // This handles the case where an array was previously processed as a string
                                 current[arrayName] = [];
                             }
                             current[arrayName][arrayIndex] = value;
@@ -553,9 +566,16 @@ class TomlBlockParser {
                             
                             if (!current[arrayName]) {
                                 current[arrayName] = [];
+                            } else if (!Array.isArray(current[arrayName])) {
+                                // If it's not an array, we need to convert it
+                                // This handles the case where an array was previously processed as a string
+                                current[arrayName] = [];
                             }
                             
                             if (!current[arrayName][arrayIndex]) {
+                                current[arrayName][arrayIndex] = {};
+                            } else if (typeof current[arrayName][arrayIndex] === 'string') {
+                                // If it's a string, convert to object
                                 current[arrayName][arrayIndex] = {};
                             }
                             current = current[arrayName][arrayIndex];
@@ -837,14 +857,22 @@ class TomlBlockParser {
                           typeof changedBlock.value === 'string') {
                     // Try to parse the string back to an array
                     try {
-                        const parsed = JSON.parse(changedBlock.value);
+                        // First try to parse as TOML (for TOML array format)
+                        let parsed;
+                        try {
+                            parsed = toml.parse(`temp = ${changedBlock.value}`).temp;
+                        } catch (tomlError) {
+                            // If that fails, try to parse as JSON
+                            parsed = JSON.parse(changedBlock.value);
+                        }
+                        
                         if (Array.isArray(parsed)) {
                             // Successfully parsed, update the value
                             changedBlock.value = parsed;
                             changedBlock.originalType = 'array';
                         }
                     } catch (e) {
-                        // Not a valid JSON array, keep as string
+                        // Not a valid array format, keep as string
                     }
                 }
                 
