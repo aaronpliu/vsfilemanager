@@ -727,6 +727,8 @@ class BlockEditorHandler {
             // Handle depth selection change
             document.getElementById('depthSelector').addEventListener('change', (e) => {
                 maxDepth = parseInt(e.target.value);
+                // Clear search results when switching depth
+                clearSearch();
                 renderBlocks();
             });
             
