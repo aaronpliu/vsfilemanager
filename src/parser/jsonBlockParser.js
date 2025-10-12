@@ -20,8 +20,23 @@ class JsonBlockParser {
                 const value = jsonObject[key];
 
                 if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                    // Recursively parse nested objects
-                    Object.assign(blocks, this.parseToBlocks(value, fullKey, originalNumberFormats));
+                    // Check if this is an empty object
+                    const isEmptyObject = Object.keys(value).length === 0;
+                    
+                    if (isEmptyObject) {
+                        // For empty objects, create a block directly
+                        blocks[fullKey] = {
+                            value: '{}',
+                            type: 'object',
+                            depth: 0,
+                            key: fullKey,
+                            editable: true,
+                            originalType: 'object'
+                        };
+                    } else {
+                        // Recursively parse nested objects
+                        Object.assign(blocks, this.parseToBlocks(value, fullKey, originalNumberFormats));
+                    }
                 } else if (Array.isArray(value)) {
                     // Check if array contains objects/maps that should be further divided
                     let hasComplexElements = value.some(item => 
@@ -238,19 +253,34 @@ class JsonBlockParser {
                 } else if (typeof value === 'object' && value !== null) {
                     // This is a nested object, add it to current level with stringified representation
                     hasChildren = true;
-                    // Show a stringified version of the object instead of '[object]'
-                    currentLevelBlocks[fullKey] = {
-                        value: JSON.stringify(value, null, 2),
-                        type: 'object',
-                        depth: depth,
-                        key: fullKey,
-                        editable: true, // Make it editable so users can modify the JSON directly,
-                        originalType: 'object'
-                    };
+                    // Check if this is an empty object
+                    const isEmptyObject = Object.keys(value).length === 0;
                     
-                    // Recursively parse children
-                    const childBlocks = this.parseToDepthBlocks(value, fullKey, depth + 1, originalNumberFormats);
-                    blocks.push(...childBlocks);
+                    if (isEmptyObject) {
+                        // For empty objects, show as empty braces
+                        currentLevelBlocks[fullKey] = {
+                            value: '{}',
+                            type: 'object',
+                            depth: depth,
+                            key: fullKey,
+                            editable: true,
+                            originalType: 'object'
+                        };
+                    } else {
+                        // Show a stringified version of the object instead of '[object]'
+                        currentLevelBlocks[fullKey] = {
+                            value: JSON.stringify(value, null, 2),
+                            type: 'object',
+                            depth: depth,
+                            key: fullKey,
+                            editable: true, // Make it editable so users can modify the JSON directly,
+                            originalType: 'object'
+                        };
+                        
+                        // Recursively parse children
+                        const childBlocks = this.parseToDepthBlocks(value, fullKey, depth + 1, originalNumberFormats);
+                        blocks.push(...childBlocks);
+                    }
                 } else {
                     // Leaf node - create a block
                     // Store original type information to preserve it when converting back
