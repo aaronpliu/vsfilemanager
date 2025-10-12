@@ -116,15 +116,11 @@ class JsonBlockParser {
     static blocksToJson(blocks) {
         const result = {};
 
-        // First, let's sort the keys by depth (number of dots) so we process 
-        // parent objects before their children
-        const sortedKeys = Object.keys(blocks).sort((a, b) => {
-            const depthA = (a.match(/\./g) || []).length;
-            const depthB = (b.match(/\./g) || []).length;
-            return depthA - depthB;
-        });
+        // Process keys in the order they appear, not sorted by depth
+        // This preserves the original field order for better Git diff compatibility
+        const keys = Object.keys(blocks);
 
-        for (const key of sortedKeys) {
+        for (const key of keys) {
             const block = blocks[key];
             let value = block;
             
