@@ -1336,11 +1336,15 @@ class BlockEditorHandler {
                                                 // This is a new block
                                                 changedBlocks[key] = currentBlock;
                                             } else {
-                                                // Include all blocks in changedBlocks for batch update,
-                                                // regardless of whether they've changed from the original values
-                                                // This ensures that when a value is reverted to its original state,
-                                                // it's still properly synchronized to other files
-                                                changedBlocks[key] = currentBlock;
+                                                // Check if the block actually changed
+                                                const originalBlock = originalBlocksMap[key];
+                                                const originalValue = getBlockValue(originalBlock);
+                                                const currentValue = getBlockValue(currentBlock);
+                                                
+                                                // Only include in changedBlocks if the value actually changed
+                                                if (originalValue !== currentValue) {
+                                                    changedBlocks[key] = currentBlock;
+                                                }
                                             }
                                         }
                                     }
@@ -1371,7 +1375,7 @@ class BlockEditorHandler {
                                         }
                                     }
                                 }
-                                
+
                                 // Ask if user wants to apply batch update
                                 const batchAction = await vscode.window.showInformationMessage(
                                     'Would you like to apply these changes to other files?',

@@ -189,8 +189,15 @@ class SyncDetector {
                 if (fileExtension === '.json') {
                     // For JSON files, we need to parse, apply changes, and stringify
                     const jsonContent = JSON.parse(existingContent);
-                    const updatedJson = Parser.applyOnlyChangedBlocks(jsonContent, changedBlocks);
+                    // Use applyBlockChangesEnhanced for consistency with other parsers
+                    const updatedJson = Parser.applyBlockChangesEnhanced(jsonContent, changedBlocks);
                     updatedContent = JSON.stringify(updatedJson, null, 2);
+                } else if (fileExtension === '.yaml' || fileExtension === '.yml') {
+                    // For YAML files, use the enhanced method to properly handle nested object updates
+                    updatedContent = Parser.applyBlockChangesEnhanced(existingContent, changedBlocks);
+                } else if (fileExtension === '.toml') {
+                    // For TOML files, use the enhanced method to properly handle nested object updates
+                    updatedContent = Parser.applyBlockChangesEnhanced(existingContent, changedBlocks);
                 } else {
                     // For other formats, use the parser's applyOnlyChangedBlocks method directly
                     updatedContent = Parser.applyOnlyChangedBlocks(existingContent, changedBlocks);
