@@ -1,0 +1,98 @@
+{
+  "id": 1001,
+  "name": "张三",
+  "age": 32,
+  "is_active": true,
+  "is_premium_user": false,
+  "email": "zhangsan@example.com",
+  "phone": null,
+  "created_at": "2023-04-15T08:30:00Z",
+  "last_login": "2025-10-09T14:22:18Z",
+  "balance": 1234.56,
+  "tags": ["customer", "vip", "tech-enthusiast"],
+  "preferences": {
+    "theme": "dark",
+    "language": "zh-CN",
+    "notifications": {
+      "email": true,
+      "sms": false,
+      "push": true
+    },
+    "auto_save": true
+  },
+  "orders": [
+    {
+      "order_id": "ORD-2023-001",
+      "product": "无线蓝牙耳机",
+      "quantity": 1,
+      "price": 299.99,
+      "status": "delivered",
+      "items": [
+        {
+          "item_name": "蓝牙耳机",
+          "brand": "SoundMax",
+          "specs": {
+            "color": "黑色",
+            "battery_life": "20小时",
+            "waterproof": true
+          }
+        }
+      ],
+      "shipped_at": "2023-04-17T12:00:00Z"
+    },
+    {
+      "order_id": "ORD-2023-002",
+      "product": "智能手表",
+      "quantity": 1,
+      "price": 899.0,
+      "status": "processing",
+      "items": [],
+      "shipped_at": null
+    }
+  ],
+  "address": {
+    "home": {
+      "street": "北京市朝阳区建国路88号",
+      "city": "北京",
+      "zipcode": "100020",
+      "country": "中国"
+    },
+    "work": {
+      "street": "上海市浦东新区世纪大道1001号",
+      "city": "上海",
+      "zipcode": "200120",
+      "country": "中国"
+    }
+  },
+  "metadata": {
+    "login_count": 156,
+    "failed_attempts": 3,
+    "verified": true,
+    "settings": {
+      "timezone": "Asia/Shanghai",
+      "currency": "CNY",
+      "two_factor_auth": true
+    }
+  },
+  "friends": ["李四", "王五", "赵六"],
+  "coordinates": [39.9042, 116.4074],
+  "empty_array": [],
+  "empty_object": {},
+  "deep_nesting": {
+    "level1": {
+      "level2": {
+        "level3": {
+          "value": "deeply nested data",
+          "active": true,
+          "count": 1
+        }
+      },
+      "info": [
+        {
+          "type": "note",
+          "content": "This is a test JSON with deep nesting."
+        }
+      ]
+    }
+  }
+}

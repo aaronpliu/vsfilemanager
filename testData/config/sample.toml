@@ -1,0 +1,102 @@
+title = "TOML Example"
+
+[owner]
+name = "John Doe"
+organization = "Acme Inc."
+bio = "John is a software developer."
+dob = "1985-05-27T07:32:00.000Z"
+
+[database]
+server = "192.168.1.1"
+ports = [
+  8001.0,
+  8001.0,
+  8002.0
+]
+connection_max = 5000.0
+enabled = true
+
+[servers]
+
+  [servers.alpha]
+  ip = "10.0.0.1"
+  dc = "eqdc10"
+
+  [servers.beta]
+  ip = "10.0.0.3"
+  dc = "eqdc10"
+
+[clients]
+data = [
+  [
+    "gamma",
+    "delta"
+  ],
+  [
+    1.0,
+    2.0
+  ]
+]
+mixed_strings = [
+  [
+    "apple",
+    "banana",
+    "cherry"
+  ],
+  [
+    "dog",
+    "cat",
+    "bird"
+  ]
+]
+mixed_numbers = [
+  [
+    1.0,
+    2.0,
+    3.0
+  ],
+  [
+    4.0,
+    5.0,
+    6.0
+  ]
+]
+
+[[mixed_tables]]
+name = "Fido"
+type = "dog"
+
+[[mixed_tables]]
+name = "Rex"
+type = "dog"
+
+[[products]]
+name = "Hammer"
+sku = 738594022.0
+color = "blue"
+tags = [
+  "tools",
+  "hammer",
+  "construction"
+]
+
+[[products]]
+name = "Nail"
+sku = 284758393.0
+color = "gray"
+tags = [
+  "fasteners",
+  "construction"
+]
+quantity = 100.0
+
+[settings]
+debug = true
+
+  [settings.logging]
+  level = "info"
+  file = "/var/log/app.log"
+
+  [settings.network]
+  timeout = 6001.0
+  retries = 3.0

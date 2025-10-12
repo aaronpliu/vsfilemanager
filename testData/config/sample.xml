@@ -1,0 +1,22 @@
+<configuration>
+  <database>
+    <connection>
+      <host>localhost</host>
+      <port>5433</port>
+      <username>admin</username>
+      <password>secret</password>
+      <options>
+        <timeout>900</timeout>
+        <ssl>true</ssl>
+      </options>
+    </connection>
+  </database>
+  <appSettings>
+    <setting name="appName" value="TestApp"></setting>
+    <setting name="version" value="1.0.0"></setting>
+  </appSettings>
+  <features>
+    <feature name="logging" enabled></feature>
+    <feature name="caching" enabled></feature>
+  </features>
+</configuration>

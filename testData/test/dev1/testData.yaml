@@ -1,0 +1,25 @@
+app:
+  name: My test
+  version: 1.0.0
+  config:
+    debug: false
+    port: 3007
+    database:
+      host: localhost
+      port: 5434
+      username: admin
+      password: secret
+features:
+  authentication:
+    enabled: true
+    providers:
+      - local
+      - google
+      - github
+      - local
+  logging:
+    level: info
+    file: app.log
+ui:
+  theme: light
+  language: en

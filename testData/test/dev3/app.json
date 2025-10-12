@@ -1,0 +1,45 @@
+{
+  "config": {
+    "db": {
+      "host": "localhost555",
+      "port": 5524,
+      "username": "admin",
+      "password": "admin555"
+    },
+    "api": {
+      "baseUrl": "https://api.example.com",
+      "timeout": 8000,
+      "auth": {
+        "username": "admin",
+        "password": "test555"
+      },
+      "token": {
+        "environment": {
+          "dev": [
+            "dev1",
+            "dev2",
+            "dev3"
+          ],
+          "prod": [
+            "prod1",
+            "prod2",
+            "prod3"
+          ],
+          "staging": [
+            "staging1",
+            "staging2",
+            "staging3"
+          ]
+        }
+      },
+      "dev": false
+    }
+  },
+  "ui": {
+    "theme": {
+      "primaryColor": "#007acc",
+      "secondaryColor": "#6c757c",
+      "font": "Arial"
+    }
+  }
+}
