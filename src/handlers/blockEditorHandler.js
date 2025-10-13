@@ -1329,9 +1329,6 @@ class BlockEditorHandler {
                                 // Apply the edit
                                 await vscode.workspace.applyEdit(edit);
                                 
-                                // Show success message for the current file update
-                                vscode.window.showInformationMessage('File blocks updated successfully!');
-                                
                                 // Reload the webview with the latest content from the updated document
                                 let updatedDepthBlocks;
                                 try {
@@ -1460,6 +1457,8 @@ class BlockEditorHandler {
                                     
                                     if (sameNamedFiles.length === 0) {
                                         vscode.window.showInformationMessage('No same-named files found for synchronization.');
+                                        // Reload the webview with the latest content from the updated document
+                                        await reloadWebViewContent();
                                         return;
                                     }
                                     
@@ -1484,12 +1483,52 @@ class BlockEditorHandler {
                                         
                                         // Synchronize only the CHANGED blocks, not the entire file content
                                         SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
+                                        vscode.window.showInformationMessage('File blocks updated successfully!');
                                     }
+                                    
+                                    // Reload the webview with the latest content from the updated document
+                                    await reloadWebViewContent();
                                 } else if (batchAction === 'No' || batchAction === undefined) {
                                     // User selected "No" or closed the dialog
-                                    // Nothing more to do, already updated current file and refreshed webview
+                                    // Reload the webview with the latest content from the updated document
+                                    await reloadWebViewContent();
+                                    vscode.window.showInformationMessage('File blocks updated successfully!');
                                 }
-
+                                
+                                // Function to reload webview content
+                                async function reloadWebViewContent() {
+                                    let updatedDepthBlocks;
+                                    try {
+                                        // Re-read the document to get the updated content
+                                        const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
+                                        const updatedContent = updatedDocument.getText();
+                                        
+                                        if (validation.fileExtension === '.json') {
+                                            const updatedJsonContent = JSON.parse(updatedContent);
+                                            updatedDepthBlocks = Parser.parseToDepthBlocks(updatedJsonContent);
+                                        } else {
+                                            updatedDepthBlocks = Parser.parseToDepthBlocks(updatedContent);
+                                        }
+                                        
+                                        // Convert array format to object format expected by the webview
+                                        const blocksObject = {};
+                                        updatedDepthBlocks.forEach(depthGroup => {
+                                            for (const key in depthGroup.blocks) {
+                                                if (depthGroup.blocks.hasOwnProperty(key)) {
+                                                    blocksObject[key] = depthGroup.blocks[key];
+                                                }
+                                            }
+                                        });
+                                        
+                                        // Update the webview with new content
+                                        panel.webview.postMessage({
+                                            command: 'update',
+                                            blocks: blocksObject
+                                        });
+                                    } catch (error) {
+                                        console.error('Error reloading webview content:', error);
+                                    }
+                                }
                             } catch (error) {
                                 vscode.window.showErrorMessage('Error updating file: ' + error.message);
                             }
