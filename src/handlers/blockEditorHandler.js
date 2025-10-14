@@ -1215,6 +1215,18 @@ class BlockEditorHandler {
                 }
             });
             
+            // Handle collapse button click
+            document.getElementById('floatingCollapseBtn').addEventListener('click', () => {
+                document.getElementById('floatingSearchExpanded').style.display = 'none';
+                document.getElementById('floatingSearchCollapsed').style.display = 'block';
+            });
+            
+            // Handle expand button click
+            document.getElementById('floatingExpandBtn').addEventListener('click', () => {
+                document.getElementById('floatingSearchCollapsed').style.display = 'none';
+                document.getElementById('floatingSearchExpanded').style.display = 'flex';
+            });
+            
             // Add data-key attribute to block items for easier selection
             // This is in the renderBlocks function
             </script>`;

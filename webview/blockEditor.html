@@ -88,6 +88,12 @@
             font-size: 1em;
         }
         
+        #floatingExpandBtn {
+            padding: 5px 10px !important;
+            min-width: 40px;
+            text-align: center;
+        }
+        
         .floating-search-container button:hover {
             background-color: var(--vscode-button-hoverBackground);
         }
@@ -425,15 +431,21 @@
 <body>
     <!-- Floating search box -->
     <div id="floatingSearchContainer" class="floating-search-container">
-        <div style="display: flex; flex-direction: column;">
+        <div id="floatingSearchExpanded" style="display: flex; flex-direction: column;">
             <div class="search-container" style="display: flex; gap: 10px; align-items: center; padding: 5px; border: 1px solid var(--vscode-panel-border); border-radius: 3px;">
                 <span>🔍</span>
                 <input type="text" id="floatingSearchInput" placeholder="Search at current depth..." style="padding: 5px; flex: 1; min-width: 200px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); font-family: var(--vscode-editor-font-family);">
                 <button id="floatingSearchBtn">Search</button>
                 <button id="floatingClearSearchBtn">Clear</button>
+                <button id="floatingCollapseBtn" style="background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; padding: 5px 10px; border-radius: 2px; cursor: pointer; font-size: 1em;">←</button>
             </div>
             <div class="search-results-placeholder" style="margin: 10px 0; color: var(--vscode-descriptionForeground); font-size: 0.9em; text-align: right; min-height: 1.2em;">
                 <span id="floatingSearchResults"></span>
+            </div>
+        </div>
+        <div id="floatingSearchCollapsed" style="display: none;">
+            <div class="search-container" style="display: flex; gap: 10px; align-items: center; padding: 5px; border: 1px solid var(--vscode-panel-border); border-radius: 3px;">
+                <button id="floatingExpandBtn" style="background: var(--vscode-button-background); color: var(--vscode-button-foreground); border: none; padding: 5px 10px; border-radius: 2px; cursor: pointer; font-size: 1em;">🔍</button>
             </div>
         </div>
     </div>
