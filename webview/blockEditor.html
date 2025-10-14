@@ -19,6 +19,15 @@
             padding-bottom: 10px;
         }
         
+        .search-container {
+            display: flex; 
+            gap: 10px; 
+            align-items: center; 
+            padding: 5px; 
+            border: 1px solid var(--vscode-panel-border); 
+            border-radius: 3px;
+        }
+        
         .search-highlight {
             background-color: var(--vscode-editor-findMatchHighlightBackground);
             color: var(--vscode-editor-findMatchHighlightForeground);
@@ -27,6 +36,60 @@
         .current-search-result {
             background-color: var(--vscode-editor-findMatchBackground);
             color: var(--vscode-editor-findMatchForeground);
+        }
+        
+        /* Floating search box */
+        .floating-search-container {
+            position: fixed;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--vscode-editor-background);
+            padding: 3px;
+            border: 0.5px solid var(--vscode-panel-border);
+            border-top: none;
+            border-radius: 0 0 3px 3px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            z-index: 1000;
+            display: none;
+            width: 60%;
+            max-width: 500px;
+        }
+        
+        .floating-search-container .search-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            padding: 5px;
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 3px;
+            background-color: var(--vscode-editorWidget-background);
+            width: 100%;
+        }
+        
+        .floating-search-container input {
+            padding: 5px;
+            flex: 1;
+            min-width: 200px;
+            background-color: var(--vscode-input-background);
+            border: 1px solid var(--vscode-input-border);
+            color: var(--vscode-input-foreground);
+            font-family: var(--vscode-editor-font-family);
+            font-size: 1em;
+        }
+        
+        .floating-search-container button {
+            background-color: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            border: none;
+            padding: 5px 10px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        
+        .floating-search-container button:hover {
+            background-color: var(--vscode-button-hoverBackground);
         }
         
         .depth-selector {
@@ -360,6 +423,21 @@
     </style>
 </head>
 <body>
+    <!-- Floating search box -->
+    <div id="floatingSearchContainer" class="floating-search-container">
+        <div style="display: flex; flex-direction: column;">
+            <div class="search-container" style="display: flex; gap: 10px; align-items: center; padding: 5px; border: 1px solid var(--vscode-panel-border); border-radius: 3px;">
+                <span>🔍</span>
+                <input type="text" id="floatingSearchInput" placeholder="Search at current depth..." style="padding: 5px; flex: 1; min-width: 200px; background-color: var(--vscode-input-background); border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); font-family: var(--vscode-editor-font-family);">
+                <button id="floatingSearchBtn">Search</button>
+                <button id="floatingClearSearchBtn">Clear</button>
+            </div>
+            <div class="search-results-placeholder" style="margin: 10px 0; color: var(--vscode-descriptionForeground); font-size: 0.9em; text-align: right; min-height: 1.2em;">
+                <span id="floatingSearchResults"></span>
+            </div>
+        </div>
+    </div>
+    
     <div class="header">
         <h1>Structured Block Editor</h1>
         <p>Edit individual structured blocks using dot notation paths</p>
@@ -370,15 +448,17 @@
                     <!-- Options will be populated dynamically based on file depth -->
                 </select>
             </div>
-            <div class="search-container" style="display: flex; gap: 10px; align-items: center; padding: 5px; border: 1px solid var(--vscode-panel-border); border-radius: 3px;">
-                <span>🔍</span>
-                <input type="text" id="searchInput" placeholder="Search at current depth..." style="padding: 5px; flex: 1; min-width: 200px;">
-                <button id="searchBtn">Search</button>
-                <button id="clearSearchBtn">Clear</button>
+            <div>
+                <div class="search-container" style="display: flex; gap: 10px; align-items: center; padding: 5px; border: 1px solid var(--vscode-panel-border); border-radius: 3px;">
+                    <span>🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search at current depth..." style="padding: 5px; flex: 1; min-width: 200px;">
+                    <button id="searchBtn">Search</button>
+                    <button id="clearSearchBtn">Clear</button>
+                </div>
+                <div class="search-results-placeholder" style="margin: 10px 0; color: var(--vscode-descriptionForeground); font-size: 0.9em; text-align: right; min-height: 1.2em;">
+                    <span id="searchResults"></span>
+                </div>
             </div>
-        </div>
-        <div class="search-results-placeholder" style="margin: 10px 0; color: var(--vscode-descriptionForeground); font-size: 0.9em; text-align: right; min-height: 1.2em;">
-            <span id="searchResults"></span>
         </div>
     </div>
     

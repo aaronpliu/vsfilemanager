@@ -739,6 +739,9 @@ class BlockEditorHandler {
             
             // Handle Enter key in search input
             document.getElementById('searchInput').addEventListener('keyup', (e) => {
+                // Sync with floating search input
+                document.getElementById('floatingSearchInput').value = e.target.value;
+                
                 if (e.key === 'Enter') {
                     // If we already have search results, navigate to next result
                     if (searchResults.length > 0) {
@@ -752,6 +755,9 @@ class BlockEditorHandler {
             
             // Clear search when the search input is emptied
             document.getElementById('searchInput').addEventListener('input', (e) => {
+                // Sync with floating search input
+                document.getElementById('floatingSearchInput').value = e.target.value;
+                
                 if (e.target.value.trim() === '') {
                     clearSearch();
                 }
@@ -945,6 +951,9 @@ class BlockEditorHandler {
                     searchResultsElement.textContent = '';
                     hideSearchNavigationBar();
                     renderBlocks();
+                    // Update floating search results
+                    const floatingSearchResults = document.getElementById('floatingSearchResults');
+                    floatingSearchResults.textContent = '';
                     return;
                 }
                 
@@ -965,16 +974,27 @@ class BlockEditorHandler {
                 if (searchResults.length > 0) {
                     currentSearchIndex = 0; // Automatically navigate to the first result
                     searchResultsElement.textContent = 'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+                    searchResultsElement.className = '';
                     showSearchNavigationBar();
                     updateSearchNavigationCounter();
                     renderBlocks();
                     scrollToCurrentResult(); // Scroll to the first result
+                    
+                    // Update floating search results
+                    const floatingSearchResults = document.getElementById('floatingSearchResults');
+                    floatingSearchResults.textContent = searchResultsElement.textContent;
+                    floatingSearchResults.className = '';
                 } else {
                     currentSearchIndex = -1;
                     searchResultsElement.textContent = 'No matching blocks found at depth ' + maxDepth + '.';
                     searchResultsElement.className = 'no-search-results'; // Add the highlight class
                     hideSearchNavigationBar();
                     renderBlocks();
+                    
+                    // Update floating search results
+                    const floatingSearchResults = document.getElementById('floatingSearchResults');
+                    floatingSearchResults.textContent = searchResultsElement.textContent;
+                    floatingSearchResults.className = 'no-search-results'; // Add the highlight class
                 }
             }
             
@@ -1022,8 +1042,11 @@ class BlockEditorHandler {
             // Function to update search results text
             function updateSearchResultsText() {
                 if (searchResults.length > 0) {
-                    document.getElementById('searchResults').textContent = 
-                        'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+                    const text = 'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+                    document.getElementById('searchResults').textContent = text;
+                    // Also update floating search results
+                    const floatingSearchResults = document.getElementById('floatingSearchResults');
+                    floatingSearchResults.textContent = text;
                 }
             }
             
@@ -1059,6 +1082,7 @@ class BlockEditorHandler {
             // Function to clear search
             function clearSearch() {
                 document.getElementById('searchInput').value = '';
+                document.getElementById('floatingSearchInput').value = '';
                 searchResults = [];
                 currentSearchIndex = -1;
                 const searchResultsElement = document.getElementById('searchResults');
@@ -1066,6 +1090,11 @@ class BlockEditorHandler {
                 searchResultsElement.className = ''; // Remove any classes
                 hideSearchNavigationBar();
                 renderBlocks();
+                
+                // Update floating search results
+                const floatingSearchResults = document.getElementById('floatingSearchResults');
+                floatingSearchResults.textContent = '';
+                floatingSearchResults.className = ''; // Remove any classes
             }
             
             // Handle next result button
@@ -1090,6 +1119,9 @@ class BlockEditorHandler {
                     // Hide button when near the top
                     scrollToTopBtn.style.display = 'none';
                 }
+                
+                // Handle floating search box
+                handleFloatingSearchBox();
             });
             
             // Hide scroll to top button initially
@@ -1108,6 +1140,78 @@ class BlockEditorHandler {
                         previousSearchResult();
                         e.preventDefault();
                     }
+                }
+            });
+            
+            // Handle floating search box visibility
+            function handleFloatingSearchBox() {
+                const header = document.querySelector('.header');
+                const floatingSearchContainer = document.getElementById('floatingSearchContainer');
+                const headerRect = header.getBoundingClientRect();
+                
+                // If the header is not visible (scrolled out of view)
+                if (headerRect.bottom < 0) {
+                    floatingSearchContainer.style.display = 'flex';
+                    // Sync the search input value
+                    const searchInput = document.getElementById('searchInput');
+                    const floatingSearchInput = document.getElementById('floatingSearchInput');
+                    floatingSearchInput.value = searchInput.value;
+                    
+                    // Sync the search results text
+                    const searchResultsElement = document.getElementById('searchResults');
+                    const floatingSearchResults = document.getElementById('floatingSearchResults');
+                    floatingSearchResults.textContent = searchResultsElement.textContent;
+                } else {
+                    floatingSearchContainer.style.display = 'none';
+                }
+            }
+            
+            // Handle floating search button
+            document.getElementById('floatingSearchBtn').addEventListener('click', () => {
+                const floatingSearchInput = document.getElementById('floatingSearchInput');
+                document.getElementById('searchInput').value = floatingSearchInput.value;
+                performSearch();
+                // Update the floating search results display
+                const searchResultsElement = document.getElementById('searchResults');
+                const floatingSearchResults = document.getElementById('floatingSearchResults');
+                floatingSearchResults.textContent = searchResultsElement.textContent;
+            });
+            
+            // Handle floating clear search button
+            document.getElementById('floatingClearSearchBtn').addEventListener('click', () => {
+                document.getElementById('floatingSearchInput').value = '';
+                clearSearch();
+                // Update the floating search results display
+                const floatingSearchResults = document.getElementById('floatingSearchResults');
+                floatingSearchResults.textContent = '';
+            });
+            
+            // Handle Enter key in floating search input
+            document.getElementById('floatingSearchInput').addEventListener('keyup', (e) => {
+                if (e.key === 'Enter') {
+                    // If we already have search results, navigate to next result
+                    if (searchResults.length > 0) {
+                        nextSearchResult();
+                    } else {
+                        // Otherwise, perform a new search
+                        const floatingSearchInput = document.getElementById('floatingSearchInput');
+                        document.getElementById('searchInput').value = floatingSearchInput.value;
+                        performSearch();
+                    }
+                    // Update the floating search results display
+                    const searchResultsElement = document.getElementById('searchResults');
+                    const floatingSearchResults = document.getElementById('floatingSearchResults');
+                    floatingSearchResults.textContent = searchResultsElement.textContent;
+                }
+            });
+            
+            // Clear search when the floating search input is emptied
+            document.getElementById('floatingSearchInput').addEventListener('input', (e) => {
+                // Sync with fixed search input
+                document.getElementById('searchInput').value = e.target.value;
+                
+                if (e.target.value.trim() === '') {
+                    clearSearch();
                 }
             });
             
