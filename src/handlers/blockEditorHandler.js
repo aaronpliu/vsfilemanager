@@ -106,8 +106,7 @@ class BlockEditorHandler {
                     } else {
                         // Reset the flag for next change
                         isInternalChange = false;
-                        // Also reset the notification flag since we made an internal change
-                        isExternalChangeNotified = false;
+                        // Do NOT reset the notification flag here - it should only be reset when user interacts with notification
                     }
                 }
             });
@@ -875,6 +874,9 @@ class BlockEditorHandler {
                             currentBlocks.push(groupedBlocks[groupKey]);
                         }
                         
+                        // Also update originalBlocks to match currentBlocks after a successful save
+                        originalBlocks = JSON.parse(JSON.stringify(currentBlocks));
+                        
                         populateDepthSelector();
                         populateNewBlockDepthSelector();
                         
@@ -891,8 +893,6 @@ class BlockEditorHandler {
                         renderBlocks();
                         // Disable save button after successful update
                         resetSaveButtonState();
-                        // Also reset the external change notification flag
-                        isExternalChangeNotified = false;
                         break;
                     case 'documentChanged':
                         // Show a notification that the document has been modified. Would you like to reload the latest content?
@@ -917,6 +917,8 @@ class BlockEditorHandler {
                                     command: 'reload'
                                 });
                                 notification.remove();
+                                // Reset the notification flag when user explicitly interacts with notification
+                                isExternalChangeNotified = false;
                             });
                             
                             document.getElementById('dismissBtn').addEventListener('click', () => {
@@ -924,6 +926,8 @@ class BlockEditorHandler {
                                     command: 'dismissNotification'
                                 });
                                 notification.remove();
+                                // Reset the notification flag when user explicitly interacts with notification
+                                isExternalChangeNotified = false;
                             });
                         }
                         break;
@@ -1555,8 +1559,6 @@ class BlockEditorHandler {
                             return;
                         case 'reload':
                             try {
-                                // Reset the external change notification flag
-                                isExternalChangeNotified = false;
                                 
                                 // Reload the document content
                                 const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
