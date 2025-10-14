@@ -753,6 +753,9 @@ class BlockEditorHandler {
                 }
             });
             
+            // Arrow key navigation is handled by the global keydown listener
+            // No need for input-specific listener to avoid double navigation calls
+            
             // Clear search when the search input is emptied
             document.getElementById('searchInput').addEventListener('input', (e) => {
                 // Sync with floating search input
@@ -973,7 +976,7 @@ class BlockEditorHandler {
                 
                 if (searchResults.length > 0) {
                     currentSearchIndex = 0; // Automatically navigate to the first result
-                    searchResultsElement.textContent = 'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+                    searchResultsElement.textContent = 'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length + ' (Use bottom bar to navigate)';
                     searchResultsElement.className = '';
                     showSearchNavigationBar();
                     updateSearchNavigationCounter();
@@ -1042,7 +1045,7 @@ class BlockEditorHandler {
             // Function to update search results text
             function updateSearchResultsText() {
                 if (searchResults.length > 0) {
-                    const text = 'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length;
+                    const text = 'Result ' + (currentSearchIndex + 1) + ' of ' + searchResults.length + ' (Use bottom bar to navigate)';
                     document.getElementById('searchResults').textContent = text;
                     // Also update floating search results
                     const floatingSearchResults = document.getElementById('floatingSearchResults');
@@ -1127,18 +1130,27 @@ class BlockEditorHandler {
             // Hide scroll to top button initially
             hideScrollToTopButton();
             
-            // Handle keyboard navigation (Enter and Shift+Enter)
+            // Handle keyboard navigation (Enter, Shift+Enter, and arrow keys)
             document.addEventListener('keydown', (e) => {
-                // Only handle if search results exist and we're not in an input field
-                if (searchResults.length > 0 && 
-                    e.target.tagName !== 'INPUT' && 
-                    e.target.tagName !== 'TEXTAREA') {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                // Only handle if search results exist
+                if (searchResults.length > 0) {
+                    // For arrow keys, allow navigation even from input fields
+                    if (e.key === 'ArrowDown') {
                         nextSearchResult();
                         e.preventDefault();
-                    } else if (e.key === 'Enter' && e.shiftKey) {
+                    } else if (e.key === 'ArrowUp') {
                         previousSearchResult();
                         e.preventDefault();
+                    } 
+                    // For Enter keys, only handle when not in input fields
+                    else if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            nextSearchResult();
+                            e.preventDefault();
+                        } else if (e.key === 'Enter' && e.shiftKey) {
+                            previousSearchResult();
+                            e.preventDefault();
+                        }
                     }
                 }
             });
@@ -1204,6 +1216,9 @@ class BlockEditorHandler {
                     floatingSearchResults.textContent = searchResultsElement.textContent;
                 }
             });
+            
+            // Arrow key navigation is handled by the global keydown listener
+            // No need for input-specific listener to avoid double navigation calls
             
             // Clear search when the floating search input is emptied
             document.getElementById('floatingSearchInput').addEventListener('input', (e) => {
