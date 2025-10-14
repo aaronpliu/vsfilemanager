@@ -760,10 +760,15 @@ class BlockEditorHandler {
             
             // Handle Save button
             document.getElementById('saveBtn').addEventListener('click', () => {
-                // Flatten blocks for saving
+                console.log('Current blocks structure:', currentBlocks);
+                // Flatten blocks for saving - only include blocks from the currently selected depth
                 const flattenedBlocks = {};
-                currentBlocks.forEach(depthGroup => {
+                // Filter to only include blocks from the currently selected depth
+                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                selectedDepthGroups.forEach(depthGroup => {
+                    console.log('Processing depth group:', depthGroup);
                     for (const [key, block] of Object.entries(depthGroup.blocks)) {
+                        console.log('Processing block key:', key, 'value:', block);
                         // Pass the entire block object to preserve type information
                         flattenedBlocks[key] = {
                             value: block.value,
@@ -776,14 +781,17 @@ class BlockEditorHandler {
                     }
                 });
                 
-                // Create a list of deleted keys by comparing with originalBlocks
+                // Create a list of deleted keys by comparing with originalBlocks, but only for the current depth
                 const deletedKeys = [];
                 if (originalBlocks) {
-                    originalBlocks.forEach(depthGroup => {
+                    // Filter original blocks to only include those from the currently selected depth
+                    const selectedOriginalDepthGroups = originalBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                    selectedOriginalDepthGroups.forEach(depthGroup => {
                         for (const [key, block] of Object.entries(depthGroup.blocks)) {
-                            // Check if this key exists in the current blocks
+                            // Check if this key exists in the current blocks at the same depth
                             let exists = false;
-                            for (const currentDepthGroup of currentBlocks) {
+                            const selectedCurrentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                            for (const currentDepthGroup of selectedCurrentDepthGroups) {
                                 if (currentDepthGroup.blocks.hasOwnProperty(key)) {
                                     exists = true;
                                     break;
@@ -800,11 +808,15 @@ class BlockEditorHandler {
                 // Clear newly added blocks tracking on save
                 newlyAddedBlocks = [];
                 
+                console.log('Sending save message with blocks:', flattenedBlocks);
+                console.log('Sending save message with deletedKeys:', deletedKeys);
+                
                 vscode.postMessage({
                     command: 'save',
                     blocks: flattenedBlocks,
                     deletedKeys: deletedKeys,
-                    originalBlocks: originalBlocks
+                    originalBlocks: originalBlocks,
+                    currentDepth: maxDepth
                 });
             });
             
@@ -1254,8 +1266,12 @@ class BlockEditorHandler {
                     switch (message.command) {
                         case 'save':
                             try {
+                                console.log('Save command received');
+                                console.log('Message data:', message);
                                 // Get the original content
-                                const originalContent = document.getText();
+                                const originalDocument = await vscode.workspace.openTextDocument(document.uri);
+                                const originalContent = originalDocument.getText();
+                                console.log('Original document content:', originalContent);
                                 
                                 // Get the appropriate parser
                                 const Parser = FileTypeUtils.getParser(validation.fileExtension);
@@ -1264,6 +1280,10 @@ class BlockEditorHandler {
                                     return;
                                 }
                                 
+                                console.log('Original content:', originalContent);
+                                console.log('Message blocks:', message.blocks);
+                                console.log('Deleted keys:', message.deletedKeys);
+                                
                                 let updatedContent;
                                 if (validation.fileExtension === '.json') {
                                     // Get the original JSON content
@@ -1271,76 +1291,74 @@ class BlockEditorHandler {
                                     const originalNumberFormats = Parser.extractOriginalNumberFormats(originalContent);
                                     const originalJsonContent = JSON.parse(originalContent);
                                     
+                                    console.log('Original JSON content:', JSON.stringify(originalJsonContent, null, 2));
+                                    
                                     // Apply block changes (including deletions) to the original content using enhanced method
                                     const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, message.blocks, originalNumberFormats);
                                     updatedContent = JSON.stringify(updatedJson, null, 2);
+                                    
+                                    console.log('Updated JSON content:', updatedContent);
                                 } else {
                                     // Apply block changes (including deletions) to the original content using enhanced method
                                     updatedContent = Parser.applyBlockChangesEnhanced(originalContent, message.blocks);
                                 }
                                 
                                 // Handle deletions if any
-                                if (message.deletedKeys && message.deletedKeys.length > 0) {
-                                    if (validation.fileExtension === '.json') {
-                                        // For JSON files, we need to parse the updated content into blocks
-                                        const updatedBlocks = Parser.parseToBlocks(JSON.parse(updatedContent));
-                                        
-                                        // Remove deleted keys
-                                        message.deletedKeys.forEach(key => {
-                                            if (updatedBlocks.hasOwnProperty(key)) {
-                                                delete updatedBlocks[key];
-                                            }
-                                        });
-                                        
-                                        // Convert back to JSON
-                                        const finalJson = Parser.blocksToJson(updatedBlocks);
-                                        updatedContent = JSON.stringify(finalJson, null, 2);
-                                    } else {
-                                        // For other formats, we need to parse the updated content into blocks
-                                        const updatedBlocks = Parser.parseToBlocks(updatedContent);
-                                        
-                                        // Remove deleted keys
-                                        message.deletedKeys.forEach(key => {
-                                            if (updatedBlocks.hasOwnProperty(key)) {
-                                                delete updatedBlocks[key];
-                                            }
-                                        });
-                                        
-                                        // Convert back to the appropriate format
-                                        updatedContent = Parser.blocksToContent ?
-                                            Parser.blocksToContent(updatedBlocks) :
-                                            (Parser.blocksToYaml ? Parser.blocksToYaml(updatedBlocks) :
-                                                (Parser.blocksToXml ? Parser.blocksToXml(updatedBlocks) :
-                                                    Parser.blocksToToml(updatedBlocks)));
-                                    }
+                                // For JSON files, deletions are already handled by applyBlockChangesEnhanced via applyOnlyChangedBlocks
+                                // Only handle deletions for non-JSON formats
+                                if (message.deletedKeys && message.deletedKeys.length > 0 && validation.fileExtension !== '.json') {
+                                    console.log('Handling deletions for non-JSON file');
+                                    // For other formats, we need to parse the updated content into blocks
+                                    const updatedBlocks = Parser.parseToBlocks(updatedContent);
+                                    
+                                    // Remove deleted keys
+                                    message.deletedKeys.forEach(key => {
+                                        console.log('Deleting key:', key);
+                                        if (updatedBlocks.hasOwnProperty(key)) {
+                                            delete updatedBlocks[key];
+                                        }
+                                    });
+                                    
+                                    // Convert back to the appropriate format
+                                    updatedContent = Parser.blocksToContent ?
+                                        Parser.blocksToContent(updatedBlocks) :
+                                        (Parser.blocksToYaml ? Parser.blocksToYaml(updatedBlocks) :
+                                            (Parser.blocksToXml ? Parser.blocksToXml(updatedBlocks) :
+                                                Parser.blocksToToml(updatedBlocks)));
                                 }
                                 
-                                // Update the document
-                                const edit = new vscode.WorkspaceEdit();
-                                const fullRange = new vscode.Range(
-                                    document.positionAt(0),
-                                    document.positionAt(document.getText().length)
-                                );
-                                edit.replace(document.uri, fullRange, updatedContent);
-                                
-                                // Mark this as an internal change
-                                isInternalChange = true;
-                                
-                                // Apply the edit
-                                await vscode.workspace.applyEdit(edit);
+                                // Update the document using direct file system write (same approach as syncDetector and batchUpdater)
+                                try {
+                                    console.log('Attempting to write file:', originalDocument.uri.fsPath);
+                                    console.log('Content to write:', updatedContent);
+                                    fs.writeFileSync(originalDocument.uri.fsPath, updatedContent, 'utf8');
+                                    console.log('File write successful');
+                                    // Mark this as an internal change
+                                    isInternalChange = true;
+                                    
+                                    // Force VS Code to refresh its view of the document
+                                    await vscode.commands.executeCommand('workbench.action.files.revert', originalDocument.uri);
+                                } catch (error) {
+                                    console.error('Failed to apply changes to the file:', error);
+                                    vscode.window.showErrorMessage('Failed to apply changes to the file: ' + error.message);
+                                    return;
+                                }
                                 
                                 // Reload the webview with the latest content from the updated document
                                 let updatedDepthBlocks;
                                 try {
                                     // Re-read the document to get the updated content
-                                    const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
-                                    const updatedContent = updatedDocument.getText();
+                                    console.log('About to re-read document:', originalDocument.uri.fsPath);
+                                    const updatedDocument = await vscode.workspace.openTextDocument(originalDocument.uri);
+                                    const newContent = updatedDocument.getText();
+                                    console.log('Content read from document:', newContent);
+                                    console.log('Matches expected content:', newContent === updatedContent);
                                     
                                     if (validation.fileExtension === '.json') {
-                                        const updatedJsonContent = JSON.parse(updatedContent);
+                                        const updatedJsonContent = JSON.parse(newContent);
                                         updatedDepthBlocks = Parser.parseToDepthBlocks(updatedJsonContent);
                                     } else {
-                                        updatedDepthBlocks = Parser.parseToDepthBlocks(updatedContent);
+                                        updatedDepthBlocks = Parser.parseToDepthBlocks(newContent);
                                     }
                                     
                                     // Convert array format to object format expected by the webview
@@ -1382,10 +1400,12 @@ class BlockEditorHandler {
                                     return block;
                                 }
                                 
-                                // Create a map of original blocks for easier comparison
+                                // Create a map of original blocks for easier comparison, but only for the current depth
                                 const originalBlocksMap = {};
-                                if (message.originalBlocks) {
-                                    message.originalBlocks.forEach(depthGroup => {
+                                if (message.originalBlocks && message.currentDepth !== undefined) {
+                                    // Filter original blocks to only include those from the currently selected depth
+                                    const selectedOriginalDepthGroups = message.originalBlocks.filter(depthGroup => depthGroup.depth === message.currentDepth);
+                                    selectedOriginalDepthGroups.forEach(depthGroup => {
                                         for (const [key, block] of Object.entries(depthGroup.blocks)) {
                                             originalBlocksMap[key] = block;
                                         }
@@ -1414,8 +1434,8 @@ class BlockEditorHandler {
                                         }
                                     }
                                     
-                                    // Check for deleted blocks
-                                    message.originalBlocks.forEach(depthGroup => {
+                                    // Check for deleted blocks, but only for the current depth
+                                    selectedOriginalDepthGroups.forEach(depthGroup => {
                                         for (const [key, block] of Object.entries(depthGroup.blocks)) {
                                             // Check if this key exists in the current blocks
                                             let exists = false;
@@ -1433,7 +1453,7 @@ class BlockEditorHandler {
                                         }
                                     });
                                 } else {
-                                    // If we don't have original blocks, send all current blocks
+                                    // If we don't have original blocks or currentDepth, send all current blocks
                                     for (const key in message.blocks) {
                                         if (message.blocks.hasOwnProperty(key)) {
                                             changedBlocks[key] = message.blocks[key];
