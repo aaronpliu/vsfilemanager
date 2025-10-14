@@ -5,6 +5,21 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-10-15
+
+### Added
+- Enhanced floating search box with collapse/expand functionality
+- Added keyboard arrow key navigation for search results
+- Implemented immediate keyboard navigation activation on search
+
+### Fixed
+- Fixed search navigation skipping results (only navigating to odd numbers)
+- Improved keyboard navigation to work immediately after search without requiring button click
+
+### Improved
+- Enhanced search UI with better visual feedback and navigation controls
+- Refined floating search box behavior and appearance
+
 ## [1.2.0] - 2025-10-13
 
 ### Added
