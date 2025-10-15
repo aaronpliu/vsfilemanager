@@ -111,9 +111,19 @@ class BlockEditorHandler {
                 }
             });
 
+            // Set up a listener for when the document is saved
+            const saveListener = vscode.workspace.onDidSaveTextDocument((savedDocument) => {
+                if (savedDocument.uri.toString() === document.uri.toString()) {
+                    // Reset the notification flag when the document is saved
+                    // This allows notifications to appear again if the file is externally modified after saving
+                    isExternalChangeNotified = false;
+                }
+            });
+
             // Set up a listener for when the panel is disposed
             panel.onDidDispose(() => {
                 changeListener.dispose();
+                saveListener.dispose();
                 // Clear any pending external change timer
                 if (externalChangeTimer) {
                     clearTimeout(externalChangeTimer);
@@ -905,6 +915,13 @@ class BlockEditorHandler {
                         break;
                     case 'documentChanged':
                         // Show a notification that the document has been modified. Would you like to reload the latest content?
+                        // But only show if there's no existing notification
+                        const existingNotification = document.getElementById('documentChangedNotification');
+                        if (existingNotification) {
+                            // Notification already exists, don't show another one
+                            break;
+                        }
+                        
                         const notification = document.createElement('div');
                         notification.id = 'documentChangedNotification';
                         notification.className = 'document-changed-notification';
@@ -1680,6 +1697,9 @@ class BlockEditorHandler {
                                             command: 'update',
                                             blocks: blocksObject
                                         });
+                                        
+                                        // Reset the external change notification flag when webview is reloaded
+                                        isExternalChangeNotified = false;
                                     } catch (error) {
                                         console.error('Error reloading webview content:', error);
                                     }
@@ -1728,6 +1748,9 @@ class BlockEditorHandler {
                                 
                                 // Update our version tracking
                                 documentVersion = updatedDocument.version;
+                                
+                                // Reset the external change notification flag when document is reloaded
+                                isExternalChangeNotified = false;
                                 
                                 vscode.window.showInformationMessage('Document reloaded with latest changes');
                             } catch (error) {
