@@ -67,6 +67,16 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.3.0
+Latest improvements and fixes:
+- Added floating search box with collapse/expand functionality
+- Added keyboard arrow key navigation for search results
+- Added immediate keyboard navigation activation on search
+- Fixed search navigation skipping results (only navigating to odd numbers)
+- Improved keyboard navigation to work immediately after search without requiring button click
+- Enhanced search UI with better visual feedback and navigation controls
+- Refined floating search box behavior and appearance
+
 ### 1.2.0
 
 Latest improvements and fixes:
