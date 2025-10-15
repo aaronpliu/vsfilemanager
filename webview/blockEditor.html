@@ -407,6 +407,23 @@
             align-items: center;
         }
         
+        .document-changed-notification-bottom-right {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--vscode-editorWarning-background);
+            color: var(--vscode-editorWarning-foreground);
+            border: 1px solid var(--vscode-editorWarning-border);
+            padding: 10px;
+            border-radius: 3px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            max-width: 400px;
+        }
+        
         .notification-content {
             display: flex;
             align-items: center;
@@ -426,6 +443,11 @@
             background-color: var(--vscode-button-hoverBackground);
         }
         
+        .document-changed-notification-bottom-right .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
     </style>
 </head>
 <body>

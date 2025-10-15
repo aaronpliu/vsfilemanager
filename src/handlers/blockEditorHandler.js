@@ -460,6 +460,14 @@ class BlockEditorHandler {
                                 
                                 // Reset save button state
                                 resetSaveButtonState();
+                                
+                                // Remove save notification if no other fields are being edited
+                                if (document.querySelectorAll('.cancel-edit-btn').length === 0) {
+                                    const saveNotification = document.getElementById('saveChangesNotification');
+                                    if (saveNotification) {
+                                        saveNotification.remove();
+                                    }
+                                }
                             });
                         } else {
                             input.setAttribute('readonly', 'readonly');
@@ -548,6 +556,9 @@ class BlockEditorHandler {
                             
                             // Enable save button when user saves changes
                             updateSaveButtonState();
+                            
+                            // Show a notification to save changes
+                            showSaveChangesNotification();
                         }
                     });
                 });
@@ -778,6 +789,12 @@ class BlockEditorHandler {
             
             // Handle Save button
             document.getElementById('saveBtn').addEventListener('click', () => {
+                // Remove any save notifications
+                const saveNotification = document.getElementById('saveChangesNotification');
+                if (saveNotification) {
+                    saveNotification.remove();
+                }
+                
                 console.log('Current blocks structure:', currentBlocks);
                 // Flatten blocks for saving - only include blocks from the currently selected depth
                 const flattenedBlocks = {};
@@ -836,6 +853,9 @@ class BlockEditorHandler {
                     originalBlocks: originalBlocks,
                     currentDepth: maxDepth
                 });
+                
+                // Disable save button after sending save message
+                resetSaveButtonState();
             });
             
             // Handle Reload button
@@ -843,6 +863,9 @@ class BlockEditorHandler {
                 vscode.postMessage({
                     command: 'reload'
                 });
+                
+                // Disable save button when reloading
+                resetSaveButtonState();
             });
             
             // Handle Open Source File button
@@ -1094,6 +1117,38 @@ class BlockEditorHandler {
                 scrollToTopBtn.style.display = 'none';
             }
             
+            // Function to show save changes notification
+            function showSaveChangesNotification() {
+                // Check if notification already exists
+                if (document.getElementById('saveChangesNotification')) {
+                    return;
+                }
+                
+                const notification = document.createElement('div');
+                notification.id = 'saveChangesNotification';
+                notification.className = 'document-changed-notification-bottom-right';
+                notification.innerHTML = '' +
+                    '<div class="notification-content">' +
+                    '<span>Changes made. Save to apply to file.</span>' +
+                    '<button id="saveChangesBtnNotification" class="reload-btn-notification">Save Changes</button>' +
+                    '<button id="dismissSaveNotification" class="dismiss-btn">Dismiss</button>' +
+                    '</div>';
+                
+                // Add to the bottom right of the document
+                document.body.appendChild(notification);
+                
+                // Add event listeners
+                document.getElementById('saveChangesBtnNotification').addEventListener('click', () => {
+                    // Click the main save button
+                    document.getElementById('saveBtn').click();
+                    notification.remove();
+                });
+                
+                document.getElementById('dismissSaveNotification').addEventListener('click', () => {
+                    notification.remove();
+                });
+            }
+            
             // Function to scroll to top of the page
             function scrollToTop() {
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1282,6 +1337,23 @@ class BlockEditorHandler {
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+            }
+            
+            .document-changed-notification-bottom-right {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background-color: var(--vscode-editorWarning-background);
+                color: var(--vscode-editorWarning-foreground);
+                border: 1px solid var(--vscode-editorWarning-border);
+                padding: 10px;
+                border-radius: 3px;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                z-index: 1000;
+                max-width: 400px;
             }
             
             .notification-content {
