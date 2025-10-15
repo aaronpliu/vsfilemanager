@@ -72,7 +72,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed issue where block keys were incorrectly converted to numbers after saving or reloading
 - Resolved data format inconsistency between parser output and webview expectations
-- Improved reliability of Save Changes, Reload, and Reload Document functions
+- Improved reliability of Apply, Reload, and Reload Document functions
 
 ## [1.0.0] - 2025-10-08
 

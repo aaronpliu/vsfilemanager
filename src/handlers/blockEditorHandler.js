@@ -420,7 +420,7 @@ class BlockEditorHandler {
                             input.setAttribute('data-original-value', input.value);
                             input.removeAttribute('readonly');
                             input.focus();
-                            e.target.textContent = 'Save';
+                            e.target.textContent = 'Apply';
                             
                             // Create and add a cancel button
                             const cancelBtn = document.createElement('button');
