@@ -5,10 +5,26 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.3.1] - 2025-10-15
+## [1.3.1] - 2025-10-16
+
+### Added
+- Added save changes notification with "Save Changes" button in bottom right corner
+- Added keyboard navigation for search results using arrow keys
+- Added floating search box with collapse/expand functionality
 
 ### Improved
-- Moved field edit notification from top of page to bottom right corner for better visibility
+- Enhanced save changes notification styling to prevent text wrapping
+- Enhanced dialog and prompt messages for save changes functionality
+- Enhanced reload message behavior
+- Improved button naming to avoid user confusion
+- Refined save button state management to reset properly
+
+### Fixed
+- Fixed save issue for current file
+- Fixed issue where success message was not displayed in appropriate location
+- Fixed issue where reload message was displayed multiple times
+- Fixed search result clearing when switching depth levels
+- Show new value in webview before save operation
 
 ## [1.3.0] - 2025-10-15
 

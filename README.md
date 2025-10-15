@@ -67,6 +67,22 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.3.1
+Latest improvements and fixes:
+- Added save changes notification with "Save Changes" button in bottom right corner
+- Enhanced save changes notification styling to prevent text wrapping
+- Enhanced dialog and prompt messages for save changes functionality
+- Enhanced reload message behavior
+- Improved button naming to avoid user confusion
+- Refined save button state management to reset properly
+- Fixed save issue for current file
+- Fixed issue where success message was not displayed in appropriate location
+- Fixed issue where reload message was displayed multiple times
+- Fixed search result clearing when switching depth levels
+- Show new value in webview before save operation
+- Added keyboard navigation for search results using arrow keys
+- Added floating search box with collapse/expand functionality
+
 ### 1.3.0
 Latest improvements and fixes:
 - Added floating search box with collapse/expand functionality
