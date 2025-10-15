@@ -1499,6 +1499,9 @@ class BlockEditorHandler {
                                 // Reload the webview with the latest content from the updated document
                                 let updatedDepthBlocks;
                                 try {
+                                    // Force VS Code to refresh its view of the document from disk
+                                    await vscode.commands.executeCommand('workbench.action.files.revert', document.uri);
+                                    
                                     // Re-read the document to get the updated content
                                     console.log('About to re-read document:', originalDocument.uri.fsPath);
                                     const updatedDocument = await vscode.workspace.openTextDocument(originalDocument.uri);
@@ -1615,15 +1618,14 @@ class BlockEditorHandler {
 
                                 // Ask if user wants to apply batch update
                                 const batchAction = await vscode.window.showInformationMessage(
-                                    'Would you like to apply these changes to other files?',
+                                    'Would you like to apply these changes to same-named file(s)?',
                                     { modal: true },
-                                    'Batch Update',
-                                    'No'
+                                    'OK'
                                 );
                                 
-                                // Only proceed with batch update if user explicitly selects "Batch Update"
-                                // If user selects "No" or closes dialog, do nothing further
-                                if (batchAction === 'Batch Update') {
+                                // Only proceed with batch update if user explicitly selects "OK"
+                                // If user selects "Cancel" or closes dialog, do nothing further
+                                if (batchAction === 'OK') {
                                     // Find same-named files
                                     const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
                                     
@@ -1660,17 +1662,20 @@ class BlockEditorHandler {
                                     
                                     // Reload the webview with the latest content from the updated document
                                     await reloadWebViewContent();
-                                } else if (batchAction === 'No' || batchAction === undefined) {
-                                    // User selected "No" or closed the dialog
+                                } else if (batchAction === undefined) {
+                                    // User selected "Cancel" or closed the dialog
                                     // Reload the webview with the latest content from the updated document
                                     await reloadWebViewContent();
-                                    vscode.window.showInformationMessage('File blocks updated successfully!');
+                                    vscode.window.showInformationMessage('Current file block(s) updated successfully!');
                                 }
                                 
                                 // Function to reload webview content
                                 async function reloadWebViewContent() {
                                     let updatedDepthBlocks;
                                     try {
+                                        // Force VS Code to refresh its view of the document from disk
+                                        await vscode.commands.executeCommand('workbench.action.files.revert', document.uri);
+                                        
                                         // Re-read the document to get the updated content
                                         const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
                                         const updatedContent = updatedDocument.getText();
@@ -1710,6 +1715,8 @@ class BlockEditorHandler {
                             return;
                         case 'reload':
                             try {
+                                // Force VS Code to refresh its view of the document from disk
+                                await vscode.commands.executeCommand('workbench.action.files.revert', document.uri);
                                 
                                 // Reload the document content
                                 const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
