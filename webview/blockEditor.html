@@ -414,14 +414,16 @@
             background-color: var(--vscode-editorWarning-background);
             color: var(--vscode-editorWarning-foreground);
             border: 1px solid var(--vscode-editorWarning-border);
-            padding: 10px;
-            border-radius: 3px;
+            padding: 12px 15px;
+            border-radius: 4px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
             z-index: 1000;
-            max-width: 400px;
+            max-width: 450px;
+            font-family: var(--vscode-font-family);
+            font-size: 13px;
         }
         
         .notification-content {
@@ -430,13 +432,21 @@
             gap: 15px;
         }
         
+        .document-changed-notification-bottom-right span {
+            flex: 1;
+            white-space: nowrap;
+        }
+        
         .reload-btn-notification, .dismiss-btn {
             background-color: var(--vscode-button-background);
             color: var(--vscode-button-foreground);
             border: none;
-            padding: 5px 10px;
+            padding: 6px 12px;
             border-radius: 2px;
             cursor: pointer;
+            white-space: nowrap;
+            font-size: 12px;
+            font-weight: 500;
         }
         
         .reload-btn-notification:hover, .dismiss-btn:hover {
