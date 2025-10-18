@@ -404,6 +404,9 @@ class BlockEditorHandler {
                             renderBlocks();
                             // Enable save button when block is deleted
                             updateSaveButtonState();
+                            
+                            // Show save changes notification
+                            showSaveChangesNotification();
                         }
                     });
                 });
