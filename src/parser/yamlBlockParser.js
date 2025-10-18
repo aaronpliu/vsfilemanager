@@ -577,9 +577,30 @@ class YamlBlockParser {
                         }
                     } else {
                         if (!current[part]) {
-                            current[part] = {};
+                            // Check if adding this intermediate object would result in an empty object
+                            // by seeing if there are any other keys that start with this path
+                            let hasChildren = false;
+                            for (const otherKey in blocks) {
+                                if (otherKey !== key && otherKey.startsWith(key + '.')) {
+                                    hasChildren = true;
+                                    break;
+                                }
+                            }
+                            
+                            // Only create the intermediate object if it will have children
+                            if (hasChildren) {
+                                current[part] = {};
+                            } else {
+                                // Skip creating this intermediate object as it would be empty
+                                break;
+                            }
                         }
-                        current = current[part];
+                        if (current[part]) {
+                            current = current[part];
+                        } else {
+                            // We've broken out of the loop because this would be an empty object
+                            break;
+                        }
                     }
                 }
             }
@@ -788,19 +809,101 @@ class YamlBlockParser {
         // Parse the target content into blocks to understand its current structure
         const targetBlocks = this.parseToBlocks(yamlContent);
         
-        // Apply only the changed blocks to the target blocks
+        // Separate deletions from updates
+        const deletions = {};
+        const updates = {};
+        
         for (const key in changedBlocks) {
             if (changedBlocks.hasOwnProperty(key)) {
-                const changedBlock = changedBlocks[key];
-                // Handle deletion (null value indicates deletion)
-                if (changedBlock === null) {
-                    if (targetBlocks.hasOwnProperty(key)) {
-                        delete targetBlocks[key];
-                    }
+                if (changedBlocks[key] === null) {
+                    deletions[key] = null;
                 } else {
-                    // Apply the change to the target
-                    targetBlocks[key] = changedBlock;
+                    updates[key] = changedBlocks[key];
                 }
+            }
+        }
+        
+        // Handle deletions
+        for (const deletedKey in deletions) {
+            // Find the parent block that contains this deleted key
+            const parts = deletedKey.split('.');
+            for (let i = parts.length - 1; i > 0; i--) {
+                const parentKey = parts.slice(0, i).join('.');
+                if (targetBlocks.hasOwnProperty(parentKey) && targetBlocks[parentKey].originalType === 'object') {
+                    // Found a parent object block, modify its YAML content to remove the deleted element
+                    const parentBlock = targetBlocks[parentKey];
+                    const elementName = parts[i]; // The element to remove
+                    
+                    // Parse the parent's YAML content
+                    try {
+                        const parentYamlObj = yaml.load(parentBlock.value);
+                        
+                        // Remove the element from the parsed object
+                        if (parentYamlObj.hasOwnProperty(elementName)) {
+                            delete parentYamlObj[elementName];
+                            
+                            // Convert back to YAML and update the parent block
+                            parentBlock.value = yaml.dump(parentYamlObj);
+                        }
+                    } catch (e) {
+                        // If we can't parse and modify the YAML, leave it as is
+                    }
+                    
+                    break; // Found and processed the parent, no need to look further up
+                }
+            }
+            
+            // Also delete the individual block that represents this element
+            if (targetBlocks.hasOwnProperty(deletedKey)) {
+                delete targetBlocks[deletedKey];
+            }
+        }
+        
+        // Remove empty parent blocks
+        const keysToRemove = [];
+        for (const key in targetBlocks) {
+            if (targetBlocks.hasOwnProperty(key)) {
+                const block = targetBlocks[key];
+                // Check for empty object blocks
+                if (block.originalType === 'object' && (block.value.trim() === '{}' || block.value.trim() === '{}\n')) {
+                    keysToRemove.push(key);
+                }
+            }
+        }
+        
+        for (const key of keysToRemove) {
+            // When removing an empty block, we also need to update its parent
+            const parts = key.split('.');
+            if (parts.length > 1) {
+                const parentKey = parts.slice(0, -1).join('.');
+                if (targetBlocks.hasOwnProperty(parentKey) && targetBlocks[parentKey].originalType === 'object') {
+                    const parentBlock = targetBlocks[parentKey];
+                    const elementName = parts[parts.length - 1];
+                    
+                    // Parse the parent's YAML content
+                    try {
+                        const parentYamlObj = yaml.load(parentBlock.value);
+                        
+                        // Remove the element from the parsed object
+                        if (parentYamlObj.hasOwnProperty(elementName)) {
+                            delete parentYamlObj[elementName];
+                            
+                            // Convert back to YAML and update the parent block
+                            parentBlock.value = yaml.dump(parentYamlObj);
+                        }
+                    } catch (e) {
+                        // If we can't parse and modify the YAML, leave it as is
+                    }
+                }
+            }
+            
+            delete targetBlocks[key];
+        }
+        
+        // Apply updates (non-deletion changes)
+        for (const key in updates) {
+            if (updates.hasOwnProperty(key)) {
+                targetBlocks[key] = updates[key];
             }
         }
         

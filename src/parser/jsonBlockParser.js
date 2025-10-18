@@ -496,9 +496,37 @@ class JsonBlockParser {
                         }
                     } else {
                         if (!current[part]) {
-                            current[part] = {};
+                            // Check if this is an intermediate part that needs an object
+                            // If we're not at the final part of the key, we need to create an object
+                            if (i < parts.length - 1) {
+                                current[part] = {};
+                            } else {
+                                // This is the final part, but let's double-check the logic
+                                // Check if adding this intermediate object would result in an empty object
+                                // by seeing if there are any other keys that start with this path
+                                let hasChildren = false;
+                                for (const otherKey in blocks) {
+                                    if (otherKey !== key && otherKey.startsWith(key + '.')) {
+                                        hasChildren = true;
+                                        break;
+                                    }
+                                }
+                                
+                                // Only create the intermediate object if it will have children
+                                if (hasChildren) {
+                                    current[part] = {};
+                                } else {
+                                    // Skip creating this intermediate object as it would be empty
+                                    break;
+                                }
+                            }
                         }
-                        current = current[part];
+                        if (current[part]) {
+                            current = current[part];
+                        } else {
+                            // We've broken out of the loop because this would be an empty object
+                            break;
+                        }
                     }
                 }
             }

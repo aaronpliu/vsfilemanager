@@ -1518,6 +1518,16 @@ class BlockEditorHandler {
                                 console.log('Message blocks:', message.blocks);
                                 console.log('Deleted keys:', message.deletedKeys);
                                 
+                                // Debug: Log the structure of deleted keys
+                                if (message.deletedKeys && message.deletedKeys.length > 0) {
+                                    console.log('Number of deleted keys:', message.deletedKeys.length);
+                                    message.deletedKeys.forEach((key, index) => {
+                                        console.log(`Deleted key ${index}: ${key}`);
+                                    });
+                                } else {
+                                    console.log('No deleted keys found');
+                                }
+                                
                                 let updatedContent;
                                 if (validation.fileExtension === '.json') {
                                     // Get the original JSON content
@@ -1527,44 +1537,61 @@ class BlockEditorHandler {
                                     
                                     console.log('Original JSON content:', JSON.stringify(originalJsonContent, null, 2));
                                     
-                                    // Apply block changes (including deletions) to the original content using enhanced method
-                                    const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, message.blocks, originalNumberFormats);
+                                    // For JSON files, combine changes and deletions
+                                    
+                                    // Create a combined changes object with both updates and deletions
+                                    const combinedChanges = { ...message.blocks };
+                                    
+                                    // Add deletions as null values (which applyBlockChangesEnhanced will properly handle)
+                                    if (message.deletedKeys && message.deletedKeys.length > 0) {
+                                        console.log('Adding deletions to combined changes for JSON');
+                                        message.deletedKeys.forEach(key => {
+                                            console.log(`Marking key '${key}' for deletion`);
+                                            combinedChanges[key] = null;
+                                        });
+                                    }
+                                    
+                                    // Apply all changes using applyBlockChangesEnhanced which properly handles deletions
+                                    const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, combinedChanges, originalNumberFormats);
                                     updatedContent = JSON.stringify(updatedJson, null, 2);
                                     
                                     console.log('Updated JSON content:', updatedContent);
                                 } else {
-                                    // Apply block changes (including deletions) to the original content using enhanced method
-                                    updatedContent = Parser.applyBlockChangesEnhanced(originalContent, message.blocks);
-                                }
-                                
-                                // Handle deletions if any
-                                // For JSON files, deletions are already handled by applyBlockChangesEnhanced via applyOnlyChangedBlocks
-                                // Only handle deletions for non-JSON formats
-                                if (message.deletedKeys && message.deletedKeys.length > 0 && validation.fileExtension !== '.json') {
-                                    console.log('Handling deletions for non-JSON file');
-                                    // For other formats, we need to parse the updated content into blocks
-                                    const updatedBlocks = Parser.parseToBlocks(updatedContent);
+                                    // For non-JSON files, combine changes and deletions and use applyOnlyChangedBlocks
                                     
-                                    // Remove deleted keys
-                                    message.deletedKeys.forEach(key => {
-                                        console.log('Deleting key:', key);
-                                        if (updatedBlocks.hasOwnProperty(key)) {
-                                            delete updatedBlocks[key];
-                                        }
-                                    });
+                                    // Create a combined changes object with both updates and deletions
+                                    const combinedChanges = { ...message.blocks };
                                     
-                                    // Convert back to the appropriate format
-                                    updatedContent = Parser.blocksToContent ?
-                                        Parser.blocksToContent(updatedBlocks) :
-                                        (Parser.blocksToYaml ? Parser.blocksToYaml(updatedBlocks) :
-                                            (Parser.blocksToXml ? Parser.blocksToXml(updatedBlocks) :
-                                                Parser.blocksToToml(updatedBlocks)));
+                                    // Add deletions as null values (which applyOnlyChangedBlocks interprets as deletions)
+                                    if (message.deletedKeys && message.deletedKeys.length > 0) {
+                                        console.log('Adding deletions to combined changes for non-JSON');
+                                        message.deletedKeys.forEach(key => {
+                                            console.log(`Marking key '${key}' for deletion`);
+                                            combinedChanges[key] = null;
+                                        });
+                                    }
+                                    
+                                    // Apply all changes using applyOnlyChangedBlocks which properly handles deletions
+                                    updatedContent = Parser.applyOnlyChangedBlocks(originalContent, combinedChanges);
                                 }
                                 
                                 // Update the document using direct file system write (same approach as syncDetector and batchUpdater)
                                 try {
                                     console.log('Attempting to write file:', originalDocument.uri.fsPath);
                                     console.log('Content to write:', updatedContent);
+                                    
+                                    // Debug: Check if deletions are actually in the updated content
+                                    if (message.deletedKeys && message.deletedKeys.length > 0) {
+                                        console.log('Checking if deleted keys are present in updated content:');
+                                        message.deletedKeys.forEach(key => {
+                                            if (updatedContent.includes(key)) {
+                                                console.log(`Key '${key}' still found in updated content - deletion may have failed`);
+                                            } else {
+                                                console.log(`Key '${key}' not found in updated content - deletion successful`);
+                                            }
+                                        });
+                                    }
+                                    
                                     fs.writeFileSync(originalDocument.uri.fsPath, updatedContent, 'utf8');
                                     console.log('File write successful');
                                     // Mark this as an internal change
