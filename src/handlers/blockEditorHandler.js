@@ -972,12 +972,21 @@ class BlockEditorHandler {
                         if (header) {
                             header.parentNode.insertBefore(notification, header.nextSibling);
                             
+                            // Auto-hide notification after 5 seconds
+                            setTimeout(() => {
+                                if (notification && notification.parentNode) {
+                                    notification.parentNode.removeChild(notification);
+                                }
+                            }, 5000);
+                            
                             // Add event listeners
                             document.getElementById('reloadBtnNotification').addEventListener('click', () => {
                                 vscode.postMessage({
                                     command: 'reload'
                                 });
-                                notification.remove();
+                                if (notification && notification.parentNode) {
+                                    notification.parentNode.removeChild(notification);
+                                }
                                 // Reset the notification flag when user explicitly interacts with notification
                                 isExternalChangeNotified = false;
                             });
@@ -986,7 +995,9 @@ class BlockEditorHandler {
                                 vscode.postMessage({
                                     command: 'dismissNotification'
                                 });
-                                notification.remove();
+                                if (notification && notification.parentNode) {
+                                    notification.parentNode.removeChild(notification);
+                                }
                                 // Reset the notification flag when user explicitly interacts with notification
                                 isExternalChangeNotified = false;
                             });
@@ -1152,15 +1163,26 @@ class BlockEditorHandler {
                 // Add to the bottom right of the document
                 document.body.appendChild(notification);
                 
+                // Auto-hide notification after 5 seconds
+                setTimeout(() => {
+                    if (notification && notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 5000);
+                
                 // Add event listeners
                 document.getElementById('saveChangesBtnNotification').addEventListener('click', () => {
                     // Click the main save button
                     document.getElementById('saveBtn').click();
-                    notification.remove();
+                    if (notification && notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
                 });
                 
                 document.getElementById('dismissSaveNotification').addEventListener('click', () => {
-                    notification.remove();
+                    if (notification && notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
                 });
             }
             
@@ -1754,7 +1776,12 @@ class BlockEditorHandler {
                                     const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
                                     
                                     if (sameNamedFiles.length === 0) {
-                                        vscode.window.showInformationMessage('No same-named files found for synchronization.');
+                                        const successMessage = vscode.window.showInformationMessage('No same-named files found for synchronization.');
+                                        // Auto-hide message after 5 seconds
+                                        setTimeout(() => {
+                                            // Note: VS Code doesn't provide a direct way to hide messages
+                                            // The message will automatically disappear when a new one is shown
+                                        }, 5000);
                                         // Reload the webview with the latest content from the updated document
                                         await reloadWebViewContent();
                                         return;
@@ -1781,7 +1808,12 @@ class BlockEditorHandler {
                                         
                                         // Synchronize only the CHANGED blocks, not the entire file content
                                         SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
-                                        vscode.window.showInformationMessage('File blocks updated successfully!');
+                                        const successMessage = vscode.window.showInformationMessage('File blocks updated successfully!');
+                                        // Auto-hide message after 5 seconds
+                                        setTimeout(() => {
+                                            // Note: VS Code doesn't provide a direct way to hide messages
+                                            // The message will automatically disappear when a new one is shown
+                                        }, 5000);
                                     }
                                     
                                     // Reload the webview with the latest content from the updated document
@@ -1790,7 +1822,12 @@ class BlockEditorHandler {
                                     // User selected "Cancel" or closed the dialog
                                     // Reload the webview with the latest content from the updated document
                                     await reloadWebViewContent();
-                                    vscode.window.showInformationMessage('Current file block(s) updated successfully!');
+                                    const successMessage = vscode.window.showInformationMessage('Current file block(s) updated successfully!');
+                                    // Auto-hide message after 5 seconds
+                                    setTimeout(() => {
+                                        // Note: VS Code doesn't provide a direct way to hide messages
+                                        // The message will automatically disappear when a new one is shown
+                                    }, 5000);
                                 }
                                 
                                 // Function to reload webview content
@@ -1883,7 +1920,12 @@ class BlockEditorHandler {
                                 // Reset the external change notification flag when document is reloaded
                                 isExternalChangeNotified = false;
                                 
-                                vscode.window.showInformationMessage('Document reloaded with latest changes');
+                                const successMessage = vscode.window.showInformationMessage('Document reloaded with latest changes');
+                                // Auto-hide message after 5 seconds
+                                setTimeout(() => {
+                                    // Note: VS Code doesn't provide a direct way to hide messages
+                                    // The message will automatically disappear when a new one is shown
+                                }, 5000);
                             } catch (error) {
                                 vscode.window.showErrorMessage('Error reloading document: ' + error.message);
                             }
