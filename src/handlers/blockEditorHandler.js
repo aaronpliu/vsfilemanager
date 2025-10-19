@@ -871,12 +871,25 @@ class BlockEditorHandler {
             
             // Handle Reload button
             document.getElementById('reloadBtn').addEventListener('click', () => {
+                // Get current depth from selector to preserve it during reload
+                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                
                 vscode.postMessage({
-                    command: 'reload'
+                    command: 'reload',
+                    currentDepth: currentDepth
                 });
                 
                 // Disable save button when reloading
                 resetSaveButtonState();
+            });
+            
+            // Handle Depth Selector
+            document.getElementById('depthSelector').addEventListener('change', (event) => {
+                const newDepth = parseInt(event.target.value) || 1;
+                vscode.postMessage({
+                    command: 'changeDepth',
+                    newDepth: newDepth
+                });
             });
             
             // Handle Open Source File button
@@ -932,10 +945,20 @@ class BlockEditorHandler {
                             populateDepthSelector();
                             populateNewBlockDepthSelector();
                             
-                            // Always reset to depth 1 to avoid any scoping issues
+                            // Restore the depth if provided, otherwise reset to depth 1
                             const depthSelectorElem = document.getElementById('depthSelector');
-                            if (depthSelectorElem) {
+                            if (depthSelectorElem && message.currentDepth !== undefined && message.currentDepth !== null) {
+                                // Set to the preserved depth
+                                depthSelectorElem.value = message.currentDepth;
+                                // Dispatch change event to ensure UI updates properly
+                                const changeEvent = new Event('change', { bubbles: true });
+                                depthSelectorElem.dispatchEvent(changeEvent);
+                            } else if (depthSelectorElem) {
+                                // Default to depth 1
                                 depthSelectorElem.value = 1;
+                                // Dispatch change event to ensure UI updates properly
+                                const changeEvent = new Event('change', { bubbles: true });
+                                depthSelectorElem.dispatchEvent(changeEvent);
                             }
                             
                             // Use setTimeout to defer the renderBlocks call to avoid scoping issues
@@ -981,8 +1004,12 @@ class BlockEditorHandler {
                             
                             // Add event listeners
                             document.getElementById('reloadBtnNotification').addEventListener('click', () => {
+                                // Get current depth from selector to preserve it during reload
+                                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                                
                                 vscode.postMessage({
-                                    command: 'reload'
+                                    command: 'reload',
+                                    currentDepth: currentDepth
                                 });
                                 if (notification && notification.parentNode) {
                                     notification.parentNode.removeChild(notification);
@@ -1876,6 +1903,9 @@ class BlockEditorHandler {
                             return;
                         case 'reload':
                             try {
+                                // Get the current depth if provided, otherwise default to 1
+                                const currentDepth = message.currentDepth || 1;
+                                
                                 // Force VS Code to refresh its view of the document from disk
                                 await vscode.commands.executeCommand('workbench.action.files.revert', document.uri);
                                 
@@ -1908,10 +1938,11 @@ class BlockEditorHandler {
                                     }
                                 });
                                 
-                                // Update the webview with new content
+                                // Update the webview with new content and preserve the depth
                                 panel.webview.postMessage({
                                     command: 'update',
-                                    blocks: blocksObject
+                                    blocks: blocksObject,
+                                    currentDepth: currentDepth
                                 });
                                 
                                 // Update our version tracking
