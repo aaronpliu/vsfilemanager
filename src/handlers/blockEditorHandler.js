@@ -140,14 +140,14 @@ class BlockEditorHandler {
             const vscode = acquireVsCodeApi();
             
             // Store the original blocks
-            const originalBlocks = ${JSON.stringify(depthBlocks)};
+            let originalBlocks = ${JSON.stringify(depthBlocks)};
             let currentBlocks = JSON.parse(JSON.stringify(originalBlocks));
             
             // Set initial depth to 1 (default selected depth)
             let maxDepth = 1;
             
             // Calculate the maximum depth from the actual data (for populating selectors)
-            const actualMaxDepth = Math.max(...originalBlocks.map(block => block.depth), 1); // Default to 1 if no blocks
+            let actualMaxDepth = Math.max(...originalBlocks.map(block => block.depth), 1); // Default to 1 if no blocks
             let documentVersion = ${document.version}; // Track document version
             
             // Search state
@@ -219,8 +219,11 @@ class BlockEditorHandler {
                 const blockList = document.getElementById('blockList');
                 blockList.innerHTML = '';
                 
+                // Get current depth from selector to avoid issues with maxDepth variable
+                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                
                 // Find all depth groups that match the selected depth
-                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
                 
                 if (selectedDepthGroups.length > 0) {
                     // Create a container for all blocks at this depth
@@ -230,7 +233,7 @@ class BlockEditorHandler {
                     const depthHeader = document.createElement('div');
                     depthHeader.className = 'depth-header';
                     const depthTitle = document.createElement('h3');
-                    depthTitle.textContent = 'Depth Level ' + maxDepth;
+                    depthTitle.textContent = 'Depth Level ' + currentDepth;
                     depthHeader.appendChild(depthTitle);
                     allBlocksContainer.appendChild(depthHeader);
                     
@@ -365,7 +368,7 @@ class BlockEditorHandler {
                 } else {
                     // Show message when no blocks are found at selected depth
                     const noBlocksMessage = document.createElement('div');
-                    noBlocksMessage.textContent = 'No blocks found at depth level ' + maxDepth;
+                    noBlocksMessage.textContent = 'No blocks found at depth level ' + currentDepth;
                     noBlocksMessage.style.textAlign = 'center';
                     noBlocksMessage.style.padding = '20px';
                     noBlocksMessage.style.fontStyle = 'italic';
@@ -664,7 +667,8 @@ class BlockEditorHandler {
                 // Populate the new block depth selector
                 populateNewBlockDepthSelector();
                 // Set the depth selector to match the current view depth
-                document.getElementById('newBlockDepth').value = maxDepth;
+                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                document.getElementById('newBlockDepth').value = currentDepth;
             });
             
             // Handle Cancel Add button
@@ -749,7 +753,8 @@ class BlockEditorHandler {
             
             // Handle depth selection change
             document.getElementById('depthSelector').addEventListener('change', (e) => {
-                maxDepth = parseInt(e.target.value);
+                // We no longer use maxDepth variable to avoid scoping issues
+                // The depth is now always retrieved directly from the selector when needed
                 // Clear search results when switching depth
                 clearSearch();
                 renderBlocks();
@@ -799,10 +804,13 @@ class BlockEditorHandler {
                 }
                 
                 console.log('Current blocks structure:', currentBlocks);
+                // Get current depth from selector to avoid issues with maxDepth variable
+                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                
                 // Flatten blocks for saving - only include blocks from the currently selected depth
                 const flattenedBlocks = {};
                 // Filter to only include blocks from the currently selected depth
-                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
                 selectedDepthGroups.forEach(depthGroup => {
                     console.log('Processing depth group:', depthGroup);
                     for (const [key, block] of Object.entries(depthGroup.blocks)) {
@@ -823,12 +831,12 @@ class BlockEditorHandler {
                 const deletedKeys = [];
                 if (originalBlocks) {
                     // Filter original blocks to only include those from the currently selected depth
-                    const selectedOriginalDepthGroups = originalBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                    const selectedOriginalDepthGroups = originalBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
                     selectedOriginalDepthGroups.forEach(depthGroup => {
                         for (const [key, block] of Object.entries(depthGroup.blocks)) {
                             // Check if this key exists in the current blocks at the same depth
                             let exists = false;
-                            const selectedCurrentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                            const selectedCurrentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
                             for (const currentDepthGroup of selectedCurrentDepthGroups) {
                                 if (currentDepthGroup.blocks.hasOwnProperty(key)) {
                                     exists = true;
@@ -854,7 +862,7 @@ class BlockEditorHandler {
                     blocks: flattenedBlocks,
                     deletedKeys: deletedKeys,
                     originalBlocks: originalBlocks,
-                    currentDepth: maxDepth
+                    currentDepth: currentDepth
                 });
                 
                 // Disable save button after sending save message
@@ -883,61 +891,62 @@ class BlockEditorHandler {
                 const message = event.data;
                 switch (message.command) {
                     case 'update':
-                        // When we receive updated blocks, we need to reorganize them into the proper grouped structure
-                        const updatedBlocks = JSON.parse(JSON.stringify(message.blocks));
-                        currentBlocks = [];
-                        
-                        // Store the currently selected depth
-                        const currentSelectedDepth = maxDepth;
-                        
-                        // Group blocks by depth and prefix
-                        const groupedBlocks = {};
-                        
-                        // First, group by depth and prefix
-                        for (const [key, block] of Object.entries(updatedBlocks)) {
-                            const depth = block.depth;
-                            // Determine prefix from key
-                            let prefix = '';
-                            const parts = key.split('.');
-                            if (parts.length > 1) {
-                                prefix = parts.slice(0, parts.length - 1).join('.');
+                        console.log('Received update message with blocks:', message.blocks);
+                        try {
+                            // When we receive updated blocks, we need to reorganize them into the proper grouped structure
+                            const updatedBlocks = JSON.parse(JSON.stringify(message.blocks));
+                            currentBlocks = [];
+                            
+                            // Group blocks by depth and prefix
+                            const groupedBlocks = {};
+                            
+                            // First, group by depth and prefix
+                            for (const [key, block] of Object.entries(updatedBlocks)) {
+                                const depth = block.depth;
+                                // Determine prefix from key
+                                let prefix = '';
+                                const parts = key.split('.');
+                                if (parts.length > 1) {
+                                    prefix = parts.slice(0, parts.length - 1).join('.');
+                                }
+                                
+                                const groupKey = depth + '-' + prefix;
+                                if (!groupedBlocks[groupKey]) {
+                                    groupedBlocks[groupKey] = {
+                                        depth: depth,
+                                        prefix: prefix,
+                                        blocks: {}
+                                    };
+                                }
+                                groupedBlocks[groupKey].blocks[key] = block;
                             }
                             
-                            const groupKey = depth + '-' + prefix;
-                            if (!groupedBlocks[groupKey]) {
-                                groupedBlocks[groupKey] = {
-                                    depth: depth,
-                                    prefix: prefix,
-                                    blocks: {}
-                                };
+                            // Convert to array format
+                            for (const groupKey in groupedBlocks) {
+                                currentBlocks.push(groupedBlocks[groupKey]);
                             }
-                            groupedBlocks[groupKey].blocks[key] = block;
+                            
+                            // Also update originalBlocks to match currentBlocks after a successful save
+                            originalBlocks = JSON.parse(JSON.stringify(currentBlocks));
+                            
+                            populateDepthSelector();
+                            populateNewBlockDepthSelector();
+                            
+                            // Always reset to depth 1 to avoid any scoping issues
+                            const depthSelectorElem = document.getElementById('depthSelector');
+                            if (depthSelectorElem) {
+                                depthSelectorElem.value = 1;
+                            }
+                            
+                            // Use setTimeout to defer the renderBlocks call to avoid scoping issues
+                            setTimeout(() => {
+                                renderBlocks();
+                                // Disable save button after successful update
+                                resetSaveButtonState();
+                            }, 0);
+                        } catch (error) {
+                            console.error('Error processing update message:', error);
                         }
-                        
-                        // Convert to array format
-                        for (const groupKey in groupedBlocks) {
-                            currentBlocks.push(groupedBlocks[groupKey]);
-                        }
-                        
-                        // Also update originalBlocks to match currentBlocks after a successful save
-                        originalBlocks = JSON.parse(JSON.stringify(currentBlocks));
-                        
-                        populateDepthSelector();
-                        populateNewBlockDepthSelector();
-                        
-                        // Restore the previously selected depth
-                        maxDepth = currentSelectedDepth;
-                        const depthSelector = document.getElementById('depthSelector');
-                        if (depthSelector) {
-                            depthSelector.value = maxDepth;
-                        }
-                        
-                        // Clear newly added blocks tracking after update
-                        newlyAddedBlocks = [];
-                        
-                        renderBlocks();
-                        // Disable save button after successful update
-                        resetSaveButtonState();
                         break;
                     case 'documentChanged':
                         // Show a notification that the document has been modified. Would you like to reload the latest content?
@@ -1003,9 +1012,12 @@ class BlockEditorHandler {
                     return;
                 }
                 
+                // Get current depth from selector to avoid issues with maxDepth variable
+                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                
                 // Find all matching blocks only within the current depth level
                 searchResults = [];
-                const currentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === maxDepth);
+                const currentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
                 
                 if (currentDepthGroups.length > 0) {
                     currentDepthGroups.forEach(depthGroup => {
@@ -1032,7 +1044,7 @@ class BlockEditorHandler {
                     floatingSearchResults.className = '';
                 } else {
                     currentSearchIndex = -1;
-                    searchResultsElement.textContent = 'No matching blocks found at depth ' + maxDepth + '.';
+                    searchResultsElement.textContent = 'No matching blocks found at depth ' + currentDepth + '.';
                     searchResultsElement.className = 'no-search-results'; // Add the highlight class
                     hideSearchNavigationBar();
                     renderBlocks();
