@@ -5,6 +5,18 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.2] - 2025-10-19
+
+### Added
+- Added unit tests to improve code coverage
+- Added save change notification for deletion operations
+- Added timeout configuration for message display
+- Added Husky pre-commit hooks with lint-staged for code quality enforcement
+
+### Fixed
+- Fixed webview block refresh issues
+- Enhanced code commit check with Husky and lint
+
 ## [1.3.1] - 2025-10-16
 
 ### Added
@@ -225,7 +237,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.0.3] - 2023-04-15
+## [0.0.3] - 2025-10-04
 
 ### Added
 - Initial release of VS File Manager
@@ -245,3 +257,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - String editing issues where quotes were being added repeatedly on save
 - Nested value saving issues where values were reverting to original values
 - Type preservation when changing value types (string to number, etc.)
+
+## [0.0.2] - 2025-10-04
+
+Added YAML file support:
+- Edit YAML files with the same hierarchical block editor
+- Full type preservation for YAML values (strings, numbers, booleans, objects, arrays)
+- Seamless integration with existing JSON functionality
+
+## [0.0.1] - 2025-10-03
+
+Initial release of VS File Manager with:
+- JSON block editing capabilities
+- File synchronization features
+- Batch update functionality
