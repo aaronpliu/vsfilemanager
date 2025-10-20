@@ -1881,65 +1881,46 @@ class BlockEditorHandler {
                                         picked: true // Selected by default
                                     }));
                                     
-                                    // Create a QuickPick with buttons
-                                    const quickPick = vscode.window.createQuickPick();
-                                    quickPick.title = 'Select Files to Synchronize';
-                                    quickPick.placeholder = 'Select files to synchronize (press SPACE to toggle selection)';
-                                    quickPick.items = quickPickItems;
-                                    quickPick.canSelectMany = true;
-                                    quickPick.selectedItems = quickPickItems; // Select all by default
-                                    
-                                    // Add buttons
-                                    quickPick.buttons = [
-                                        { iconPath: new vscode.ThemeIcon('check'), tooltip: 'Confirm' },
-                                        { iconPath: new vscode.ThemeIcon('close'), tooltip: 'Cancel' }
-                                    ];
-                                    
-                                    // Handle button clicks
-                                    let selectedItems = [];
-                                    let confirmed = false;
-                                    
-                                    quickPick.onDidTriggerButton(button => {
-                                        if (button.tooltip === 'Confirm') {
-                                            selectedItems = quickPick.selectedItems;
-                                            confirmed = true;
-                                            quickPick.hide();
-                                        } else if (button.tooltip === 'Cancel') {
-                                            // User cancelled
-                                            quickPick.hide();
-                                        }
+                                    // Show quick pick dialog for file selection
+                                    const selectedItems = await vscode.window.showQuickPick(quickPickItems, {
+                                        canPickMany: true,
+                                        placeHolder: 'Select files to synchronize (press SPACE to toggle selection)',
+                                        title: 'Select Files to Synchronize',
+                                        ignoreFocusOut: true
                                     });
                                     
-                                    // Handle when the quick pick is hidden
-                                    quickPick.onDidHide(() => {
-                                        if (!confirmed) {
-                                            // User pressed Escape or closed the dialog without confirming
-                                            // Reload the webview with the latest content from the updated document
-                                            reloadWebViewContent().then(() => {
-                                                vscode.window.showInformationMessage('Current file block(s) updated successfully!');
-                                            });
-                                        } else {
-                                            // Process the selected items
-                                            if (selectedItems && selectedItems.length > 0) {
-                                                // Extract file paths from selected items
-                                                const filePaths = selectedItems.map(item => item.description);
-                                                
-                                                // Synchronize only the CHANGED blocks, not the entire file content
-                                                SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
-                                                vscode.window.showInformationMessage('File blocks updated successfully!');
-                                            } else if (selectedItems && selectedItems.length === 0) {
-                                                // User confirmed selection but didn't select any files
-                                                vscode.window.showInformationMessage('No files selected. Only current file was updated.');
-                                            }
-                                            
-                                            // Reload the webview with the latest content from the updated document
-                                            reloadWebViewContent();
-                                        }
-                                        quickPick.dispose();
-                                    });
+                                    if (selectedItems && selectedItems.length > 0) {
+                                        // Extract file paths from selected items
+                                        const filePaths = selectedItems.map(item => item.description);
+                                        
+                                        // Synchronize only the CHANGED blocks, not the entire file content
+                                        SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
+                                        const successMessage = vscode.window.showInformationMessage('File blocks updated successfully!');
+                                        // Auto-hide message after 5 seconds
+                                        setTimeout(() => {
+                                            // Note: VS Code doesn't provide a direct way to hide messages
+                                            // The message will automatically disappear when a new one is shown
+                                        }, 5000);
+                                    } else if (selectedItems && selectedItems.length === 0) {
+                                        // User confirmed selection but didn't select any files
+                                        const successMessage = vscode.window.showInformationMessage('No files selected. Only current file was updated.');
+                                        // Auto-hide message after 5 seconds
+                                        setTimeout(() => {
+                                            // Note: VS Code doesn't provide a direct way to hide messages
+                                            // The message will automatically disappear when a new one is shown
+                                        }, 5000);
+                                    } else if (selectedItems === undefined) {
+                                        // User pressed Escape or closed the dialog
+                                        const successMessage = vscode.window.showInformationMessage('Current file block(s) updated successfully!');
+                                        // Auto-hide message after 5 seconds
+                                        setTimeout(() => {
+                                            // Note: VS Code doesn't provide a direct way to hide messages
+                                            // The message will automatically disappear when a new one is shown
+                                        }, 5000);
+                                    }
                                     
-                                    // Show the quick pick
-                                    quickPick.show();
+                                    // Reload the webview with the latest content from the updated document
+                                    await reloadWebViewContent();
                                 } else if (batchAction === undefined) {
                                     // User selected "Cancel" or closed the dialog
                                     // Reload the webview with the latest content from the updated document
@@ -1951,7 +1932,6 @@ class BlockEditorHandler {
                                         // The message will automatically disappear when a new one is shown
                                     }, 5000);
                                 }
-                                
 
                             } catch (error) {
                                 vscode.window.showErrorMessage('Error updating file: ' + error.message);
