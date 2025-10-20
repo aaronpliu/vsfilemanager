@@ -73,6 +73,7 @@ Latest improvements and fixes:
 - Fixed issue where media assets were not included in VSIX package
 - Fixed ESLint error with function declaration in block editor handler
 - Enhanced deletion logic to properly handle nested object structures
+- Enhanced cancel logic in QuickPick dialog
 - Improved VSIX packaging to include all necessary media assets
 
 ### 1.3.2

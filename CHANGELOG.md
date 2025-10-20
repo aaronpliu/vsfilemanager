@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced deletion logic to properly handle nested object structures
 - Improved VSIX packaging to include all necessary media assets
 - Refined code structure to comply with ESLint rules
+- Enhanced quickPick to support cancel
 
 ## [1.3.2] - 2025-10-19
 
