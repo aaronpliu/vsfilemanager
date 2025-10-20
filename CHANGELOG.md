@@ -5,6 +5,18 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.3] - 2025-10-20
+
+### Fixed
+- Fixed object deletion functionality in webview for JSON files
+- Fixed issue where media assets were not included in VSIX package
+- Fixed ESLint error with function declaration in block editor handler
+
+### Improved
+- Enhanced deletion logic to properly handle nested object structures
+- Improved VSIX packaging to include all necessary media assets
+- Refined code structure to comply with ESLint rules
+
 ## [1.3.2] - 2025-10-19
 
 ### Added

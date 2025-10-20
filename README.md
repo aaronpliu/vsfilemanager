@@ -67,6 +67,14 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.3.3
+Latest improvements and fixes:
+- Fixed object deletion functionality in webview for JSON files
+- Fixed issue where media assets were not included in VSIX package
+- Fixed ESLint error with function declaration in block editor handler
+- Enhanced deletion logic to properly handle nested object structures
+- Improved VSIX packaging to include all necessary media assets
+
 ### 1.3.2
 Latest improvements and fixes:
 - Added unit tests to improve code coverage
