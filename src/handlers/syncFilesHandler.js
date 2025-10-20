@@ -68,7 +68,7 @@ class SyncFilesHandler {
                 blocks = {};
                 depthBlocks.forEach(depthGroup => {
                     for (const key in depthGroup.blocks) {
-                        if (depthGroup.blocks.hasOwnProperty(key)) {
+                        if (Object.prototype.hasOwnProperty.call(depthGroup.blocks, key)) {
                             blocks[key] = depthGroup.blocks[key];
                         }
                     }

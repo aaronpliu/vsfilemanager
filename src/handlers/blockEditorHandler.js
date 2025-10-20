@@ -326,7 +326,7 @@ class BlockEditorHandler {
                                     input.type = 'text';
                                     input.className = 'block-value';
                                     // Use originalStringValue for display if available (to preserve .0 format)
-                                    if (block.originalType === 'number' && block.hasOwnProperty('originalStringValue')) {
+                                    if (block.originalType === 'number' && Object.prototype.hasOwnProperty.call(block, 'originalStringValue')) {
                                         input.value = block.originalStringValue;
                                     } else {
                                         input.value = block.value;
@@ -385,7 +385,7 @@ class BlockEditorHandler {
                         // Find the correct depth group and delete the block
                         let deleted = false;
                         for (const depthGroup of currentBlocks) {
-                            if (depthGroup.depth === depthIndex && depthGroup.blocks.hasOwnProperty(key)) {
+                            if (depthGroup.depth === depthIndex && Object.prototype.hasOwnProperty.call(depthGroup.blocks, key)) {
                                 delete depthGroup.blocks[key];
                                 deleted = true;
                                 break;
@@ -395,7 +395,7 @@ class BlockEditorHandler {
                         // If not found in the specific depth, search all groups
                         if (!deleted) {
                             for (const depthGroup of currentBlocks) {
-                                if (depthGroup.blocks.hasOwnProperty(key)) {
+                                if (Object.prototype.hasOwnProperty.call(depthGroup.blocks, key)) {
                                     delete depthGroup.blocks[key];
                                     deleted = true;
                                     break;
@@ -453,7 +453,7 @@ class BlockEditorHandler {
                                 
                                 // Update the display value in our data structure
                                 const depthGroup = currentBlocks.find(dg => 
-                                    dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
+                                    dg.depth === depthIndex && Object.prototype.hasOwnProperty.call(dg.blocks, key));
                                 if (depthGroup) {
                                     depthGroup.blocks[key].value = input.value;
                                 }
@@ -479,7 +479,7 @@ class BlockEditorHandler {
                             input.setAttribute('readonly', 'readonly');
                             // Update the value in our data structure
                             const depthGroup = currentBlocks.find(dg => 
-                                dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
+                                dg.depth === depthIndex && Object.prototype.hasOwnProperty.call(dg.blocks, key));
                             if (depthGroup && depthGroup.blocks[key]) {
                                 // Handle different data types properly - keep the object structure
                                 // but update the value property with the correct type
@@ -575,7 +575,7 @@ class BlockEditorHandler {
                         const key = e.target.getAttribute('data-key');
                         const depthIndex = parseInt(e.target.getAttribute('data-depth'));
                         const depthGroup = currentBlocks.find(dg => 
-                            dg.depth === depthIndex && dg.blocks.hasOwnProperty(key));
+                            dg.depth === depthIndex && Object.prototype.hasOwnProperty.call(dg.blocks, key));
                         if (depthGroup && depthGroup.blocks[key]) {
                             // Handle different data types properly - keep the object structure
                             // but update the value property with the correct type
@@ -838,7 +838,7 @@ class BlockEditorHandler {
                             let exists = false;
                             const selectedCurrentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
                             for (const currentDepthGroup of selectedCurrentDepthGroups) {
-                                if (currentDepthGroup.blocks.hasOwnProperty(key)) {
+                                if (Object.prototype.hasOwnProperty.call(currentDepthGroup.blocks, key)) {
                                     exists = true;
                                     break;
                                 }
@@ -1561,6 +1561,47 @@ class BlockEditorHandler {
             // Handle messages from the webview
             panel.webview.onDidReceiveMessage(
                 async message => {
+                    // Function to reload webview content - moved to fix ESLint no-inner-declarations error
+                    async function reloadWebViewContent() {
+                        let updatedDepthBlocks;
+                        try {
+                            // Force VS Code to refresh its view of the document from disk
+                            await vscode.commands.executeCommand('workbench.action.files.revert', document.uri);
+                            
+                            // Re-read the document to get the updated content
+                            const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
+                            const updatedContent = updatedDocument.getText();
+                            
+                            if (validation.fileExtension === '.json') {
+                                const updatedJsonContent = JSON.parse(updatedContent);
+                                updatedDepthBlocks = Parser.parseToDepthBlocks(updatedJsonContent);
+                            } else {
+                                updatedDepthBlocks = Parser.parseToDepthBlocks(updatedContent);
+                            }
+                            
+                            // Convert array format to object format expected by the webview
+                            const blocksObject = {};
+                            updatedDepthBlocks.forEach(depthGroup => {
+                                for (const key in depthGroup.blocks) {
+                                    if (Object.prototype.hasOwnProperty.call(depthGroup.blocks, key)) {
+                                        blocksObject[key] = depthGroup.blocks[key];
+                                    }
+                                }
+                            });
+                            
+                            // Update the webview with new content
+                            panel.webview.postMessage({
+                                command: 'update',
+                                blocks: blocksObject
+                            });
+                            
+                            // Reset the external change notification flag when webview is reloaded
+                            isExternalChangeNotified = false;
+                        } catch (error) {
+                            console.error('Error reloading webview content:', error);
+                        }
+                    }
+
                     switch (message.command) {
                         case 'save':
                             try {
@@ -1693,7 +1734,7 @@ class BlockEditorHandler {
                                     const blocksObject = {};
                                     updatedDepthBlocks.forEach(depthGroup => {
                                         for (const key in depthGroup.blocks) {
-                                            if (depthGroup.blocks.hasOwnProperty(key)) {
+                                            if (Object.prototype.hasOwnProperty.call(depthGroup.blocks, key)) {
                                                 blocksObject[key] = depthGroup.blocks[key];
                                             }
                                         }
@@ -1711,23 +1752,6 @@ class BlockEditorHandler {
                                 // Track changed blocks by comparing current blocks with original
                                 const changedBlocks = {};
                                 
-                                // Helper function to normalize values for comparison
-                                function normalizeValueForComparison(value) {
-                                    // If it's a string that looks like a quoted string, remove the quotes
-                                    if (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) {
-                                        return value.substring(1, value.length - 1);
-                                    }
-                                    return value;
-                                }
-                                
-                                // Helper function to get the actual value from a block
-                                function getBlockValue(block) {
-                                    if (typeof block === 'object' && block !== null && block.hasOwnProperty('value')) {
-                                        return normalizeValueForComparison(block.value);
-                                    }
-                                    return block;
-                                }
-                                
                                 // Create a map of original blocks for easier comparison, but only for the current depth
                                 const originalBlocksMap = {};
                                 if (message.originalBlocks && message.currentDepth !== undefined) {
@@ -1741,7 +1765,7 @@ class BlockEditorHandler {
                                     
                                     // Compare the blocks sent by the webview with original to find changes
                                     for (const key in message.blocks) {
-                                        if (message.blocks.hasOwnProperty(key)) {
+                                        if (Object.prototype.hasOwnProperty.call(message.blocks, key)) {
                                             const currentBlock = message.blocks[key];
                                             
                                             // Check if this is a new block or a modified one
@@ -1751,8 +1775,18 @@ class BlockEditorHandler {
                                             } else {
                                                 // Check if the block actually changed
                                                 const originalBlock = originalBlocksMap[key];
-                                                const originalValue = getBlockValue(originalBlock);
-                                                const currentValue = getBlockValue(currentBlock);
+                                                const originalValue = 
+                                                    (typeof originalBlock === 'object' && originalBlock !== null && Object.prototype.hasOwnProperty.call(originalBlock, 'value')) ?
+                                                    ((typeof originalBlock.value === 'string' && originalBlock.value.startsWith('"') && originalBlock.value.endsWith('"')) ?
+                                                    originalBlock.value.substring(1, originalBlock.value.length - 1) : 
+                                                    originalBlock.value) : 
+                                                    originalBlock;
+                                                const currentValue = 
+                                                    (typeof currentBlock === 'object' && currentBlock !== null && Object.prototype.hasOwnProperty.call(currentBlock, 'value')) ?
+                                                    ((typeof currentBlock.value === 'string' && currentBlock.value.startsWith('"') && currentBlock.value.endsWith('"')) ?
+                                                    currentBlock.value.substring(1, currentBlock.value.length - 1) : 
+                                                    currentBlock.value) : 
+                                                    currentBlock;
                                                 
                                                 // Only include in changedBlocks if the value actually changed
                                                 if (originalValue !== currentValue) {
@@ -1783,7 +1817,7 @@ class BlockEditorHandler {
                                 } else {
                                     // If we don't have original blocks or currentDepth, send all current blocks
                                     for (const key in message.blocks) {
-                                        if (message.blocks.hasOwnProperty(key)) {
+                                        if (Object.prototype.hasOwnProperty.call(message.blocks, key)) {
                                             changedBlocks[key] = message.blocks[key];
                                         }
                                     }
@@ -1857,46 +1891,7 @@ class BlockEditorHandler {
                                     }, 5000);
                                 }
                                 
-                                // Function to reload webview content
-                                async function reloadWebViewContent() {
-                                    let updatedDepthBlocks;
-                                    try {
-                                        // Force VS Code to refresh its view of the document from disk
-                                        await vscode.commands.executeCommand('workbench.action.files.revert', document.uri);
-                                        
-                                        // Re-read the document to get the updated content
-                                        const updatedDocument = await vscode.workspace.openTextDocument(document.uri);
-                                        const updatedContent = updatedDocument.getText();
-                                        
-                                        if (validation.fileExtension === '.json') {
-                                            const updatedJsonContent = JSON.parse(updatedContent);
-                                            updatedDepthBlocks = Parser.parseToDepthBlocks(updatedJsonContent);
-                                        } else {
-                                            updatedDepthBlocks = Parser.parseToDepthBlocks(updatedContent);
-                                        }
-                                        
-                                        // Convert array format to object format expected by the webview
-                                        const blocksObject = {};
-                                        updatedDepthBlocks.forEach(depthGroup => {
-                                            for (const key in depthGroup.blocks) {
-                                                if (depthGroup.blocks.hasOwnProperty(key)) {
-                                                    blocksObject[key] = depthGroup.blocks[key];
-                                                }
-                                            }
-                                        });
-                                        
-                                        // Update the webview with new content
-                                        panel.webview.postMessage({
-                                            command: 'update',
-                                            blocks: blocksObject
-                                        });
-                                        
-                                        // Reset the external change notification flag when webview is reloaded
-                                        isExternalChangeNotified = false;
-                                    } catch (error) {
-                                        console.error('Error reloading webview content:', error);
-                                    }
-                                }
+
                             } catch (error) {
                                 vscode.window.showErrorMessage('Error updating file: ' + error.message);
                             }
@@ -1932,7 +1927,7 @@ class BlockEditorHandler {
                                 const blocksObject = {};
                                 updatedDepthBlocks.forEach(depthGroup => {
                                     for (const key in depthGroup.blocks) {
-                                        if (depthGroup.blocks.hasOwnProperty(key)) {
+                                        if (Object.prototype.hasOwnProperty.call(depthGroup.blocks, key)) {
                                             blocksObject[key] = depthGroup.blocks[key];
                                         }
                                     }
