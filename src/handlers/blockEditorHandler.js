@@ -382,26 +382,29 @@ class BlockEditorHandler {
                         const key = e.target.getAttribute('data-key');
                         const depthIndex = parseInt(e.target.getAttribute('data-depth'));
                         
-                        // Find the correct depth group and delete the block
-                        let deleted = false;
-                        for (const depthGroup of currentBlocks) {
-                            if (depthGroup.depth === depthIndex && Object.prototype.hasOwnProperty.call(depthGroup.blocks, key)) {
-                                delete depthGroup.blocks[key];
-                                deleted = true;
-                                break;
-                            }
-                        }
+                        // Find all blocks that are children of the deleted key (for object deletion)
+                        const keysToDelete = [key]; // Always delete the main key
                         
-                        // If not found in the specific depth, search all groups
-                        if (!deleted) {
-                            for (const depthGroup of currentBlocks) {
-                                if (Object.prototype.hasOwnProperty.call(depthGroup.blocks, key)) {
-                                    delete depthGroup.blocks[key];
-                                    deleted = true;
-                                    break;
+                        // Check if this is an object by looking for child keys (keys that start with this key)
+                        currentBlocks.forEach(depthGroup => {
+                            for (const blockKey in depthGroup.blocks) {
+                                // If this block key is a child of the key we're deleting
+                                if (blockKey.startsWith(key + '.')) {
+                                    keysToDelete.push(blockKey);
                                 }
                             }
-                        }
+                        });
+                        
+                        // Delete all related keys
+                        let deleted = false;
+                        keysToDelete.forEach(keyToDelete => {
+                            for (const depthGroup of currentBlocks) {
+                                if (Object.prototype.hasOwnProperty.call(depthGroup.blocks, keyToDelete)) {
+                                    delete depthGroup.blocks[keyToDelete];
+                                    deleted = true;
+                                }
+                            }
+                        });
                         
                         if (deleted) {
                             renderBlocks();
@@ -846,6 +849,29 @@ class BlockEditorHandler {
                             
                             if (!exists) {
                                 deletedKeys.push(key);
+                                
+                                // Also add child keys if this is an object
+                                // Find all child keys (keys that start with this key)
+                                currentBlocks.forEach(depthGroup => {
+                                    for (const blockKey in depthGroup.blocks) {
+                                        if (blockKey.startsWith(key + '.')) {
+                                            // Only add if not already in the list
+                                            if (!deletedKeys.includes(blockKey)) {
+                                                deletedKeys.push(blockKey);
+                                            }
+                                        }
+                                    }
+                                });
+                                originalBlocks.forEach(depthGroup => {
+                                    for (const blockKey in depthGroup.blocks) {
+                                        if (blockKey.startsWith(key + '.')) {
+                                            // Only add if not already in the list
+                                            if (!deletedKeys.includes(blockKey)) {
+                                                deletedKeys.push(blockKey);
+                                            }
+                                        }
+                                    }
+                                });
                             }
                         }
                     });
