@@ -49,7 +49,16 @@
         "command": "vsfilemanager.batchUpdate",
         "title": "Batch Update Structured Files"
       }
-    ]
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceExtname == .json || resourceExtname == .yaml || resourceExtname == .yml || resourceExtname == .xml || resourceExtname == .toml",
+          "command": "vsfilemanager.editStructuredBlocks",
+          "group": "navigation"
+        }
+      ]
+    }
   },
   "scripts": {
     "lint": "eslint .",
