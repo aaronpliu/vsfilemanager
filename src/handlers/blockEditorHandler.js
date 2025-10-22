@@ -392,7 +392,8 @@ class BlockEditorHandler {
                             for (const blockKey in depthGroup.blocks) {
                                 // Handle both regular object properties and array elements
                                 // For arrays, we need to match patterns like orders[0].items[0].specs.color
-                                if (blockKey === key + '' || 
+                                // But be precise to avoid matching the parent array itself
+                                if (blockKey === key || 
                                     blockKey.startsWith(key + '.') || 
                                     blockKey.startsWith(key + '[')) {
                                     if (!keysToDelete.includes(blockKey)) {
@@ -885,7 +886,8 @@ class BlockEditorHandler {
                                 currentBlocks.forEach(depthGroup => {
                                     for (const blockKey in depthGroup.blocks) {
                                         // Handle both regular object properties and array elements
-                                        if (blockKey === key + '' || 
+                                        // But be precise to avoid matching the parent array itself
+                                        if (blockKey === key || 
                                             blockKey.startsWith(key + '.') || 
                                             blockKey.startsWith(key + '[')) {
                                             // Only add if not already in the list
@@ -911,7 +913,8 @@ class BlockEditorHandler {
                                 originalBlocks.forEach(depthGroup => {
                                     for (const blockKey in depthGroup.blocks) {
                                         // Handle both regular object properties and array elements
-                                        if (blockKey === key + '' || 
+                                        // But be precise to avoid matching the parent array itself
+                                        if (blockKey === key || 
                                             blockKey.startsWith(key + '.') || 
                                             blockKey.startsWith(key + '[')) {
                                             // Only add if not already in the list
@@ -1651,7 +1654,7 @@ class BlockEditorHandler {
             panel.webview.onDidReceiveMessage(
                 async message => {
                     // Function to reload webview content - moved to fix ESLint no-inner-declarations error
-                    async function reloadWebViewContent() {
+                    async function reloadWebViewContent(currentDepth = null) {
                         let updatedDepthBlocks;
                         try {
                             // Force VS Code to refresh its view of the document from disk
@@ -1678,11 +1681,18 @@ class BlockEditorHandler {
                                 }
                             });
                             
-                            // Update the webview with new content
-                            panel.webview.postMessage({
+                            // Update the webview with new content and preserve current depth if provided
+                            let updateMessage = {
                                 command: 'update',
                                 blocks: blocksObject
-                            });
+                            };
+                            
+                            // Add currentDepth to the message if provided
+                            if (currentDepth !== null) {
+                                updateMessage.currentDepth = currentDepth;
+                            }
+                            
+                            panel.webview.postMessage(updateMessage);
                             
                             // Reset the external change notification flag when webview is reloaded
                             isExternalChangeNotified = false;
@@ -1829,10 +1839,11 @@ class BlockEditorHandler {
                                         }
                                     });
                                     
-                                    // Update the webview with new content
+                                    // Update the webview with new content and preserve current depth
                                     panel.webview.postMessage({
                                         command: 'update',
-                                        blocks: blocksObject
+                                        blocks: blocksObject,
+                                        currentDepth: message.currentDepth
                                     });
                                 } catch (error) {
                                     console.error('Error reloading webview content:', error);
@@ -1933,7 +1944,7 @@ class BlockEditorHandler {
                                             // The message will automatically disappear when a new one is shown
                                         }, 5000);
                                         // Reload the webview with the latest content from the updated document
-                                        await reloadWebViewContent();
+                                        await reloadWebViewContent(message.currentDepth);
                                         return;
                                     }
                                     
@@ -1983,11 +1994,11 @@ class BlockEditorHandler {
                                     }
                                     
                                     // Reload the webview with the latest content from the updated document
-                                    await reloadWebViewContent();
+                                    await reloadWebViewContent(message.currentDepth);
                                 } else if (batchAction === undefined) {
                                     // User selected "Cancel" or closed the dialog
                                     // Reload the webview with the latest content from the updated document
-                                    await reloadWebViewContent();
+                                    await reloadWebViewContent(message.currentDepth);
                                     vscode.window.showInformationMessage('Current file block(s) updated successfully!');
                                     // Auto-hide message after 5 seconds
                                     setTimeout(() => {

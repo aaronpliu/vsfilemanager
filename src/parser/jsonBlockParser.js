@@ -322,7 +322,7 @@ class JsonBlockParser {
     }
     
     static blocksToJsonWithDeletions(blocks, deletedKeys) {
-        const result = {};
+        let result = {};
 
         // Process keys in the order they appear, not sorted by depth
         // This preserves the original field order for better Git diff compatibility
@@ -534,6 +534,32 @@ class JsonBlockParser {
             }
         }
         
+        // Clean up arrays to ensure proper indexing
+        function cleanUpArrays(obj) {
+            if (Array.isArray(obj)) {
+                // Create a new array with only defined elements
+                const newArray = [];
+                for (let i = 0; i < obj.length; i++) {
+                    if (obj[i] !== undefined) {
+                        newArray.push(cleanUpArrays(obj[i]));
+                    }
+                }
+                return newArray;
+            } else if (typeof obj === 'object' && obj !== null) {
+                // Recursively clean up nested objects
+                for (const key in obj) {
+                    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                        obj[key] = cleanUpArrays(obj[key]);
+                    }
+                }
+                return obj;
+            }
+            return obj;
+        }
+        
+        // Apply cleanup to the entire result
+        result = cleanUpArrays(result);
+        
         // Now handle deletions - remove deleted properties from the result
         for (const deletedKey of deletedKeys) {
             // Split the key by dots and process each part
@@ -585,6 +611,15 @@ class JsonBlockParser {
                     
                     if (current[arrayName]) {
                         delete current[arrayName][arrayIndex];
+                        
+                        // Re-index array elements to fill gaps
+                        const newArray = [];
+                        for (let i = 0; i < current[arrayName].length; i++) {
+                            if (current[arrayName][i] !== undefined) {
+                                newArray.push(current[arrayName][i]);
+                            }
+                        }
+                        current[arrayName] = newArray;
                         
                         // Clean up empty arrays
                         if (Array.isArray(current[arrayName]) && current[arrayName].length === 0) {
@@ -660,7 +695,8 @@ class JsonBlockParser {
                         // This is important for proper deletion of nested objects/arrays
                         for (const targetKey in targetBlocks) {
                             // Handle both regular object properties and array elements
-                            if (targetKey === key + '' || 
+                            // But be precise to avoid matching the parent array itself
+                            if (targetKey === key || 
                                 targetKey.startsWith(key + '.') || 
                                 targetKey.startsWith(key + '[')) {
                                 delete targetBlocks[targetKey];
