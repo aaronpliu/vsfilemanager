@@ -220,10 +220,12 @@ class BlockEditorHandler {
                 blockList.innerHTML = '';
                 
                 // Get current depth from selector to avoid issues with maxDepth variable
-                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                const currentDepth = parseInt(document.getElementById('depthSelector').value);
+                // If NaN, default to 1 (but allow 0)
+                const validCurrentDepth = isNaN(currentDepth) ? 1 : currentDepth;
                 
                 // Find all depth groups that match the selected depth
-                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
+                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
                 
                 if (selectedDepthGroups.length > 0) {
                     // Create a container for all blocks at this depth
@@ -233,7 +235,7 @@ class BlockEditorHandler {
                     const depthHeader = document.createElement('div');
                     depthHeader.className = 'depth-header';
                     const depthTitle = document.createElement('h3');
-                    depthTitle.textContent = 'Depth Level ' + currentDepth;
+                    depthTitle.textContent = 'Depth Level ' + validCurrentDepth;
                     depthHeader.appendChild(depthTitle);
                     allBlocksContainer.appendChild(depthHeader);
                     
@@ -368,7 +370,7 @@ class BlockEditorHandler {
                 } else {
                     // Show message when no blocks are found at selected depth
                     const noBlocksMessage = document.createElement('div');
-                    noBlocksMessage.textContent = 'No blocks found at depth level ' + currentDepth;
+                    noBlocksMessage.textContent = 'No blocks found at depth level ' + validCurrentDepth;
                     noBlocksMessage.style.textAlign = 'center';
                     noBlocksMessage.style.padding = '20px';
                     noBlocksMessage.style.fontStyle = 'italic';
@@ -694,8 +696,10 @@ class BlockEditorHandler {
                 // Populate the new block depth selector
                 populateNewBlockDepthSelector();
                 // Set the depth selector to match the current view depth
-                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
-                document.getElementById('newBlockDepth').value = currentDepth;
+                const currentDepth = parseInt(document.getElementById('depthSelector').value);
+                // If NaN, default to 1 (but allow 0)
+                const validCurrentDepth = isNaN(currentDepth) ? 1 : currentDepth;
+                document.getElementById('newBlockDepth').value = validCurrentDepth;
             });
             
             // Handle Cancel Add button
@@ -832,12 +836,14 @@ class BlockEditorHandler {
                 
                 console.log('Current blocks structure:', currentBlocks);
                 // Get current depth from selector to avoid issues with maxDepth variable
-                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                const currentDepth = parseInt(document.getElementById('depthSelector').value);
+                // If NaN, default to 1 (but allow 0)
+                const validCurrentDepth = isNaN(currentDepth) ? 1 : currentDepth;
                 
                 // Flatten blocks for saving - only include blocks from the currently selected depth
                 const flattenedBlocks = {};
                 // Filter to only include blocks from the currently selected depth
-                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
+                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
                 selectedDepthGroups.forEach(depthGroup => {
                     console.log('Processing depth group:', depthGroup);
                     for (const [key, block] of Object.entries(depthGroup.blocks)) {
@@ -858,12 +864,12 @@ class BlockEditorHandler {
                 const deletedKeys = [];
                 if (originalBlocks) {
                     // Filter original blocks to only include those from the currently selected depth
-                    const selectedOriginalDepthGroups = originalBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
+                    const selectedOriginalDepthGroups = originalBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
                     selectedOriginalDepthGroups.forEach(depthGroup => {
                         for (const [key, block] of Object.entries(depthGroup.blocks)) {
                             // Check if this key exists in the current blocks at the same depth
                             let exists = false;
-                            const selectedCurrentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
+                            const selectedCurrentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
                             for (const currentDepthGroup of selectedCurrentDepthGroups) {
                                 if (Object.prototype.hasOwnProperty.call(currentDepthGroup.blocks, key)) {
                                     exists = true;
@@ -944,7 +950,7 @@ class BlockEditorHandler {
                     blocks: flattenedBlocks,
                     deletedKeys: deletedKeys,
                     originalBlocks: originalBlocks,
-                    currentDepth: currentDepth
+                    currentDepth: validCurrentDepth
                 });
                 
                 // Disable save button after sending save message
@@ -954,11 +960,13 @@ class BlockEditorHandler {
             // Handle Reload button
             document.getElementById('reloadBtn').addEventListener('click', () => {
                 // Get current depth from selector to preserve it during reload
-                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                const currentDepth = parseInt(document.getElementById('depthSelector').value);
+                // If NaN, default to 1 (but allow 0)
+                const validCurrentDepth = isNaN(currentDepth) ? 1 : currentDepth;
                 
                 vscode.postMessage({
                     command: 'reload',
-                    currentDepth: currentDepth
+                    currentDepth: validCurrentDepth
                 });
                 
                 // Disable save button when reloading
@@ -967,10 +975,12 @@ class BlockEditorHandler {
             
             // Handle Depth Selector
             document.getElementById('depthSelector').addEventListener('change', (event) => {
-                const newDepth = parseInt(event.target.value) || 1;
+                const newDepth = parseInt(event.target.value);
+                // If NaN, default to 1 (but allow 0)
+                const validNewDepth = isNaN(newDepth) ? 1 : newDepth;
                 vscode.postMessage({
                     command: 'changeDepth',
-                    newDepth: newDepth
+                    newDepth: validNewDepth
                 });
             });
             
@@ -1077,21 +1087,16 @@ class BlockEditorHandler {
                         if (header) {
                             header.parentNode.insertBefore(notification, header.nextSibling);
                             
-                            // Auto-hide notification after 5 seconds
-                            setTimeout(() => {
-                                if (notification && notification.parentNode) {
-                                    notification.parentNode.removeChild(notification);
-                                }
-                            }, 5000);
-                            
                             // Add event listeners
                             document.getElementById('reloadBtnNotification').addEventListener('click', () => {
                                 // Get current depth from selector to preserve it during reload
-                                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                                const currentDepth = parseInt(document.getElementById('depthSelector').value);
+                                // If NaN, default to 1 (but allow 0)
+                                const validCurrentDepth = isNaN(currentDepth) ? 1 : currentDepth;
                                 
                                 vscode.postMessage({
                                     command: 'reload',
-                                    currentDepth: currentDepth
+                                    currentDepth: validCurrentDepth
                                 });
                                 if (notification && notification.parentNode) {
                                     notification.parentNode.removeChild(notification);
@@ -1133,11 +1138,13 @@ class BlockEditorHandler {
                 }
                 
                 // Get current depth from selector to avoid issues with maxDepth variable
-                const currentDepth = parseInt(document.getElementById('depthSelector').value) || 1;
+                const currentDepth = parseInt(document.getElementById('depthSelector').value);
+                // If NaN, default to 1 (but allow 0)
+                const validCurrentDepth = isNaN(currentDepth) ? 1 : currentDepth;
                 
                 // Find all matching blocks only within the current depth level
                 searchResults = [];
-                const currentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === currentDepth);
+                const currentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
                 
                 if (currentDepthGroups.length > 0) {
                     currentDepthGroups.forEach(depthGroup => {
@@ -1164,7 +1171,7 @@ class BlockEditorHandler {
                     floatingSearchResults.className = '';
                 } else {
                     currentSearchIndex = -1;
-                    searchResultsElement.textContent = 'No matching blocks found at depth ' + currentDepth + '.';
+                    searchResultsElement.textContent = 'No matching blocks found at depth ' + validCurrentDepth + '.';
                     searchResultsElement.className = 'no-search-results'; // Add the highlight class
                     hideSearchNavigationBar();
                     renderBlocks();
