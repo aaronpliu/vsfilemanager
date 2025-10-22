@@ -385,14 +385,38 @@ class BlockEditorHandler {
                         // Find all blocks that are children of the deleted key (for object deletion)
                         const keysToDelete = [key]; // Always delete the main key
                         
-                        // Check if this is an object by looking for child keys (keys that start with this key)
+                        // Check for child keys (keys that start with this key)
                         currentBlocks.forEach(depthGroup => {
                             for (const blockKey in depthGroup.blocks) {
-                                // If this block key is a child of the key we're deleting
-                                if (blockKey.startsWith(key + '.')) {
-                                    keysToDelete.push(blockKey);
+                                // Handle both regular object properties and array elements
+                                // For arrays, we need to match patterns like orders[0].items[0].specs.color
+                                if (blockKey === key + '' || 
+                                    blockKey.startsWith(key + '.') || 
+                                    blockKey.startsWith(key + '[')) {
+                                    if (!keysToDelete.includes(blockKey)) {
+                                        keysToDelete.push(blockKey);
+                                    }
+                                }
+                                
+                                // Also handle nested array elements
+                                const keyWithDot = key + '.';
+                                if (blockKey.startsWith(keyWithDot)) {
+                                    // Check if there are more segments after the key
+                                    const remaining = blockKey.substring(keyWithDot.length);
+                                    // If remaining starts with an array index or property, it's a child
+                                    if (remaining.includes('[') || remaining.includes('.')) {
+                                        if (!keysToDelete.includes(blockKey)) {
+                                            keysToDelete.push(blockKey);
+                                        }
+                                    }
                                 }
                             }
+                        });
+                        
+                        // Sort keys to delete in a proper order (children first, then parents)
+                        keysToDelete.sort((a, b) => {
+                            // Longer keys (more nested) should be deleted first
+                            return b.length - a.length;
                         });
                         
                         // Delete all related keys
@@ -850,24 +874,56 @@ class BlockEditorHandler {
                             if (!exists) {
                                 deletedKeys.push(key);
                                 
-                                // Also add child keys if this is an object
+                                // Also add child keys if this is an object or array element
                                 // Find all child keys (keys that start with this key)
                                 currentBlocks.forEach(depthGroup => {
                                     for (const blockKey in depthGroup.blocks) {
-                                        if (blockKey.startsWith(key + '.')) {
+                                        // Handle both regular object properties and array elements
+                                        if (blockKey === key + '' || 
+                                            blockKey.startsWith(key + '.') || 
+                                            blockKey.startsWith(key + '[')) {
                                             // Only add if not already in the list
                                             if (!deletedKeys.includes(blockKey)) {
                                                 deletedKeys.push(blockKey);
+                                            }
+                                        }
+                                        
+                                        // Also handle nested array elements
+                                        const keyWithDot = key + '.';
+                                        if (blockKey.startsWith(keyWithDot)) {
+                                            // Check if there are more segments after the key
+                                            const remaining = blockKey.substring(keyWithDot.length);
+                                            // If remaining starts with an array index or property, it's a child
+                                            if (remaining.includes('[') || remaining.includes('.')) {
+                                                if (!deletedKeys.includes(blockKey)) {
+                                                    deletedKeys.push(blockKey);
+                                                }
                                             }
                                         }
                                     }
                                 });
                                 originalBlocks.forEach(depthGroup => {
                                     for (const blockKey in depthGroup.blocks) {
-                                        if (blockKey.startsWith(key + '.')) {
+                                        // Handle both regular object properties and array elements
+                                        if (blockKey === key + '' || 
+                                            blockKey.startsWith(key + '.') || 
+                                            blockKey.startsWith(key + '[')) {
                                             // Only add if not already in the list
                                             if (!deletedKeys.includes(blockKey)) {
                                                 deletedKeys.push(blockKey);
+                                            }
+                                        }
+                                        
+                                        // Also handle nested array elements
+                                        const keyWithDot = key + '.';
+                                        if (blockKey.startsWith(keyWithDot)) {
+                                            // Check if there are more segments after the key
+                                            const remaining = blockKey.substring(keyWithDot.length);
+                                            // If remaining starts with an array index or property, it's a child
+                                            if (remaining.includes('[') || remaining.includes('.')) {
+                                                if (!deletedKeys.includes(blockKey)) {
+                                                    deletedKeys.push(blockKey);
+                                                }
                                             }
                                         }
                                     }
@@ -1824,7 +1880,7 @@ class BlockEditorHandler {
                                     
                                     // Check for deleted blocks, but only for the current depth
                                     selectedOriginalDepthGroups.forEach(depthGroup => {
-                                        for (const [key, block] of Object.entries(depthGroup.blocks)) {
+                                        for (const key of Object.keys(depthGroup.blocks)) {
                                             // Check if this key exists in the current blocks
                                             let exists = false;
                                             for (const currentKey in message.blocks) {
@@ -1863,7 +1919,7 @@ class BlockEditorHandler {
                                     const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
                                     
                                     if (sameNamedFiles.length === 0) {
-                                        const successMessage = vscode.window.showInformationMessage('No same-named files found for synchronization.');
+                                        vscode.window.showInformationMessage('No same-named files found for synchronization.');
                                         // Auto-hide message after 5 seconds
                                         setTimeout(() => {
                                             // Note: VS Code doesn't provide a direct way to hide messages
@@ -1895,7 +1951,7 @@ class BlockEditorHandler {
                                         
                                         // Synchronize only the CHANGED blocks, not the entire file content
                                         SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
-                                        const successMessage = vscode.window.showInformationMessage('File blocks updated successfully!');
+                                        vscode.window.showInformationMessage('File blocks updated successfully!');
                                         // Auto-hide message after 5 seconds
                                         setTimeout(() => {
                                             // Note: VS Code doesn't provide a direct way to hide messages
@@ -1903,7 +1959,7 @@ class BlockEditorHandler {
                                         }, 5000);
                                     } else if (selectedItems && selectedItems.length === 0) {
                                         // User confirmed selection but didn't select any files
-                                        const successMessage = vscode.window.showInformationMessage('No files selected. Only current file was updated.');
+                                        vscode.window.showInformationMessage('No files selected. Only current file was updated.');
                                         // Auto-hide message after 5 seconds
                                         setTimeout(() => {
                                             // Note: VS Code doesn't provide a direct way to hide messages
@@ -1911,7 +1967,7 @@ class BlockEditorHandler {
                                         }, 5000);
                                     } else if (selectedItems === undefined) {
                                         // User pressed Escape or closed the dialog
-                                        const successMessage = vscode.window.showInformationMessage('Current file block(s) updated successfully!');
+                                        vscode.window.showInformationMessage('Current file block(s) updated successfully!');
                                         // Auto-hide message after 5 seconds
                                         setTimeout(() => {
                                             // Note: VS Code doesn't provide a direct way to hide messages
@@ -1925,7 +1981,7 @@ class BlockEditorHandler {
                                     // User selected "Cancel" or closed the dialog
                                     // Reload the webview with the latest content from the updated document
                                     await reloadWebViewContent();
-                                    const successMessage = vscode.window.showInformationMessage('Current file block(s) updated successfully!');
+                                    vscode.window.showInformationMessage('Current file block(s) updated successfully!');
                                     // Auto-hide message after 5 seconds
                                     setTimeout(() => {
                                         // Note: VS Code doesn't provide a direct way to hide messages
@@ -1987,7 +2043,7 @@ class BlockEditorHandler {
                                 // Reset the external change notification flag when document is reloaded
                                 isExternalChangeNotified = false;
                                 
-                                const successMessage = vscode.window.showInformationMessage('Document reloaded with latest changes');
+                                vscode.window.showInformationMessage('Document reloaded with latest changes');
                                 // Auto-hide message after 5 seconds
                                 setTimeout(() => {
                                     // Note: VS Code doesn't provide a direct way to hide messages

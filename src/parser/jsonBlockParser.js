@@ -15,11 +15,11 @@ class JsonBlockParser {
         const blocks = {};
 
         for (const key in jsonObject) {
-            if (jsonObject.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(jsonObject, key)) {
                 const fullKey = prefix ? `${prefix}.${key}` : key;
                 const value = jsonObject[key];
 
-                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                if (typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'originalType')) {
                     // Check if this is an empty object
                     const isEmptyObject = Object.keys(value).length === 0;
                     
@@ -76,7 +76,7 @@ class JsonBlockParser {
                                 let originalStringValue = null;
                                 if (originalType === 'number') {
                                     // Check if we have the original format from the JSON string
-                                    if (originalNumberFormats.hasOwnProperty(elementKey)) {
+                                    if (Object.prototype.hasOwnProperty.call(originalNumberFormats, elementKey)) {
                                         originalStringValue = originalNumberFormats[elementKey];
                                     } else {
                                         originalStringValue = elementValue.toString();
@@ -126,7 +126,7 @@ class JsonBlockParser {
                     let originalStringValue = null;
                     if (originalType === 'number') {
                         // Check if we have the original format from the JSON string
-                        if (originalNumberFormats.hasOwnProperty(fullKey)) {
+                        if (Object.prototype.hasOwnProperty.call(originalNumberFormats, fullKey)) {
                             originalStringValue = originalNumberFormats[fullKey];
                         } else {
                             originalStringValue = value.toString();
@@ -166,10 +166,9 @@ class JsonBlockParser {
     static parseToDepthBlocks(jsonObject, prefix = '', depth = 0, originalNumberFormats = {}) {
         const blocks = [];
         const currentLevelBlocks = {};
-        let hasChildren = false;
 
         for (const key in jsonObject) {
-            if (jsonObject.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(jsonObject, key)) {
                 const fullKey = prefix ? `${prefix}.${key}` : key;
                 const value = jsonObject[key];
 
@@ -214,7 +213,7 @@ class JsonBlockParser {
                                 let originalStringValue = null;
                                 if (originalType === 'number') {
                                     // Check if we have the original format from the JSON string
-                                    if (originalNumberFormats.hasOwnProperty(elementKey)) {
+                                    if (Object.prototype.hasOwnProperty.call(originalNumberFormats, elementKey)) {
                                         originalStringValue = originalNumberFormats[elementKey];
                                     } else {
                                         originalStringValue = elementValue.toString();
@@ -252,7 +251,6 @@ class JsonBlockParser {
                     }
                 } else if (typeof value === 'object' && value !== null) {
                     // This is a nested object, add it to current level with stringified representation
-                    hasChildren = true;
                     // Check if this is an empty object
                     const isEmptyObject = Object.keys(value).length === 0;
                     
@@ -320,6 +318,10 @@ class JsonBlockParser {
      * @returns {Object} Nested JSON object
      */
     static blocksToJson(blocks) {
+        return this.blocksToJsonWithDeletions(blocks, []);
+    }
+    
+    static blocksToJsonWithDeletions(blocks, deletedKeys) {
         const result = {};
 
         // Process keys in the order they appear, not sorted by depth
@@ -331,7 +333,7 @@ class JsonBlockParser {
             let value = block;
             
             // Handle different types based on original type information
-            if (typeof value === 'object' && value !== null && value.hasOwnProperty('originalType')) {
+            if (typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'originalType')) {
                 // This is a block object with type information
                 if (value.originalType === 'string') {
                     // Remove quotes from string values
@@ -375,7 +377,7 @@ class JsonBlockParser {
                         value = value.value;
                     } else {
                         // Check if we have an original string representation
-                        if (value.hasOwnProperty('originalStringValue')) {
+                        if (Object.prototype.hasOwnProperty.call(value, 'originalStringValue')) {
                             // Check if the original string value was a whole number with .0
                             // In this case, we want to preserve that format
                             if (value.originalStringValue.endsWith('.0') && 
@@ -419,7 +421,7 @@ class JsonBlockParser {
             } else if (typeof value === 'object' && value !== null) {
                 // Handle values that are objects but don't have originalType
                 // This might be from the old format or direct values
-                if (value.hasOwnProperty('value')) {
+                if (Object.prototype.hasOwnProperty.call(value, 'value')) {
                     value = value.value;
                 }
             } else if (typeof value === 'string') {
@@ -456,7 +458,7 @@ class JsonBlockParser {
                     // This is the final part, set the value
                     // Check if this part has array notation
                     if (part.includes('[')) {
-                        const arrayMatch = part.match(/^([^\[]+)\[(\d+)\]$/);
+                        const arrayMatch = part.match(/^([^[]+)\[(\d+)\]$/);
                         if (arrayMatch) {
                             const arrayName = arrayMatch[1];
                             const arrayIndex = parseInt(arrayMatch[2], 10);
@@ -475,7 +477,7 @@ class JsonBlockParser {
                     // This is an intermediate part
                     // Check if this part has array notation
                     if (part.includes('[')) {
-                        const arrayMatch = part.match(/^([^\[]+)\[(\d+)\]$/);
+                        const arrayMatch = part.match(/^([^[]+)\[(\d+)\]$/);
                         if (arrayMatch) {
                             const arrayName = arrayMatch[1];
                             const arrayIndex = parseInt(arrayMatch[2], 10);
@@ -531,6 +533,71 @@ class JsonBlockParser {
                 }
             }
         }
+        
+        // Now handle deletions - remove deleted properties from the result
+        for (const deletedKey of deletedKeys) {
+            // Split the key by dots and process each part
+            const parts = deletedKey.split('.');
+            let current = result;
+            
+            // Navigate to the parent object
+            for (let i = 0; i < parts.length - 1; i++) {
+                const part = parts[i];
+                
+                // Check if this part has array notation
+                if (part.includes('[')) {
+                    const arrayMatch = part.match(/^([^[]+)\[(\d+)\]$/);
+                    if (arrayMatch) {
+                        const arrayName = arrayMatch[1];
+                        const arrayIndex = parseInt(arrayMatch[2], 10);
+                        
+                        if (current[arrayName] && current[arrayName][arrayIndex]) {
+                            current = current[arrayName][arrayIndex];
+                        } else {
+                            // Can't navigate further
+                            break;
+                        }
+                    } else {
+                        if (current[part]) {
+                            current = current[part];
+                        } else {
+                            // Can't navigate further
+                            break;
+                        }
+                    }
+                } else {
+                    if (current[part]) {
+                        current = current[part];
+                    } else {
+                        // Can't navigate further
+                        break;
+                    }
+                }
+            }
+            
+            // Delete the final property if we could navigate to its parent
+            const finalPart = parts[parts.length - 1];
+            if (finalPart.includes('[')) {
+                const arrayMatch = finalPart.match(/^([^[]+)\[(\d+)\]$/);
+                if (arrayMatch) {
+                    const arrayName = arrayMatch[1];
+                    const arrayIndex = parseInt(arrayMatch[2], 10);
+                    
+                    if (current[arrayName]) {
+                        delete current[arrayName][arrayIndex];
+                        
+                        // Clean up empty arrays
+                        if (Array.isArray(current[arrayName]) && current[arrayName].length === 0) {
+                            delete current[arrayName];
+                        }
+                    }
+                }
+            } else {
+                if (Object.prototype.hasOwnProperty.call(current, finalPart)) {
+                    delete current[finalPart];
+                }
+            }
+        }
 
         return result;
     }
@@ -547,7 +614,7 @@ class JsonBlockParser {
         const basePattern = isWildcard ? pattern.slice(0, -1) : pattern;
 
         for (const key in blocks) {
-            if (blocks.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(blocks, key)) {
                 if (isWildcard) {
                     if (key.startsWith(basePattern)) {
                         result[key] = blocks[key];
@@ -576,14 +643,40 @@ class JsonBlockParser {
         // Parse the target content into blocks to understand its current structure
         const targetBlocks = this.parseToBlocks(targetJsonContent, '', originalNumberFormats);
         
+        // Keep track of deleted keys
+        const deletedKeys = [];
+        
         // Apply only the changed blocks to the target blocks
         for (const key in changedBlocks) {
-            if (changedBlocks.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(changedBlocks, key)) {
                 const changedBlock = changedBlocks[key];
                 // Handle deletion (null value indicates deletion)
                 if (changedBlock === null) {
-                    if (targetBlocks.hasOwnProperty(key)) {
+                    if (Object.prototype.hasOwnProperty.call(targetBlocks, key)) {
                         delete targetBlocks[key];
+                        deletedKeys.push(key);
+                        
+                        // Also delete any nested keys that are children of this key
+                        // This is important for proper deletion of nested objects/arrays
+                        for (const targetKey in targetBlocks) {
+                            // Handle both regular object properties and array elements
+                            if (targetKey === key + '' || 
+                                targetKey.startsWith(key + '.') || 
+                                targetKey.startsWith(key + '[')) {
+                                delete targetBlocks[targetKey];
+                            }
+                            
+                            // Also handle nested array elements
+                            const keyWithDot = key + '.';
+                            if (targetKey.startsWith(keyWithDot)) {
+                                // Check if there are more segments after the key
+                                const remaining = targetKey.substring(keyWithDot.length);
+                                // If remaining starts with an array index or property, it's a child
+                                if (remaining.includes('[') || remaining.includes('.')) {
+                                    delete targetBlocks[targetKey];
+                                }
+                            }
+                        }
                     }
                 } else {
                     // Apply the change to the target
@@ -593,7 +686,7 @@ class JsonBlockParser {
         }
         
         // Convert to JSON
-        return this.blocksToJson(targetBlocks);
+        return this.blocksToJsonWithDeletions(targetBlocks, deletedKeys);
     }
 
     /**
@@ -608,7 +701,7 @@ class JsonBlockParser {
         
         // Apply the changed blocks to the existing blocks
         for (const key in changedBlocks) {
-            if (changedBlocks.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(changedBlocks, key)) {
                 const changedBlock = changedBlocks[key];
                 
                 // Simply replace the existing block with the changed block
@@ -689,7 +782,7 @@ class JsonBlockParser {
             let arrayObjectMatch;
             
             while ((arrayObjectMatch = arrayObjectPattern.exec(value)) !== null) {
-                const index = arrayObjectMatch[1].replace(/[\$\$]/g, '');
+                const index = arrayObjectMatch[1].replace(/[$$]/g, '');
                 const objectValue = arrayObjectMatch[2];
                 const elementKey = `${fullKey}[${index}]`;
                 
