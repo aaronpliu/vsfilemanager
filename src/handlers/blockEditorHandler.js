@@ -2007,7 +2007,7 @@ class BlockEditorHandler {
                         case 'reload':
                             try {
                                 // Get the current depth if provided, otherwise default to 1
-                                const currentDepth = message.currentDepth || 1;
+                                const currentDepth = (message.currentDepth !== undefined && message.currentDepth !== null) ? message.currentDepth : 1;
                                 
                                 // Force VS Code to refresh its view of the document from disk
                                 await vscode.commands.executeCommand('workbench.action.files.revert', document.uri);
