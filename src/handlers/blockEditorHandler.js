@@ -1274,20 +1274,13 @@ class BlockEditorHandler {
                 notification.className = 'document-changed-notification-bottom-right';
                 notification.innerHTML = '' +
                     '<div class="notification-content">' +
-                    '<span>Changes made. Save to apply to file.</span>' +
+                    '<span>Change made. Save to file.</span>' +
                     '<button id="saveChangesBtnNotification" class="reload-btn-notification">Save Changes</button>' +
                     '<button id="dismissSaveNotification" class="dismiss-btn">Dismiss</button>' +
                     '</div>';
                 
                 // Add to the bottom right of the document
                 document.body.appendChild(notification);
-                
-                // Auto-hide notification after 5 seconds
-                setTimeout(() => {
-                    if (notification && notification.parentNode) {
-                        notification.parentNode.removeChild(notification);
-                    }
-                }, 5000);
                 
                 // Add event listeners
                 document.getElementById('saveChangesBtnNotification').addEventListener('click', () => {
