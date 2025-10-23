@@ -5,6 +5,9 @@ const { FileTypeUtils } = require('../utils/fileTypeUtils');
 const SyncDetector = require('../syncDetector');
 const toml = require('toml');
 
+// Keep track of open editors by file URI
+const openEditors = new Map();
+
 class BlockEditorHandler {
     static async openEditor(context, editor) {
         // Get the active text editor
@@ -19,6 +22,16 @@ class BlockEditorHandler {
         
         if (!validation.isValid) {
             vscode.window.showErrorMessage(`Active file is not a supported structured file! Supported types: ${FileTypeUtils.getSupportedExtensions().join(', ')}`);
+            return;
+        }
+        
+        // Check if an editor is already open for this file
+        const fileUri = document.uri.toString();
+        if (openEditors.has(fileUri)) {
+            // Focus the existing editor
+            const existingPanel = openEditors.get(fileUri);
+            existingPanel.reveal(vscode.ViewColumn.One);
+            vscode.window.showInformationMessage('Block editor for this file is already open');
             return;
         }
 
@@ -66,6 +79,14 @@ class BlockEditorHandler {
                     retainContextWhenHidden: true
                 }
             );
+            
+            // Store reference to the panel
+            openEditors.set(fileUri, panel);
+            
+            // Remove the reference when the panel is disposed
+            panel.onDidDispose(() => {
+                openEditors.delete(fileUri);
+            }, null, context.subscriptions);
 
             // Store the document's initial version
             let documentVersion = document.version;
@@ -128,6 +149,8 @@ class BlockEditorHandler {
                 if (externalChangeTimer) {
                     clearTimeout(externalChangeTimer);
                 }
+                // Remove from open editors map
+                openEditors.delete(fileUri);
             }, null, context.subscriptions);
 
             // Get path to HTML file on disk
