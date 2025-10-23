@@ -384,37 +384,32 @@ class BlockEditorHandler {
                         const key = e.target.getAttribute('data-key');
                         const depthIndex = parseInt(e.target.getAttribute('data-depth'));
                         
+                        console.log('=== DELETE OPERATION START ===');
+                        console.log('Delete button clicked for key:', key, 'at depth:', depthIndex);
+                        
                         // Find all blocks that are children of the deleted key (for object deletion)
                         const keysToDelete = [key]; // Always delete the main key
                         
-                        // Check for child keys (keys that start with this key)
+                        console.log('Current blocks before finding children:', JSON.parse(JSON.stringify(currentBlocks)));
+                        
+                        // Check for child keys (keys that start with this key) across ALL depths, not just current
                         currentBlocks.forEach(depthGroup => {
                             for (const blockKey in depthGroup.blocks) {
                                 // Handle both regular object properties and array elements
                                 // For arrays, we need to match patterns like orders[0].items[0].specs.color
                                 // But be precise to avoid matching the parent array itself
-                                if (blockKey === key || 
-                                    blockKey.startsWith(key + '.') || 
-                                    blockKey.startsWith(key + '[')) {
+                                if (blockKey !== key && 
+                                    (blockKey.startsWith(key + '.') || 
+                                     blockKey.startsWith(key + '['))) {
                                     if (!keysToDelete.includes(blockKey)) {
                                         keysToDelete.push(blockKey);
-                                    }
-                                }
-                                
-                                // Also handle nested array elements
-                                const keyWithDot = key + '.';
-                                if (blockKey.startsWith(keyWithDot)) {
-                                    // Check if there are more segments after the key
-                                    const remaining = blockKey.substring(keyWithDot.length);
-                                    // If remaining starts with an array index or property, it's a child
-                                    if (remaining.includes('[') || remaining.includes('.')) {
-                                        if (!keysToDelete.includes(blockKey)) {
-                                            keysToDelete.push(blockKey);
-                                        }
+                                        console.log('Found child key to delete:', blockKey);
                                     }
                                 }
                             }
                         });
+                        
+                        console.log('Keys to delete (before sorting):', keysToDelete);
                         
                         // Sort keys to delete in a proper order (children first, then parents)
                         keysToDelete.sort((a, b) => {
@@ -422,24 +417,36 @@ class BlockEditorHandler {
                             return b.length - a.length;
                         });
                         
-                        // Delete all related keys
+                        console.log('Keys to delete (sorted):', keysToDelete);
+                        
+                        // Delete all related keys across ALL depths
                         let deleted = false;
                         keysToDelete.forEach(keyToDelete => {
-                            for (const depthGroup of currentBlocks) {
+                            // Delete from ALL depth groups where this key might exist
+                            let found = false;
+                            currentBlocks.forEach(depthGroup => {
                                 if (Object.prototype.hasOwnProperty.call(depthGroup.blocks, keyToDelete)) {
+                                    console.log('Deleting key from currentBlocks at depth', depthGroup.depth, ':', keyToDelete);
                                     delete depthGroup.blocks[keyToDelete];
                                     deleted = true;
+                                    found = true;
                                 }
+                            });
+                            
+                            if (!found) {
+                                console.log('Key not found in any depth group (may be already deleted):', keyToDelete);
                             }
                         });
                         
                         if (deleted) {
+                            console.log('Current blocks after deletion:', JSON.parse(JSON.stringify(currentBlocks)));
                             renderBlocks();
                             // Enable save button when block is deleted
                             updateSaveButtonState();
                             
                             // Show save changes notification
                             showSaveChangesNotification();
+                            console.log('=== DELETE OPERATION END ===');
                         }
                     });
                 });
@@ -835,20 +842,24 @@ class BlockEditorHandler {
                     saveNotification.remove();
                 }
                 
-                console.log('Current blocks structure:', currentBlocks);
+                console.log('=== SAVE OPERATION START ===');
+                console.log('Save button clicked');
+                console.log('Current blocks structure:', JSON.parse(JSON.stringify(currentBlocks)));
                 // Get current depth from selector to avoid issues with maxDepth variable
                 const currentDepth = parseInt(document.getElementById('depthSelector').value);
                 // If NaN, default to 1 (but allow 0)
                 const validCurrentDepth = isNaN(currentDepth) ? 1 : currentDepth;
+                
+                console.log('Current depth:', validCurrentDepth);
                 
                 // Flatten blocks for saving - only include blocks from the currently selected depth
                 const flattenedBlocks = {};
                 // Filter to only include blocks from the currently selected depth
                 const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
                 selectedDepthGroups.forEach(depthGroup => {
-                    console.log('Processing depth group:', depthGroup);
+                    console.log('Processing depth group:', JSON.parse(JSON.stringify(depthGroup)));
                     for (const [key, block] of Object.entries(depthGroup.blocks)) {
-                        console.log('Processing block key:', key, 'value:', block);
+                        console.log('Processing block key:', key, 'value:', JSON.parse(JSON.stringify(block)));
                         // Pass the entire block object to preserve type information
                         flattenedBlocks[key] = {
                             value: block.value,
@@ -861,92 +872,50 @@ class BlockEditorHandler {
                     }
                 });
                 
-                // Create a list of deleted keys by comparing with originalBlocks, but only for the current depth
+                console.log('Flattened blocks for current depth:', JSON.parse(JSON.stringify(flattenedBlocks)));
+                
+                // Create a list of deleted keys by comparing with originalBlocks across all depths
                 const deletedKeys = [];
                 if (originalBlocks) {
-                    // Filter original blocks to only include those from the currently selected depth
-                    const selectedOriginalDepthGroups = originalBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
-                    selectedOriginalDepthGroups.forEach(depthGroup => {
+                    console.log('Original blocks:', JSON.parse(JSON.stringify(originalBlocks)));
+                    
+                    // Collect ALL original keys across ALL depths
+                    const originalKeys = [];
+                    originalBlocks.forEach(depthGroup => {
                         for (const [key, block] of Object.entries(depthGroup.blocks)) {
-                            // Check if this key exists in the current blocks at the same depth
-                            let exists = false;
-                            const selectedCurrentDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
-                            for (const currentDepthGroup of selectedCurrentDepthGroups) {
-                                if (Object.prototype.hasOwnProperty.call(currentDepthGroup.blocks, key)) {
-                                    exists = true;
-                                    break;
-                                }
-                            }
-                            
-                            if (!exists) {
-                                deletedKeys.push(key);
-                                
-                                // Also add child keys if this is an object or array element
-                                // Find all child keys (keys that start with this key)
-                                currentBlocks.forEach(depthGroup => {
-                                    for (const blockKey in depthGroup.blocks) {
-                                        // Handle both regular object properties and array elements
-                                        // But be precise to avoid matching the parent array itself
-                                        if (blockKey === key || 
-                                            blockKey.startsWith(key + '.') || 
-                                            blockKey.startsWith(key + '[')) {
-                                            // Only add if not already in the list
-                                            if (!deletedKeys.includes(blockKey)) {
-                                                deletedKeys.push(blockKey);
-                                            }
-                                        }
-                                        
-                                        // Also handle nested array elements
-                                        const keyWithDot = key + '.';
-                                        if (blockKey.startsWith(keyWithDot)) {
-                                            // Check if there are more segments after the key
-                                            const remaining = blockKey.substring(keyWithDot.length);
-                                            // If remaining starts with an array index or property, it's a child
-                                            if (remaining.includes('[') || remaining.includes('.')) {
-                                                if (!deletedKeys.includes(blockKey)) {
-                                                    deletedKeys.push(blockKey);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
-                                originalBlocks.forEach(depthGroup => {
-                                    for (const blockKey in depthGroup.blocks) {
-                                        // Handle both regular object properties and array elements
-                                        // But be precise to avoid matching the parent array itself
-                                        if (blockKey === key || 
-                                            blockKey.startsWith(key + '.') || 
-                                            blockKey.startsWith(key + '[')) {
-                                            // Only add if not already in the list
-                                            if (!deletedKeys.includes(blockKey)) {
-                                                deletedKeys.push(blockKey);
-                                            }
-                                        }
-                                        
-                                        // Also handle nested array elements
-                                        const keyWithDot = key + '.';
-                                        if (blockKey.startsWith(keyWithDot)) {
-                                            // Check if there are more segments after the key
-                                            const remaining = blockKey.substring(keyWithDot.length);
-                                            // If remaining starts with an array index or property, it's a child
-                                            if (remaining.includes('[') || remaining.includes('.')) {
-                                                if (!deletedKeys.includes(blockKey)) {
-                                                    deletedKeys.push(blockKey);
-                                                }
-                                            }
-                                        }
-                                    }
-                                });
-                            }
+                            originalKeys.push(key);
+                        }
+                    });
+                    
+                    console.log('All original keys:', originalKeys);
+                    
+                    // Collect ALL current keys across ALL depths
+                    const currentKeys = [];
+                    currentBlocks.forEach(depthGroup => {
+                        for (const [key, block] of Object.entries(depthGroup.blocks)) {
+                            currentKeys.push(key);
+                        }
+                    });
+                    
+                    console.log('All current keys:', currentKeys);
+                    
+                    // Find deleted keys (in original but not in current)
+                    originalKeys.forEach(key => {
+                        if (!currentKeys.includes(key)) {
+                            deletedKeys.push(key);
+                            console.log('Added deleted key:', key);
                         }
                     });
                 }
                 
+                console.log('Final deletedKeys list:', deletedKeys);
+                
                 // Clear newly added blocks tracking on save
                 newlyAddedBlocks = [];
                 
-                console.log('Sending save message with blocks:', flattenedBlocks);
+                console.log('Sending save message with blocks:', JSON.parse(JSON.stringify(flattenedBlocks)));
                 console.log('Sending save message with deletedKeys:', deletedKeys);
+                console.log('=== SAVE OPERATION END ===');
                 
                 vscode.postMessage({
                     command: 'save',
@@ -1697,8 +1666,9 @@ class BlockEditorHandler {
                     switch (message.command) {
                         case 'save':
                             try {
+                                console.log('=== BACKEND SAVE HANDLER START ===');
                                 console.log('Save command received');
-                                console.log('Message data:', message);
+                                console.log('Message data:', JSON.parse(JSON.stringify(message)));
                                 // Get the original content
                                 const originalDocument = await vscode.workspace.openTextDocument(document.uri);
                                 const originalContent = originalDocument.getText();
@@ -1748,6 +1718,8 @@ class BlockEditorHandler {
                                         });
                                     }
                                     
+                                    console.log('Combined changes object:', JSON.parse(JSON.stringify(combinedChanges)));
+                                    
                                     // Apply all changes using applyBlockChangesEnhanced which properly handles deletions
                                     const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, combinedChanges, originalNumberFormats);
                                     updatedContent = JSON.stringify(updatedJson, null, 2);
@@ -1767,6 +1739,8 @@ class BlockEditorHandler {
                                             combinedChanges[key] = null;
                                         });
                                     }
+                                    
+                                    console.log('Combined changes object:', JSON.parse(JSON.stringify(combinedChanges)));
                                     
                                     // Apply all changes using applyOnlyChangedBlocks which properly handles deletions
                                     updatedContent = Parser.applyOnlyChangedBlocks(originalContent, combinedChanges);
@@ -1889,22 +1863,31 @@ class BlockEditorHandler {
                                         }
                                     }
                                     
-                                    // Check for deleted blocks, but only for the current depth
-                                    selectedOriginalDepthGroups.forEach(depthGroup => {
-                                        for (const key of Object.keys(depthGroup.blocks)) {
-                                            // Check if this key exists in the current blocks
-                                            let exists = false;
-                                            for (const currentKey in message.blocks) {
-                                                if (currentKey === key) {
-                                                    exists = true;
-                                                    break;
-                                                }
+                                    // Check for deleted blocks across all depths
+                                    // First, collect all original keys
+                                    const originalKeys = [];
+                                    if (message.originalBlocks) {
+                                        message.originalBlocks.forEach(depthGroup => {
+                                            for (const key of Object.keys(depthGroup.blocks)) {
+                                                originalKeys.push(key);
                                             }
-                                            
-                                            if (!exists) {
-                                                // Mark as deleted with null value
-                                                changedBlocks[key] = null;
+                                        });
+                                    }
+                                    
+                                    // Then check which ones are missing from current blocks
+                                    originalKeys.forEach(key => {
+                                        // Check if this key exists in the current blocks
+                                        let exists = false;
+                                        for (const currentKey in message.blocks) {
+                                            if (currentKey === key) {
+                                                exists = true;
+                                                break;
                                             }
+                                        }
+                                        
+                                        if (!exists) {
+                                            // Mark as deleted with null value
+                                            changedBlocks[key] = null;
                                         }
                                     });
                                 } else {
@@ -1938,6 +1921,7 @@ class BlockEditorHandler {
                                         }, 5000);
                                         // Reload the webview with the latest content from the updated document
                                         await reloadWebViewContent(message.currentDepth);
+                                        console.log('=== BACKEND SAVE HANDLER END ===');
                                         return;
                                     }
                                     
@@ -1999,8 +1983,10 @@ class BlockEditorHandler {
                                         // The message will automatically disappear when a new one is shown
                                     }, 5000);
                                 }
+                                console.log('=== BACKEND SAVE HANDLER END ===');
 
                             } catch (error) {
+                                console.error('Error updating file:', error);
                                 vscode.window.showErrorMessage('Error updating file: ' + error.message);
                             }
                             return;

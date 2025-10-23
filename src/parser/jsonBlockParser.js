@@ -322,6 +322,10 @@ class JsonBlockParser {
     }
     
     static blocksToJsonWithDeletions(blocks, deletedKeys) {
+        console.log('=== blocksToJsonWithDeletions START ===');
+        console.log('Input blocks:', JSON.parse(JSON.stringify(blocks)));
+        console.log('Deleted keys:', deletedKeys);
+        
         let result = {};
 
         // Process keys in the order they appear, not sorted by depth
@@ -331,6 +335,8 @@ class JsonBlockParser {
         for (const key of keys) {
             const block = blocks[key];
             let value = block;
+            
+            console.log('Processing key:', key, 'with block:', JSON.parse(JSON.stringify(block)));
             
             // Handle different types based on original type information
             if (typeof value === 'object' && value !== null && Object.prototype.hasOwnProperty.call(value, 'originalType')) {
@@ -445,6 +451,8 @@ class JsonBlockParser {
                 }
             }
             
+            console.log('Processed value for key', key, ':', JSON.parse(JSON.stringify(value)));
+            
             // Handle array indexing in keys (e.g., "key[0]", "key[1]", "parent.child[0].prop")
             // Extract the base key and process nested array notation
             let current = result;
@@ -534,6 +542,8 @@ class JsonBlockParser {
             }
         }
         
+        console.log('Result after processing all blocks:', JSON.parse(JSON.stringify(result)));
+        
         // Clean up arrays to ensure proper indexing
         function cleanUpArrays(obj) {
             if (Array.isArray(obj)) {
@@ -560,8 +570,12 @@ class JsonBlockParser {
         // Apply cleanup to the entire result
         result = cleanUpArrays(result);
         
+        console.log('Result after array cleanup:', JSON.parse(JSON.stringify(result)));
+        
         // Now handle deletions - remove deleted properties from the result
         for (const deletedKey of deletedKeys) {
+            console.log('Processing deletion for key:', deletedKey);
+            
             // Split the key by dots and process each part
             const parts = deletedKey.split('.');
             let current = result;
@@ -569,6 +583,7 @@ class JsonBlockParser {
             // Navigate to the parent object
             for (let i = 0; i < parts.length - 1; i++) {
                 const part = parts[i];
+                console.log('Navigating to part:', part);
                 
                 // Check if this part has array notation
                 if (part.includes('[')) {
@@ -579,23 +594,29 @@ class JsonBlockParser {
                         
                         if (current[arrayName] && current[arrayName][arrayIndex]) {
                             current = current[arrayName][arrayIndex];
+                            console.log('Navigated to array element:', arrayName, arrayIndex);
                         } else {
                             // Can't navigate further
+                            console.log('Cannot navigate further to array element');
                             break;
                         }
                     } else {
                         if (current[part]) {
                             current = current[part];
+                            console.log('Navigated to object property:', part);
                         } else {
                             // Can't navigate further
+                            console.log('Cannot navigate further to object property');
                             break;
                         }
                     }
                 } else {
                     if (current[part]) {
                         current = current[part];
+                        console.log('Navigated to object property:', part);
                     } else {
                         // Can't navigate further
+                        console.log('Cannot navigate further to object property');
                         break;
                     }
                 }
@@ -603,6 +624,8 @@ class JsonBlockParser {
             
             // Delete the final property if we could navigate to its parent
             const finalPart = parts[parts.length - 1];
+            console.log('Deleting final part:', finalPart);
+            
             if (finalPart.includes('[')) {
                 const arrayMatch = finalPart.match(/^([^[]+)\[(\d+)\]$/);
                 if (arrayMatch) {
@@ -611,6 +634,7 @@ class JsonBlockParser {
                     
                     if (current[arrayName]) {
                         delete current[arrayName][arrayIndex];
+                        console.log('Deleted array element:', arrayName, arrayIndex);
                         
                         // Re-index array elements to fill gaps
                         const newArray = [];
@@ -620,20 +644,34 @@ class JsonBlockParser {
                             }
                         }
                         current[arrayName] = newArray;
+                        console.log('Reindexed array:', arrayName, 'to:', newArray);
                         
                         // Clean up empty arrays
                         if (Array.isArray(current[arrayName]) && current[arrayName].length === 0) {
                             delete current[arrayName];
+                            console.log('Deleted empty array:', arrayName);
                         }
                     }
                 }
             } else {
+                // Handle regular object property deletion
                 if (Object.prototype.hasOwnProperty.call(current, finalPart)) {
                     delete current[finalPart];
+                    console.log('Deleted object property:', finalPart);
+                    
+                    // If the parent object is now empty, we might want to clean it up
+                    // But only if it's not the root object
+                    if (parts.length > 1 && Object.keys(current).length === 0) {
+                        // This would be complex to implement correctly, so we'll skip it for now
+                        console.log('Parent object is now empty, but not cleaning up');
+                    }
                 }
             }
         }
-
+        
+        console.log('Final result after deletions:', JSON.parse(JSON.stringify(result)));
+        console.log('=== blocksToJsonWithDeletions END ===');
+        
         return result;
     }
 
@@ -675,8 +713,15 @@ class JsonBlockParser {
      * @returns {Object} Updated JSON object with only the specified changes applied
      */
     static applyOnlyChangedBlocks(targetJsonContent, changedBlocks, originalNumberFormats = {}) {
+        console.log('=== applyOnlyChangedBlocks START ===');
+        console.log('Target JSON content:', JSON.parse(JSON.stringify(targetJsonContent)));
+        console.log('Changed blocks:', JSON.parse(JSON.stringify(changedBlocks)));
+        console.log('Original number formats:', originalNumberFormats);
+        
         // Parse the target content into blocks to understand its current structure
         const targetBlocks = this.parseToBlocks(targetJsonContent, '', originalNumberFormats);
+        
+        console.log('Target blocks:', JSON.parse(JSON.stringify(targetBlocks)));
         
         // Keep track of deleted keys
         const deletedKeys = [];
@@ -685,44 +730,35 @@ class JsonBlockParser {
         for (const key in changedBlocks) {
             if (Object.prototype.hasOwnProperty.call(changedBlocks, key)) {
                 const changedBlock = changedBlocks[key];
+                console.log('Processing changed block key:', key, 'value:', changedBlock);
+                
                 // Handle deletion (null value indicates deletion)
                 if (changedBlock === null) {
                     if (Object.prototype.hasOwnProperty.call(targetBlocks, key)) {
+                        console.log('Deleting key from targetBlocks:', key);
                         delete targetBlocks[key];
                         deletedKeys.push(key);
-                        
-                        // Also delete any nested keys that are children of this key
-                        // This is important for proper deletion of nested objects/arrays
-                        for (const targetKey in targetBlocks) {
-                            // Handle both regular object properties and array elements
-                            // But be precise to avoid matching the parent array itself
-                            if (targetKey === key || 
-                                targetKey.startsWith(key + '.') || 
-                                targetKey.startsWith(key + '[')) {
-                                delete targetBlocks[targetKey];
-                            }
-                            
-                            // Also handle nested array elements
-                            const keyWithDot = key + '.';
-                            if (targetKey.startsWith(keyWithDot)) {
-                                // Check if there are more segments after the key
-                                const remaining = targetKey.substring(keyWithDot.length);
-                                // If remaining starts with an array index or property, it's a child
-                                if (remaining.includes('[') || remaining.includes('.')) {
-                                    delete targetBlocks[targetKey];
-                                }
-                            }
-                        }
+                    } else {
+                        // Key might not be in targetBlocks if it's a nested key
+                        // We still need to track it for deletion in blocksToJsonWithDeletions
+                        deletedKeys.push(key);
+                        console.log('Marking key for deletion (not in targetBlocks):', key);
                     }
                 } else {
                     // Apply the change to the target
+                    console.log('Updating key in targetBlocks:', key);
                     targetBlocks[key] = changedBlock;
                 }
             }
         }
         
+        console.log('Target blocks after applying changes:', JSON.parse(JSON.stringify(targetBlocks)));
+        console.log('Deleted keys to pass to blocksToJsonWithDeletions:', deletedKeys);
+        
         // Convert to JSON
-        return this.blocksToJsonWithDeletions(targetBlocks, deletedKeys);
+        const result = this.blocksToJsonWithDeletions(targetBlocks, deletedKeys);
+        console.log('=== applyOnlyChangedBlocks END ===');
+        return result;
     }
 
     /**
