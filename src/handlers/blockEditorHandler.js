@@ -180,6 +180,29 @@ class BlockEditorHandler {
             // Newly added blocks tracking
             let newlyAddedBlocks = [];
             
+            // Function to check if a key is a direct child of another key
+            function isDirectChildKey(parentKey, childKey) {
+                // Check if childKey starts with parentKey + '['
+                if (!childKey.startsWith(parentKey + '[')) {
+                    return false;
+                }
+                
+                // Extract the part after parentKey
+                const remainder = childKey.substring(parentKey.length);
+                
+                // Check if the remainder matches the pattern [number] or [number].property or [number][number]
+                // but not [number]something (which would be a different key)
+                const arrayIndexPattern = /^[\\d+]/;
+                if (!arrayIndexPattern.test(remainder)) {
+                    return false;
+                }
+                
+                // Check that after the array index, we either have the end of string,
+                // a dot followed by more characters, or another bracket followed by more characters
+                const afterIndex = remainder.substring(remainder.indexOf(']') + 1);
+                return afterIndex === '' || afterIndex.startsWith('.') || afterIndex.startsWith('[');
+            }
+            
             // Function to check if there are any changes and update save button state
             function updateSaveButtonState() {
                 const saveBtn = document.getElementById('saveBtn');
@@ -423,7 +446,7 @@ class BlockEditorHandler {
                                 // But be precise to avoid matching the parent array itself
                                 if (blockKey !== key && 
                                     (blockKey.startsWith(key + '.') || 
-                                     blockKey.startsWith(key + '['))) {
+                                     (blockKey.startsWith(key + '[') && isDirectChildKey(key, blockKey)))) {
                                     if (!keysToDelete.includes(blockKey)) {
                                         keysToDelete.push(blockKey);
                                         console.log('Found child key to delete:', blockKey);
