@@ -1251,6 +1251,7 @@ class BlockEditorHandler {
             // Function to hide scroll to top button
             function hideScrollToTopButton() {
                 const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+                scrollToTopBtn.classList.remove('visible');
                 scrollToTopBtn.style.display = 'none';
             }
             
@@ -1325,15 +1326,32 @@ class BlockEditorHandler {
             // Handle scroll to top button
             document.getElementById('scrollToTopBtn').addEventListener('click', scrollToTop);
             
-            // Handle window scroll to show/hide scroll to top button
+            // Handle window scroll to show/hide scroll to top button with progress indicator
             window.addEventListener('scroll', function() {
                 const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+                const progressCircle = document.querySelector('.scroll-progress circle');
+                
+                // Calculate scroll percentage
+                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+                const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                const scrollPercent = (scrollTop / scrollHeight) * 100;
+                const safeScrollPercent = isNaN(scrollPercent) ? 0 : scrollPercent;
+                
+                // Update progress circle if it exists
+                if (progressCircle) {
+                    const circumference = 2 * Math.PI * 19; // 2 * π * radius
+                    const offset = circumference - (safeScrollPercent / 100) * circumference;
+                    progressCircle.style.strokeDashoffset = offset;
+                }
+                
+                // Show/hide button with animation
                 if (window.scrollY > 300) {
                     // Show button when scrolled down 300px
+                    scrollToTopBtn.classList.add('visible');
                     scrollToTopBtn.style.display = 'flex';
                 } else {
                     // Hide button when near the top
-                    scrollToTopBtn.style.display = 'none';
+                    scrollToTopBtn.classList.remove('visible');
                 }
                 
                 // Handle floating search box
@@ -1342,6 +1360,14 @@ class BlockEditorHandler {
             
             // Hide scroll to top button initially
             hideScrollToTopButton();
+            
+            // Initialize progress circle
+            const progressCircle = document.querySelector('.scroll-progress circle');
+            if (progressCircle) {
+                const circumference = 2 * Math.PI * 19; // 2 * π * radius
+                progressCircle.style.strokeDasharray = circumference + ' ' + circumference;
+                progressCircle.style.strokeDashoffset = circumference;
+            }
             
             // Handle keyboard navigation (Enter, Shift+Enter, and arrow keys)
             document.addEventListener('keydown', (e) => {
@@ -1468,6 +1494,65 @@ class BlockEditorHandler {
             // Add CSS for the notification
             const styleInsert = `
             <style>
+            /* Floating scroll to top button */
+            .scroll-to-top-btn {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background-color: var(--vscode-button-background);
+                color: var(--vscode-button-foreground);
+                border: none;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 20px;
+                font-weight: bold;
+                cursor: pointer;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+                z-index: 999;
+                opacity: 0;
+                transform: translateY(100px);
+                transition: all 0.3s ease;
+                overflow: hidden;
+                padding: 0;
+            }
+            
+            .scroll-to-top-btn.visible {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            
+            .scroll-progress {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                border-radius: 50%;
+                background: transparent;
+            }
+            
+            .scroll-progress circle {
+                fill: none;
+                stroke-width: 2;
+                stroke: #00a8ff;
+                transform-origin: center;
+                stroke-dasharray: 119.38;
+                stroke-dashoffset: 119.38;
+            }
+            
+            .scroll-to-top-btn:hover {
+                background-color: var(--vscode-button-hoverBackground);
+            }
+            
+            .scroll-to-top-btn span {
+                position: relative;
+                z-index: 1;
+            }
+            
             .document-changed-notification {
                 background-color: var(--vscode-editorWarning-background);
                 color: var(--vscode-editorWarning-foreground);

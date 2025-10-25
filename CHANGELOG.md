@@ -5,6 +5,21 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.4] - 2025-10-24
+
+### Added
+- Added the command in right-click menu
+
+### Fixed
+- Fixed issue where multiple block editors could be opened for the same file
+- Resolved ESLint configuration to properly support ES6 Map features
+- Enhanced single editor per file functionality to prevent data conflicts
+
+### Improved
+- Refined editor management to ensure only one instance per file
+- Improved user experience with better error messaging when attempting to open duplicate editors
+- Enhanced code quality with updated ESLint configuration
+
 ## [1.3.3] - 2025-10-20
 
 ### Fixed
@@ -83,7 +98,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed webview display for arrays and map objects with proper formatting
 - Fixed search function to be scoped to current depth level instead of entire file
 - Fixed empty object handling
-- Fixed clear search result when switch depth
 - Enhanced number to update
 - Enhanced batch update for changed value
 

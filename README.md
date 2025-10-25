@@ -67,6 +67,17 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.3.4
+Latest improvements and fixes:
+- Fixed issue where multiple block editors could be opened for the same file
+- Resolved ESLint configuration to properly support ES6 Map features
+- Enhanced single editor per file functionality to prevent data conflicts
+- Fixed nested values from being deleted
+- Improved error handling and messaging for invalid JSON
+- Fixed message auto dismiss for save changes operations
+- Fixed webview refresh when depth level is 0
+- Added the command in right-click menu
+
 ### 1.3.3
 Latest improvements and fixes:
 - Fixed object deletion functionality in webview for JSON files
@@ -85,4 +96,3 @@ Latest improvements and fixes:
 - Enhanced code commit check with Husky and lint
 
 For detailed changelog of all versions, please refer to [CHANGELOG.md](CHANGELOG.md).
-
