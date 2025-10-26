@@ -2055,7 +2055,7 @@ class BlockEditorHandler {
                                         setTimeout(() => {
                                             // Note: VS Code doesn't provide a direct way to hide messages
                                             // The message will automatically disappear when a new one is shown
-                                        }, 5000);
+                                        }, 3000);
                                         // Reload the webview with the latest content from the updated document
                                         await reloadWebViewContent(message.currentDepth);
                                         console.log('=== BACKEND SAVE HANDLER END ===');
@@ -2088,7 +2088,7 @@ class BlockEditorHandler {
                                         setTimeout(() => {
                                             // Note: VS Code doesn't provide a direct way to hide messages
                                             // The message will automatically disappear when a new one is shown
-                                        }, 5000);
+                                        }, 3000);
                                     } else if (selectedItems && selectedItems.length === 0) {
                                         // User confirmed selection but didn't select any files
                                         vscode.window.showInformationMessage('No files selected. Only current file was updated.');
@@ -2096,7 +2096,7 @@ class BlockEditorHandler {
                                         setTimeout(() => {
                                             // Note: VS Code doesn't provide a direct way to hide messages
                                             // The message will automatically disappear when a new one is shown
-                                        }, 5000);
+                                        }, 3000);
                                     } else if (selectedItems === undefined) {
                                         // User pressed Escape or closed the dialog
                                         vscode.window.showInformationMessage('Current file block(s) updated successfully!');
@@ -2104,7 +2104,7 @@ class BlockEditorHandler {
                                         setTimeout(() => {
                                             // Note: VS Code doesn't provide a direct way to hide messages
                                             // The message will automatically disappear when a new one is shown
-                                        }, 5000);
+                                        }, 3000);
                                     }
                                     
                                     // Reload the webview with the latest content from the updated document
@@ -2118,7 +2118,7 @@ class BlockEditorHandler {
                                     setTimeout(() => {
                                         // Note: VS Code doesn't provide a direct way to hide messages
                                         // The message will automatically disappear when a new one is shown
-                                    }, 5000);
+                                    }, 3000);
                                 }
                                 console.log('=== BACKEND SAVE HANDLER END ===');
 
@@ -2182,7 +2182,7 @@ class BlockEditorHandler {
                                 setTimeout(() => {
                                     // Note: VS Code doesn't provide a direct way to hide messages
                                     // The message will automatically disappear when a new one is shown
-                                }, 5000);
+                                }, 3000);
                             } catch (error) {
                                 vscode.window.showErrorMessage('Error reloading document: ' + error.message);
                             }
