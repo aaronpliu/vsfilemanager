@@ -67,6 +67,11 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.3.5
+Latest improvements and fixes:
+- Fixed syntax errors with template literals in block editor handler
+- Resolved invalid character issues in JavaScript template strings
+
 ### 1.3.4
 Latest improvements and fixes:
 - Fixed issue where multiple block editors could be opened for the same file
@@ -77,11 +82,6 @@ Latest improvements and fixes:
 - Fixed message auto dismiss for save changes operations
 - Fixed webview refresh when depth level is 0
 - Added the command in right-click menu
-
-### 1.3.5
-Latest improvements and fixes:
-- Fixed syntax errors with template literals in block editor handler
-- Resolved invalid character issues in JavaScript template strings
 
 ### 1.3.3
 Latest improvements and fixes:
