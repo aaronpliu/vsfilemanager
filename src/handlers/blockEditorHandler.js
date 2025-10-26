@@ -1995,10 +1995,13 @@ class BlockEditorHandler {
                                     }
                                     
                                     // Check for deleted blocks across all depths
-                                    // First, collect all original keys
+                                    // First, collect all original keys from the current depth only
+                                    // (since message.blocks only contains blocks from the current depth)
                                     const originalKeys = [];
-                                    if (message.originalBlocks) {
-                                        message.originalBlocks.forEach(depthGroup => {
+                                    if (message.originalBlocks && message.currentDepth !== undefined) {
+                                        // Filter original blocks to only include those from the currently selected depth
+                                        const selectedOriginalDepthGroups = message.originalBlocks.filter(depthGroup => depthGroup.depth === message.currentDepth);
+                                        selectedOriginalDepthGroups.forEach(depthGroup => {
                                             for (const key of Object.keys(depthGroup.blocks)) {
                                                 originalKeys.push(key);
                                             }

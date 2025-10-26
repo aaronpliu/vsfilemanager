@@ -738,6 +738,18 @@ class JsonBlockParser {
                         console.log('Deleting key from targetBlocks:', key);
                         delete targetBlocks[key];
                         deletedKeys.push(key);
+                        
+                        // Also delete any nested keys that are children of this key
+                        // This is important for proper deletion of nested objects/arrays
+                        for (const targetKey in targetBlocks) {
+                            // Handle both regular object properties and array elements
+                            // But be precise to avoid matching the parent array itself
+                            if (targetKey !== key && 
+                                (targetKey.startsWith(key + '.') || 
+                                 targetKey.startsWith(key + '['))) {
+                                delete targetBlocks[targetKey];
+                            }
+                        }
                     } else {
                         // Key might not be in targetBlocks if it's a nested key
                         // We still need to track it for deletion in blocksToJsonWithDeletions
