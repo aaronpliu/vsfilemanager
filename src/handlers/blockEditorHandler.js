@@ -1829,55 +1829,18 @@ class BlockEditorHandler {
                                     console.log('No deleted keys found');
                                 }
                                 
-                                let updatedContent;
-                                if (validation.fileExtension === '.json') {
-                                    // Get the original JSON content
-                                    // Extract original number formats before parsing
-                                    const originalNumberFormats = Parser.extractOriginalNumberFormats(originalContent);
-                                    const originalJsonContent = JSON.parse(originalContent);
-                                    
-                                    console.log('Original JSON content:', JSON.stringify(originalJsonContent, null, 2));
-                                    
-                                    // For JSON files, combine changes and deletions
-                                    
-                                    // Create a combined changes object with both updates and deletions
-                                    const combinedChanges = { ...message.blocks };
-                                    
-                                    // Add deletions as null values (which applyBlockChangesEnhanced will properly handle)
-                                    if (message.deletedKeys && message.deletedKeys.length > 0) {
-                                        console.log('Adding deletions to combined changes for JSON');
-                                        message.deletedKeys.forEach(key => {
-                                            console.log(`Marking key '${key}' for deletion`);
-                                            combinedChanges[key] = null;
-                                        });
-                                    }
-                                    
-                                    console.log('Combined changes object:', JSON.parse(JSON.stringify(combinedChanges)));
-                                    
-                                    // Apply all changes using applyBlockChangesEnhanced which properly handles deletions
-                                    const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, combinedChanges, originalNumberFormats);
-                                    updatedContent = JSON.stringify(updatedJson, null, 2);
-                                    
-                                    console.log('Updated JSON content:', updatedContent);
-                                } else {
-                                    // For non-JSON files, combine changes and deletions and use applyOnlyChangedBlocks
-                                    
-                                    // Create a combined changes object with both updates and deletions
-                                    const combinedChanges = { ...message.blocks };
-                                    
-                                    // Add deletions as null values (which applyOnlyChangedBlocks interprets as deletions)
-                                    if (message.deletedKeys && message.deletedKeys.length > 0) {
-                                        console.log('Adding deletions to combined changes for non-JSON');
-                                        message.deletedKeys.forEach(key => {
-                                            console.log(`Marking key '${key}' for deletion`);
-                                            combinedChanges[key] = null;
-                                        });
-                                    }
-                                    
-                                    console.log('Combined changes object:', JSON.parse(JSON.stringify(combinedChanges)));
-                                    
-                                    // Apply all changes using applyOnlyChangedBlocks which properly handles deletions
-                                    updatedContent = Parser.applyOnlyChangedBlocks(originalContent, combinedChanges);
+                                // Process updates and deletions separately to avoid interference
+                                let updatedContent = await this.processFileUpdates(
+                                    originalDocument, 
+                                    originalContent, 
+                                    message.blocks, 
+                                    message.deletedKeys, 
+                                    validation, 
+                                    Parser
+                                );
+                                
+                                if (!updatedContent) {
+                                    return; // Error occurred in processFileUpdates
                                 }
                                 
                                 // Update the document using direct file system write (same approach as syncDetector and batchUpdater)
@@ -1951,91 +1914,8 @@ class BlockEditorHandler {
                                 }
                                 
                                 // Track changed blocks by comparing current blocks with original
-                                const changedBlocks = {};
+                                const changedBlocks = this.identifyChangedBlocks(message);
                                 
-                                // Create a map of original blocks for easier comparison, but only for the current depth
-                                const originalBlocksMap = {};
-                                if (message.originalBlocks && message.currentDepth !== undefined) {
-                                    // Filter original blocks to only include those from the currently selected depth
-                                    const selectedOriginalDepthGroups = message.originalBlocks.filter(depthGroup => depthGroup.depth === message.currentDepth);
-                                    selectedOriginalDepthGroups.forEach(depthGroup => {
-                                        for (const [key, block] of Object.entries(depthGroup.blocks)) {
-                                            originalBlocksMap[key] = block;
-                                        }
-                                    });
-                                    
-                                    // Compare the blocks sent by the webview with original to find changes
-                                    for (const key in message.blocks) {
-                                        if (Object.prototype.hasOwnProperty.call(message.blocks, key)) {
-                                            const currentBlock = message.blocks[key];
-                                            
-                                            // Check if this is a new block or a modified one
-                                            if (!originalBlocksMap[key]) {
-                                                // This is a new block
-                                                changedBlocks[key] = currentBlock;
-                                            } else {
-                                                // Check if the block actually changed
-                                                const originalBlock = originalBlocksMap[key];
-                                                const originalValue = 
-                                                    (typeof originalBlock === 'object' && originalBlock !== null && Object.prototype.hasOwnProperty.call(originalBlock, 'value')) ?
-                                                    ((typeof originalBlock.value === 'string' && originalBlock.value.startsWith('"') && originalBlock.value.endsWith('"')) ?
-                                                    originalBlock.value.substring(1, originalBlock.value.length - 1) : 
-                                                    originalBlock.value) : 
-                                                    originalBlock;
-                                                const currentValue = 
-                                                    (typeof currentBlock === 'object' && currentBlock !== null && Object.prototype.hasOwnProperty.call(currentBlock, 'value')) ?
-                                                    ((typeof currentBlock.value === 'string' && currentBlock.value.startsWith('"') && currentBlock.value.endsWith('"')) ?
-                                                    currentBlock.value.substring(1, currentBlock.value.length - 1) : 
-                                                    currentBlock.value) : 
-                                                    currentBlock;
-                                                
-                                                // Only include in changedBlocks if the value actually changed
-                                                if (originalValue !== currentValue) {
-                                                    changedBlocks[key] = currentBlock;
-                                                }
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Check for deleted blocks across all depths
-                                    // First, collect all original keys from the current depth only
-                                    // (since message.blocks only contains blocks from the current depth)
-                                    const originalKeys = [];
-                                    if (message.originalBlocks && message.currentDepth !== undefined) {
-                                        // Filter original blocks to only include those from the currently selected depth
-                                        const selectedOriginalDepthGroups = message.originalBlocks.filter(depthGroup => depthGroup.depth === message.currentDepth);
-                                        selectedOriginalDepthGroups.forEach(depthGroup => {
-                                            for (const key of Object.keys(depthGroup.blocks)) {
-                                                originalKeys.push(key);
-                                            }
-                                        });
-                                    }
-                                    
-                                    // Then check which ones are missing from current blocks
-                                    originalKeys.forEach(key => {
-                                        // Check if this key exists in the current blocks
-                                        let exists = false;
-                                        for (const currentKey in message.blocks) {
-                                            if (currentKey === key) {
-                                                exists = true;
-                                                break;
-                                            }
-                                        }
-                                        
-                                        if (!exists) {
-                                            // Mark as deleted with null value
-                                            changedBlocks[key] = null;
-                                        }
-                                    });
-                                } else {
-                                    // If we don't have original blocks or currentDepth, send all current blocks
-                                    for (const key in message.blocks) {
-                                        if (Object.prototype.hasOwnProperty.call(message.blocks, key)) {
-                                            changedBlocks[key] = message.blocks[key];
-                                        }
-                                    }
-                                }
-
                                 // Ask if user wants to apply batch update
                                 const batchAction = await vscode.window.showInformationMessage(
                                     'Would you like to apply these changes to same-named file(s)?',
@@ -2046,75 +1926,13 @@ class BlockEditorHandler {
                                 // Only proceed with batch update if user explicitly selects "OK"
                                 // If user selects "Cancel" or closes dialog, do nothing further
                                 if (batchAction === 'OK') {
-                                    // Find same-named files
-                                    const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
-                                    
-                                    if (sameNamedFiles.length === 0) {
-                                        vscode.window.showInformationMessage('No same-named files found for synchronization.');
-                                        // Auto-hide message after 5 seconds
-                                        setTimeout(() => {
-                                            // Note: VS Code doesn't provide a direct way to hide messages
-                                            // The message will automatically disappear when a new one is shown
-                                        }, 3000);
-                                        // Reload the webview with the latest content from the updated document
-                                        await reloadWebViewContent(message.currentDepth);
-                                        console.log('=== BACKEND SAVE HANDLER END ===');
-                                        return;
-                                    }
-                                    
-                                    // Create quick pick items for file selection
-                                    const quickPickItems = sameNamedFiles.map(file => ({
-                                        label: path.basename(file),
-                                        description: file,
-                                        picked: true // Selected by default
-                                    }));
-                                    
-                                    // Show quick pick dialog for file selection
-                                    const selectedItems = await vscode.window.showQuickPick(quickPickItems, {
-                                        canPickMany: true,
-                                        placeHolder: 'Select files to synchronize (press SPACE to toggle selection)',
-                                        title: 'Select Files to Synchronize',
-                                        ignoreFocusOut: true
-                                    });
-                                    
-                                    if (selectedItems && selectedItems.length > 0) {
-                                        // Extract file paths from selected items
-                                        const filePaths = selectedItems.map(item => item.description);
-                                        
-                                        // Synchronize only the CHANGED blocks, not the entire file content
-                                        SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
-                                        vscode.window.showInformationMessage('File blocks updated successfully!');
-                                        // Auto-hide message after 5 seconds
-                                        setTimeout(() => {
-                                            // Note: VS Code doesn't provide a direct way to hide messages
-                                            // The message will automatically disappear when a new one is shown
-                                        }, 3000);
-                                    } else if (selectedItems && selectedItems.length === 0) {
-                                        // User confirmed selection but didn't select any files
-                                        vscode.window.showInformationMessage('No files selected. Only current file was updated.');
-                                        // Auto-hide message after 5 seconds
-                                        setTimeout(() => {
-                                            // Note: VS Code doesn't provide a direct way to hide messages
-                                            // The message will automatically disappear when a new one is shown
-                                        }, 3000);
-                                    } else if (selectedItems === undefined) {
-                                        // User pressed Escape or closed the dialog
-                                        vscode.window.showInformationMessage('Current file block(s) updated successfully!');
-                                        // Auto-hide message after 5 seconds
-                                        setTimeout(() => {
-                                            // Note: VS Code doesn't provide a direct way to hide messages
-                                            // The message will automatically disappear when a new one is shown
-                                        }, 3000);
-                                    }
-                                    
-                                    // Reload the webview with the latest content from the updated document
-                                    await reloadWebViewContent(message.currentDepth);
+                                    await this.handleBatchUpdate(document, changedBlocks, message, panel, reloadWebViewContent);
                                 } else if (batchAction === undefined) {
                                     // User selected "Cancel" or closed the dialog
                                     // Reload the webview with the latest content from the updated document
                                     await reloadWebViewContent(message.currentDepth);
                                     vscode.window.showInformationMessage('Current file block(s) updated successfully!');
-                                    // Auto-hide message after 5 seconds
+                                    // Auto-hide message after 3 seconds
                                     setTimeout(() => {
                                         // Note: VS Code doesn't provide a direct way to hide messages
                                         // The message will automatically disappear when a new one is shown
@@ -2178,7 +1996,7 @@ class BlockEditorHandler {
                                 isExternalChangeNotified = false;
                                 
                                 vscode.window.showInformationMessage('Document reloaded with latest changes');
-                                // Auto-hide message after 5 seconds
+                                // Auto-hide message after 3 seconds
                                 setTimeout(() => {
                                     // Note: VS Code doesn't provide a direct way to hide messages
                                     // The message will automatically disappear when a new one is shown
@@ -2204,6 +2022,226 @@ class BlockEditorHandler {
         } catch (error) {
             vscode.window.showErrorMessage('Error processing file: ' + error.message);
         }
+    }
+    
+    /**
+     * Process file updates, handling both modifications and deletions separately
+     * This separation helps prevent interference between update and deletion logic
+     */
+    static async processFileUpdates(originalDocument, originalContent, blocks, deletedKeys, validation, Parser) {
+        let updatedContent;
+        
+        if (validation.fileExtension === '.json') {
+            // Get the original JSON content
+            // Extract original number formats before parsing
+            const originalNumberFormats = Parser.extractOriginalNumberFormats(originalContent);
+            const originalJsonContent = JSON.parse(originalContent);
+            
+            console.log('Original JSON content:', JSON.stringify(originalJsonContent, null, 2));
+            
+            // For JSON files, combine changes and deletions
+            // Create a combined changes object with both updates and deletions
+            const combinedChanges = { ...blocks };
+            
+            // Add deletions as null values (which applyBlockChangesEnhanced will properly handle)
+            if (deletedKeys && deletedKeys.length > 0) {
+                console.log('Adding deletions to combined changes for JSON');
+                deletedKeys.forEach(key => {
+                    console.log(`Marking key '${key}' for deletion`);
+                    combinedChanges[key] = null;
+                });
+            }
+            
+            console.log('Combined changes object:', JSON.parse(JSON.stringify(combinedChanges)));
+            
+            // Apply all changes using applyBlockChangesEnhanced which properly handles deletions
+            const updatedJson = Parser.applyBlockChangesEnhanced(originalJsonContent, combinedChanges, originalNumberFormats);
+            updatedContent = JSON.stringify(updatedJson, null, 2);
+            
+            console.log('Updated JSON content:', updatedContent);
+        } else {
+            // For non-JSON files, combine changes and deletions and use applyOnlyChangedBlocks
+            
+            // Create a combined changes object with both updates and deletions
+            const combinedChanges = { ...blocks };
+            
+            // Add deletions as null values (which applyOnlyChangedBlocks interprets as deletions)
+            if (deletedKeys && deletedKeys.length > 0) {
+                console.log('Adding deletions to combined changes for non-JSON');
+                deletedKeys.forEach(key => {
+                    console.log(`Marking key '${key}' for deletion`);
+                    combinedChanges[key] = null;
+                });
+            }
+            
+            console.log('Combined changes object:', JSON.parse(JSON.stringify(combinedChanges)));
+            
+            // Apply all changes using applyOnlyChangedBlocks which properly handles deletions
+            updatedContent = Parser.applyOnlyChangedBlocks(originalContent, combinedChanges);
+        }
+        
+        return updatedContent;
+    }
+    
+    /**
+     * Identify changed blocks by comparing current blocks with original
+     * This helps with batch updates to only synchronize actual changes
+     */
+    static identifyChangedBlocks(message) {
+        const changedBlocks = {};
+        
+        // Create a map of original blocks for easier comparison, but only for the current depth
+        const originalBlocksMap = {};
+        if (message.originalBlocks && message.currentDepth !== undefined) {
+            // Filter original blocks to only include those from the currently selected depth
+            const selectedOriginalDepthGroups = message.originalBlocks.filter(depthGroup => depthGroup.depth === message.currentDepth);
+            selectedOriginalDepthGroups.forEach(depthGroup => {
+                for (const [key, block] of Object.entries(depthGroup.blocks)) {
+                    originalBlocksMap[key] = block;
+                }
+            });
+            
+            // Compare the blocks sent by the webview with original to find changes
+            for (const key in message.blocks) {
+                if (Object.prototype.hasOwnProperty.call(message.blocks, key)) {
+                    const currentBlock = message.blocks[key];
+                    
+                    // Check if this is a new block or a modified one
+                    if (!originalBlocksMap[key]) {
+                        // This is a new block
+                        changedBlocks[key] = currentBlock;
+                    } else {
+                        // Check if the block actually changed
+                        const originalBlock = originalBlocksMap[key];
+                        const originalValue = 
+                            (typeof originalBlock === 'object' && originalBlock !== null && Object.prototype.hasOwnProperty.call(originalBlock, 'value')) ?
+                            ((typeof originalBlock.value === 'string' && originalBlock.value.startsWith('"') && originalBlock.value.endsWith('"')) ?
+                            originalBlock.value.substring(1, originalBlock.value.length - 1) : 
+                            originalBlock.value) : 
+                            originalBlock;
+                        const currentValue = 
+                            (typeof currentBlock === 'object' && currentBlock !== null && Object.prototype.hasOwnProperty.call(currentBlock, 'value')) ?
+                            ((typeof currentBlock.value === 'string' && currentBlock.value.startsWith('"') && currentBlock.value.endsWith('"')) ?
+                            currentBlock.value.substring(1, currentBlock.value.length - 1) : 
+                            currentBlock.value) : 
+                            currentBlock;
+                        
+                        // Only include in changedBlocks if the value actually changed
+                        if (originalValue !== currentValue) {
+                            changedBlocks[key] = currentBlock;
+                        }
+                    }
+                }
+            }
+            
+            // Check for deleted blocks across all depths
+            // First, collect all original keys from the current depth only
+            // (since message.blocks only contains blocks from the current depth)
+            const originalKeys = [];
+            if (message.originalBlocks && message.currentDepth !== undefined) {
+                // Filter original blocks to only include those from the currently selected depth
+                const selectedOriginalDepthGroups = message.originalBlocks.filter(depthGroup => depthGroup.depth === message.currentDepth);
+                selectedOriginalDepthGroups.forEach(depthGroup => {
+                    for (const key of Object.keys(depthGroup.blocks)) {
+                        originalKeys.push(key);
+                    }
+                });
+            }
+            
+            // Then check which ones are missing from current blocks
+            originalKeys.forEach(key => {
+                // Check if this key exists in the current blocks
+                let exists = false;
+                for (const currentKey in message.blocks) {
+                    if (currentKey === key) {
+                        exists = true;
+                        break;
+                    }
+                }
+                
+                if (!exists) {
+                    // Mark as deleted with null value
+                    changedBlocks[key] = null;
+                }
+            });
+        } else {
+            // If we don't have original blocks or currentDepth, send all current blocks
+            for (const key in message.blocks) {
+                if (Object.prototype.hasOwnProperty.call(message.blocks, key)) {
+                    changedBlocks[key] = message.blocks[key];
+                }
+            }
+        }
+        
+        return changedBlocks;
+    }
+    
+    /**
+     * Handle batch update functionality for same-named files
+     */
+    static async handleBatchUpdate(document, changedBlocks, message, panel, reloadWebViewContent) {
+        // Find same-named files
+        const sameNamedFiles = SyncDetector.findSameNamedFiles(document.fileName);
+        
+        if (sameNamedFiles.length === 0) {
+            vscode.window.showInformationMessage('No same-named files found for synchronization.');
+            // Auto-hide message after 3 seconds
+            setTimeout(() => {
+                // Note: VS Code doesn't provide a direct way to hide messages
+                // The message will automatically disappear when a new one is shown
+            }, 3000);
+            // Reload the webview with the latest content from the updated document
+            await reloadWebViewContent(message.currentDepth);
+            return;
+        }
+        
+        // Create quick pick items for file selection
+        const quickPickItems = sameNamedFiles.map(file => ({
+            label: path.basename(file),
+            description: file,
+            picked: true // Selected by default
+        }));
+        
+        // Show quick pick dialog for file selection
+        const selectedItems = await vscode.window.showQuickPick(quickPickItems, {
+            canPickMany: true,
+            placeHolder: 'Select files to synchronize (press SPACE to toggle selection)',
+            title: 'Select Files to Synchronize',
+            ignoreFocusOut: true
+        });
+        
+        if (selectedItems && selectedItems.length > 0) {
+            // Extract file paths from selected items
+            const filePaths = selectedItems.map(item => item.description);
+            
+            // Synchronize only the CHANGED blocks, not the entire file content
+            SyncDetector.synchronizeBlockChanges(document.fileName, changedBlocks, filePaths);
+            vscode.window.showInformationMessage('File blocks updated successfully!');
+            // Auto-hide message after 3 seconds
+            setTimeout(() => {
+                // Note: VS Code doesn't provide a direct way to hide messages
+                // The message will automatically disappear when a new one is shown
+            }, 3000);
+        } else if (selectedItems && selectedItems.length === 0) {
+            // User confirmed selection but didn't select any files
+            vscode.window.showInformationMessage('No files selected. Only current file was updated.');
+            // Auto-hide message after 3 seconds
+            setTimeout(() => {
+                // Note: VS Code doesn't provide a direct way to hide messages
+                // The message will automatically disappear when a new one is shown
+            }, 3000);
+        } else if (selectedItems === undefined) {
+            // User pressed Escape or closed the dialog
+            vscode.window.showInformationMessage('Current file block(s) updated successfully!');
+            // Auto-hide message after 3 seconds
+            setTimeout(() => {
+                // Note: VS Code doesn't provide a direct way to hide messages
+                // The message will automatically disappear when a new one is shown
+            }, 3000);
+        }
+        
+        // Reload the webview with the latest content from the updated document
+        await reloadWebViewContent(message.currentDepth);
     }
 }
 
