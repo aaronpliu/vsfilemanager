@@ -831,6 +831,9 @@ class BlockEditorHandler {
                     document.getElementById('newBlockKey').value = '';
                     document.getElementById('newBlockValue').value = '';
                     document.getElementById('newBlockDepth').value = '0';
+                    
+                    // Show save changes notification
+                    showSaveChangesNotification();
                 } else {
                     alert('Please enter a valid key!');
                 }
