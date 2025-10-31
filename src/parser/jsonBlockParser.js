@@ -573,14 +573,108 @@ class JsonBlockParser {
         console.log('Result after array cleanup:', JSON.parse(JSON.stringify(result)));
         
         // Now handle deletions - remove deleted properties from the result
+        // We need to be very careful about the order of operations and how we handle array reindexing
+        
+        // First, let's sort the deletions to process them in a logical order
+        // Array element deletions should be processed first, and we should process them 
+        // from highest index to lowest to avoid index shifting issues
+        const arrayElementDeletions = [];
+        const otherDeletions = [];
+        
         for (const deletedKey of deletedKeys) {
-            console.log('Processing deletion for key:', deletedKey);
+            // Check if this is an array element deletion (e.g., "items[0]")
+            const arrayElementMatch = deletedKey.match(/^([^.[]+)\[(\d+)\]$/);
+            if (arrayElementMatch) {
+                arrayElementDeletions.push({
+                    key: deletedKey,
+                    arrayName: arrayElementMatch[1],
+                    index: parseInt(arrayElementMatch[2], 10)
+                });
+            } else {
+                otherDeletions.push(deletedKey);
+            }
+        }
+        
+        // Sort array element deletions by index in descending order
+        arrayElementDeletions.sort((a, b) => b.index - a.index);
+        
+        console.log('Array element deletions (sorted):', arrayElementDeletions);
+        console.log('Other deletions:', otherDeletions);
+        
+        // Keep track of which array elements we've deleted so we don't try to delete their properties later
+        const deletedArrayElements = new Set();
+        
+        // Process array element deletions from highest to lowest index
+        for (const deletion of arrayElementDeletions) {
+            const { key, arrayName, index } = deletion;
+            console.log('Processing array element deletion for key:', key);
+            
+            // Check if this array element still exists at the specified index
+            // If not, it may have already been processed by array cleanup or reindexing
+            // We need to be careful here because the array might have already been reindexed
+            // due to earlier processing of the blocks
+            
+            // First, let's check if the array exists and has enough elements
+            if (result[arrayName] && index < result[arrayName].length) {
+                // Check if the element at this index is defined
+                if (result[arrayName][index] !== undefined) {
+                    // Record that we're deleting this array element and all its properties
+                    deletedArrayElements.add(key);
+                    console.log('Marked array element for property deletion tracking:', key);
+                    
+                    // Delete the element
+                    delete result[arrayName][index];
+                    console.log('Deleted array element:', arrayName, index);
+                    
+                    // Re-index array elements to fill gaps
+                    const newArray = [];
+                    for (let i = 0; i < result[arrayName].length; i++) {
+                        if (result[arrayName][i] !== undefined) {
+                            newArray.push(result[arrayName][i]);
+                        }
+                    }
+                    result[arrayName] = newArray;
+                    console.log('Reindexed array:', arrayName, 'to:', newArray);
+                    
+                    // Clean up empty arrays
+                    if (Array.isArray(result[arrayName]) && result[arrayName].length === 0) {
+                        delete result[arrayName];
+                        console.log('Deleted empty array:', arrayName);
+                    }
+                } else {
+                    console.log('Array element not found for deletion (already undefined):', arrayName, index);
+                }
+            } else {
+                console.log('Array element not found for deletion (array or index out of bounds):', arrayName, index);
+            }
+        }
+        
+        // Process other deletions, but be careful about array element property deletions
+        // We need to check if they're still valid after array reindexing
+        for (const deletedKey of otherDeletions) {
+            console.log('Processing other deletion for key:', deletedKey);
+            
+            // Check if this is a property of an array element we've already deleted
+            let isPropertyOfDeletedElement = false;
+            for (const deletedElementKey of deletedArrayElements) {
+                if (deletedKey.startsWith(deletedElementKey + '.')) {
+                    isPropertyOfDeletedElement = true;
+                    console.log('Skipping deletion of property of already deleted element:', deletedKey);
+                    break;
+                }
+            }
+            
+            if (isPropertyOfDeletedElement) {
+                // Skip this deletion as the parent element has already been deleted
+                continue;
+            }
             
             // Split the key by dots and process each part
             const parts = deletedKey.split('.');
             let current = result;
             
             // Navigate to the parent object
+            let navigationSuccessful = true;
             for (let i = 0; i < parts.length - 1; i++) {
                 const part = parts[i];
                 console.log('Navigating to part:', part);
@@ -592,12 +686,13 @@ class JsonBlockParser {
                         const arrayName = arrayMatch[1];
                         const arrayIndex = parseInt(arrayMatch[2], 10);
                         
-                        if (current[arrayName] && current[arrayName][arrayIndex]) {
+                        if (current[arrayName] && current[arrayName][arrayIndex] !== undefined) {
                             current = current[arrayName][arrayIndex];
                             console.log('Navigated to array element:', arrayName, arrayIndex);
                         } else {
                             // Can't navigate further
                             console.log('Cannot navigate further to array element');
+                            navigationSuccessful = false;
                             break;
                         }
                     } else {
@@ -607,6 +702,7 @@ class JsonBlockParser {
                         } else {
                             // Can't navigate further
                             console.log('Cannot navigate further to object property');
+                            navigationSuccessful = false;
                             break;
                         }
                     }
@@ -617,43 +713,18 @@ class JsonBlockParser {
                     } else {
                         // Can't navigate further
                         console.log('Cannot navigate further to object property');
+                        navigationSuccessful = false;
                         break;
                     }
                 }
             }
             
-            // Delete the final property if we could navigate to its parent
-            const finalPart = parts[parts.length - 1];
-            console.log('Deleting final part:', finalPart);
-            
-            if (finalPart.includes('[')) {
-                const arrayMatch = finalPart.match(/^([^[]+)\[(\d+)\]$/);
-                if (arrayMatch) {
-                    const arrayName = arrayMatch[1];
-                    const arrayIndex = parseInt(arrayMatch[2], 10);
-                    
-                    if (current[arrayName]) {
-                        delete current[arrayName][arrayIndex];
-                        console.log('Deleted array element:', arrayName, arrayIndex);
-                        
-                        // Re-index array elements to fill gaps
-                        const newArray = [];
-                        for (let i = 0; i < current[arrayName].length; i++) {
-                            if (current[arrayName][i] !== undefined) {
-                                newArray.push(current[arrayName][i]);
-                            }
-                        }
-                        current[arrayName] = newArray;
-                        console.log('Reindexed array:', arrayName, 'to:', newArray);
-                        
-                        // Clean up empty arrays
-                        if (Array.isArray(current[arrayName]) && current[arrayName].length === 0) {
-                            delete current[arrayName];
-                            console.log('Deleted empty array:', arrayName);
-                        }
-                    }
-                }
-            } else {
+            // Only proceed with deletion if navigation was successful
+            if (navigationSuccessful) {
+                // Delete the final property if we could navigate to its parent
+                const finalPart = parts[parts.length - 1];
+                console.log('Deleting final part:', finalPart);
+                
                 // Handle regular object property deletion
                 if (Object.prototype.hasOwnProperty.call(current, finalPart)) {
                     delete current[finalPart];
@@ -665,9 +736,48 @@ class JsonBlockParser {
                         // This would be complex to implement correctly, so we'll skip it for now
                         console.log('Parent object is now empty, but not cleaning up');
                     }
+                } else {
+                    console.log('Object property not found for deletion:', finalPart);
                 }
+            } else {
+                console.log('Skipping deletion due to navigation failure:', deletedKey);
             }
         }
+        
+        // Apply final cleanup to remove any empty objects that may have been left behind
+        function finalCleanup(obj) {
+            if (Array.isArray(obj)) {
+                // Clean up array elements
+                const newArray = [];
+                for (let i = 0; i < obj.length; i++) {
+                    if (obj[i] !== undefined && obj[i] !== null) {
+                        const cleaned = finalCleanup(obj[i]);
+                        // Only add non-empty objects or non-object values
+                        if (typeof cleaned !== 'object' || Array.isArray(cleaned) || (cleaned !== null && Object.keys(cleaned).length > 0)) {
+                            newArray.push(cleaned);
+                        }
+                    }
+                }
+                return newArray;
+            } else if (typeof obj === 'object' && obj !== null) {
+                // Clean up object properties
+                for (const key in obj) {
+                    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                        const cleaned = finalCleanup(obj[key]);
+                        // Remove empty objects
+                        if (typeof cleaned === 'object' && !Array.isArray(cleaned) && cleaned !== null && Object.keys(cleaned).length === 0) {
+                            delete obj[key];
+                        } else {
+                            obj[key] = cleaned;
+                        }
+                    }
+                }
+                return obj;
+            }
+            return obj;
+        }
+        
+        result = finalCleanup(result);
         
         console.log('Final result after deletions:', JSON.parse(JSON.stringify(result)));
         console.log('=== blocksToJsonWithDeletions END ===');
@@ -744,10 +854,44 @@ class JsonBlockParser {
                         for (const targetKey in targetBlocks) {
                             // Handle both regular object properties and array elements
                             // But be precise to avoid matching the parent array itself
-                            if (targetKey !== key && 
-                                (targetKey.startsWith(key + '.') || 
-                                 targetKey.startsWith(key + '['))) {
-                                delete targetBlocks[targetKey];
+                            if (targetKey !== key) {
+                                // For object properties
+                                if (targetKey.startsWith(key + '.')) {
+                                    delete targetBlocks[targetKey];
+                                } 
+                                // For array elements, we need to be more careful
+                                else if (targetKey.startsWith(key + '[')) {
+                                    // Check if it's actually a child of the deleted key
+                                    // e.g., deleting key "items[0]" should delete "items[0].prop" but not "items[01]" or "items[1]"
+                                    const remainder = targetKey.substring(key.length);
+                                    // Should match pattern like [0], [0].prop, [0][1], etc.
+                                    // But NOT match [01], [1], etc. (different indices)
+                                    if (remainder.match(/^\[(\d+)\]/)) {
+                                        // This is a direct array element with a specific index
+                                        // Check if it's the same array element or a child
+                                        const deletedMatch = key.match(/\[(\d+)\]$/);
+                                        const targetMatch = targetKey.match(/\[(\d+)\]/);
+                                        
+                                        if (deletedMatch && targetMatch) {
+                                            const deletedIndex = parseInt(deletedMatch[1]);
+                                            const targetIndex = parseInt(targetMatch[1]);
+                                            
+                                            // Only delete if it's a child property, not a sibling element
+                                            if (deletedIndex !== targetIndex) {
+                                                // This is a different array element (sibling), don't delete it
+                                            } else {
+                                                // Same index, check if it's a child property
+                                                if (remainder.match(/^\[\d+\][\.[]/)) {
+                                                    // This is a child property of the array element
+                                                    delete targetBlocks[targetKey];
+                                                }
+                                            }
+                                        }
+                                    } else if (remainder.match(/^[\[\.]/)) {
+                                        // This is a child property of the array element
+                                        delete targetBlocks[targetKey];
+                                    }
+                                }
                             }
                         }
                     } else {

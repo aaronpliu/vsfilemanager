@@ -182,25 +182,45 @@ class BlockEditorHandler {
             
             // Function to check if a key is a direct child of another key
             function isDirectChildKey(parentKey, childKey) {
-                // Check if childKey starts with parentKey + '['
-                if (!childKey.startsWith(parentKey + '[')) {
+                // For array elements, check if childKey is a direct child of parentKey
+                if (parentKey.includes('[')) {
+                    // Handle array element parent (e.g., "items[0]")
+                    // A direct child would be like "items[0].property" or "items[0][1]"
+                    if (childKey.startsWith(parentKey + '.') || childKey.startsWith(parentKey + '[')) {
+                        // Extract the part after parentKey
+                        const remainder = childKey.substring(parentKey.length);
+                        
+                        // For object properties: .property or .property.subprop
+                        if (remainder.startsWith('.')) {
+                            const afterDot = remainder.substring(1);
+                            // Check if there's only one dot-separated part or it continues with valid property path
+                            return afterDot.indexOf('.') === -1 || afterDot.indexOf('.') === afterDot.length - 1;
+                        }
+                        // For array indices: [0] or [0][1] or [0].property
+                        else if (remainder.startsWith('[')) {
+                            // Check if this is immediately followed by an index
+                            const match = remainder.match(/^\[(\d+)\]/);
+                            if (match) {
+                                const afterIndex = remainder.substring(match[0].length);
+                                // After the index, it should either be empty, start with '.', or start with '['
+                                return afterIndex === '' || afterIndex.startsWith('.') || afterIndex.startsWith('[');
+                            }
+                            return false;
+                        }
+                    }
                     return false;
+                } else {
+                    // For regular object properties
+                    if (!childKey.startsWith(parentKey + '.')) {
+                        return false;
+                    }
+                    
+                    // Extract the part after parentKey
+                    const remainder = childKey.substring(parentKey.length + 1); // +1 for the dot
+                    
+                    // Check if there's only one dot-separated part (direct child)
+                    return remainder.indexOf('.') === -1;
                 }
-                
-                // Extract the part after parentKey
-                const remainder = childKey.substring(parentKey.length);
-                
-                // Check if the remainder matches the pattern [number] or [number].property or [number][number]
-                // but not [number]something (which would be a different key)
-                const arrayIndexPattern = /^[\\d+]/;
-                if (!arrayIndexPattern.test(remainder)) {
-                    return false;
-                }
-                
-                // Check that after the array index, we either have the end of string,
-                // a dot followed by more characters, or another bracket followed by more characters
-                const afterIndex = remainder.substring(remainder.indexOf(']') + 1);
-                return afterIndex === '' || afterIndex.startsWith('.') || afterIndex.startsWith('[');
             }
             
             // Function to check if there are any changes and update save button state
@@ -444,12 +464,24 @@ class BlockEditorHandler {
                                 // Handle both regular object properties and array elements
                                 // For arrays, we need to match patterns like orders[0].items[0].specs.color
                                 // But be precise to avoid matching the parent array itself
-                                if (blockKey !== key && 
-                                    (blockKey.startsWith(key + '.') || 
-                                     (blockKey.startsWith(key + '[') && isDirectChildKey(key, blockKey)))) {
-                                    if (!keysToDelete.includes(blockKey)) {
-                                        keysToDelete.push(blockKey);
-                                        console.log('Found child key to delete:', blockKey);
+                                if (blockKey !== key) {
+                                    // For exact matching, we need to be more precise about what constitutes a child
+                                    // A child key should either:
+                                    // 1. Start with key + "." (object property)
+                                    // 2. Start with key + "[" but match the exact array element pattern
+                                    
+                                    if (blockKey.startsWith(key + '.')) {
+                                        // This is a child object property
+                                        if (!keysToDelete.includes(blockKey)) {
+                                            keysToDelete.push(blockKey);
+                                            console.log('Found child key to delete:', blockKey);
+                                        }
+                                    } else if (isDirectChildKey(key, blockKey)) {
+                                        // This is a direct child array element
+                                        if (!keysToDelete.includes(blockKey)) {
+                                            keysToDelete.push(blockKey);
+                                            console.log('Found child key to delete:', blockKey);
+                                        }
                                     }
                                 }
                             }
@@ -901,28 +933,6 @@ class BlockEditorHandler {
                 
                 console.log('Current depth:', validCurrentDepth);
                 
-                // Flatten blocks for saving - only include blocks from the currently selected depth
-                const flattenedBlocks = {};
-                // Filter to only include blocks from the currently selected depth
-                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
-                selectedDepthGroups.forEach(depthGroup => {
-                    console.log('Processing depth group:', JSON.parse(JSON.stringify(depthGroup)));
-                    for (const [key, block] of Object.entries(depthGroup.blocks)) {
-                        console.log('Processing block key:', key, 'value:', JSON.parse(JSON.stringify(block)));
-                        // Pass the entire block object to preserve type information
-                        flattenedBlocks[key] = {
-                            value: block.value,
-                            type: block.type,
-                            depth: block.depth,
-                            key: block.key,
-                            editable: block.editable,
-                            originalType: block.originalType
-                        };
-                    }
-                });
-                
-                console.log('Flattened blocks for current depth:', JSON.parse(JSON.stringify(flattenedBlocks)));
-                
                 // Create a list of deleted keys by comparing with originalBlocks across all depths
                 const deletedKeys = [];
                 if (originalBlocks) {
@@ -958,6 +968,28 @@ class BlockEditorHandler {
                 }
                 
                 console.log('Final deletedKeys list:', deletedKeys);
+                
+                // Flatten blocks for saving - only include blocks from the currently selected depth
+                const flattenedBlocks = {};
+                // Filter to only include blocks from the currently selected depth
+                const selectedDepthGroups = currentBlocks.filter(depthGroup => depthGroup.depth === validCurrentDepth);
+                selectedDepthGroups.forEach(depthGroup => {
+                    console.log('Processing depth group:', JSON.parse(JSON.stringify(depthGroup)));
+                    for (const [key, block] of Object.entries(depthGroup.blocks)) {
+                        console.log('Processing block key:', key, 'value:', JSON.parse(JSON.stringify(block)));
+                        // Pass the entire block object to preserve type information
+                        flattenedBlocks[key] = {
+                            value: block.value,
+                            type: block.type,
+                            depth: block.depth,
+                            key: block.key,
+                            editable: block.editable,
+                            originalType: block.originalType
+                        };
+                    }
+                });
+                
+                console.log('Flattened blocks for current depth:', JSON.parse(JSON.stringify(flattenedBlocks)));
                 
                 // Clear newly added blocks tracking on save
                 newlyAddedBlocks = [];
