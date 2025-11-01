@@ -67,12 +67,20 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.3.6
+
+Latest improvements and fixes:
+- Fixed nested object deletion functionality in block editor
+- Enhanced key handling for array elements in the block editor
+
 ### 1.3.5
+
 Latest improvements and fixes:
 - Fixed syntax errors with template literals in block editor handler
 - Resolved invalid character issues in JavaScript template strings
 
 ### 1.3.4
+
 Latest improvements and fixes:
 - Fixed issue where multiple block editors could be opened for the same file
 - Resolved ESLint configuration to properly support ES6 Map features
@@ -84,6 +92,7 @@ Latest improvements and fixes:
 - Added the command in right-click menu
 
 ### 1.3.3
+
 Latest improvements and fixes:
 - Fixed object deletion functionality in webview for JSON files
 - Fixed issue where media assets were not included in VSIX package
@@ -93,6 +102,7 @@ Latest improvements and fixes:
 - Improved VSIX packaging to include all necessary media assets
 
 ### 1.3.2
+
 Latest improvements and fixes:
 - Added unit tests to improve code coverage
 - Fixed webview block refresh issues
