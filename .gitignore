@@ -5,3 +5,4 @@ dist/
 test-project/
 coverage/
 *.vsix
+.DS_Store
