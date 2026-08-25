@@ -50,13 +50,72 @@ Key features of the Block Editor:
 
 ## Usage
 
-### Editing Structured Blocks
+### Editing Structured Blocks (Block Editor)
 
-1. Open a JSON, YAML, XML, or TOML file
-2. Use the Command Palette (Ctrl+Shift+P or Cmd+Shift+P) to run "Edit Structured Blocks"
-3. Modify values in the webview editor
-4. Click "Save Changes" to apply modifications
-5. Optionally, apply changes to other files using the batch update feature
+The Block Editor opens a visual webview that renders your file as a hierarchy of editable key-value blocks, organized by depth level.
+
+1. Open a supported file (`.json`, `.yaml`, `.yml`, `.xml`, or `.toml`) in the editor
+2. Launch the Block Editor via one of:
+   - **Command Palette** (`Ctrl+Shift+P` / `Cmd+Shift+P`) → type **Edit Structured Blocks**
+   - **Right-click context menu** → **Edit Structured Blocks** (available only for supported file types)
+3. In the webview you can:
+   - **Edit values** in place — type directly in the value field and the original type (string, number, boolean, object, array) is preserved
+   - **Add new blocks** at any depth level using the *Add Block* controls
+   - **Delete blocks** by clicking the trash icon next to a key (nested objects are fully removed)
+   - **Search** for a specific key using the search bar at the top
+   - **Change depth level** to collapse or expand the hierarchy view
+4. Click **Save Changes** to write modifications back to the file
+5. After saving, you will be prompted whether to synchronize the changes to other same-named files in your workspace (see [File Synchronization](#file-synchronization))
+
+> **Tip:** Only one Block Editor can be open per file at a time. Re-running the command on the same file will focus the existing editor.
+
+### File Synchronization
+
+When you have multiple files with the same name across different directories (e.g., `config/app.json` in several modules), the extension can propagate block-level changes to all of them.
+
+#### Automatic sync prompt (after saving in Block Editor)
+1. Edit and save changes through the Block Editor
+2. If same-named files are detected, a prompt appears asking whether to sync the changes
+3. Select the target files from the list and confirm — only the changed blocks are written to the selected files
+
+#### Manual sync command
+1. Open the file whose content you want to propagate
+2. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) → **Sync Structured Files**
+3. A multi-select list of same-named files appears — toggle selections with `Space`, then press `Enter`
+4. The current file's block values are synchronized to all selected files
+
+> **Note:** Sync operates at the block level, not by replacing entire file contents. Only the blocks you edited are applied to the target files, preserving their existing structure.
+
+To disable automatic sync prompts, set `vsfilemanager.syncPrompt` to `false` in your settings.
+
+### Batch Updates
+
+Batch Update lets you apply the same key-value change to multiple structured files at once — useful for updating a shared configuration value (e.g., a database host or API endpoint) across many files.
+
+1. Open the Command Palette (`Ctrl+Shift+P` / `Cmd+Shift+P`) → **Batch Update Structured Files**
+2. **Select files**: a multi-select list of all supported structured files in your workspace appears — pick the files you want to update and press `Enter`
+3. **Enter the block key**: type the dot-notation path of the key to update (e.g., `config.db.host`)
+4. **Enter the new value**: type the replacement value — the extension auto-detects the type:
+   - Numbers (e.g., `5432`) → stored as number
+   - `true` / `false` → stored as boolean
+   - Valid JSON (e.g., `{"port": 3000}`) → stored as object/array
+   - Anything else → stored as string
+5. The change is applied to all selected files simultaneously
+
+> **Example:** To change the database port in every `config/app.json` in your workspace:
+> 1. Run **Batch Update Structured Files**
+> 2. Select all `app.json` files
+> 3. Enter key: `config.db.port`
+> 4. Enter value: `5432`
+
+### Supported File Formats
+
+| Format | Extensions | Notes |
+|--------|-----------|-------|
+| JSON   | `.json`   | Full support for nested objects and arrays |
+| YAML   | `.yaml`, `.yml` | Preserves comments and structure |
+| XML    | `.xml`    | Uses `fast-xml-parser` for round-trip parsing |
+| TOML   | `.toml`   | Supports tables and primitive values |
 
 ## Extension Settings
 
