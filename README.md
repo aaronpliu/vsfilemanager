@@ -117,6 +117,62 @@ Batch Update lets you apply the same key-value change to multiple structured fil
 | XML    | `.xml`    | Uses `fast-xml-parser` for round-trip parsing |
 | TOML   | `.toml`   | Supports tables and primitive values |
 
+## Development & Debugging
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) (v16 or later recommended)
+- [Visual Studio Code](https://code.visualstudio.com/) v1.75.0 or later
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/aaronpliu/vsfilemanager.git
+cd vsfilemanager
+
+# Install dependencies
+npm install
+```
+
+### Running the Extension in Development Mode
+
+1. Open the project folder in VS Code
+2. Press `F5` (or go to **Run → Start Debugging**)
+   - This launches a new **Extension Development Host** window with the extension loaded
+   - A pre-configured `launch.json` is included in `.vscode/`
+3. In the new window, open a supported file (`.json`, `.yaml`, `.xml`, `.toml`)
+4. Run a command from the Command Palette (e.g., **Edit Structured Blocks**) to exercise the extension
+
+### Debugging Tips
+
+- **Breakpoints**: Click the gutter next to any line in `extension.js` or files under `src/` to set a breakpoint. The debugger will pause execution when that code runs in the Extension Development Host.
+- **Debug Console**: Use the **Debug Console** panel in VS Code to inspect variables, evaluate expressions, and view `console.log` / `console.error` output from the extension.
+- **Reload the Extension**: While debugging, press `Ctrl+R` (`Cmd+R` on macOS) in the Extension Development Host window to reload without restarting the debugger.
+- **Watch mode for tests**: Run `npm run test:unit -- --watch` to automatically re-run unit tests when source files change.
+
+### Running Tests
+
+```bash
+# Run unit tests with Jest
+npm run test:unit
+
+# Run lint
+npm run lint
+```
+
+### Packaging a Local VSIX
+
+```bash
+# Install vsce globally if not already present
+npm install -g @vscode/vsce
+
+# Package the extension
+vsce package
+
+# Install the generated .vsix file via Extensions → "..." → Install from VSIX...
+```
+
 ## Extension Settings
 
 This extension contributes the following settings:
