@@ -881,13 +881,13 @@ class JsonBlockParser {
                                                 // This is a different array element (sibling), don't delete it
                                             } else {
                                                 // Same index, check if it's a child property
-                                                if (remainder.match(/^\[\d+\][\.[]/)) {
+                                                if (remainder.match(/^\[\d+\][.[]/)) {
                                                     // This is a child property of the array element
                                                     delete targetBlocks[targetKey];
                                                 }
                                             }
                                         }
-                                    } else if (remainder.match(/^[\[\.]/)) {
+                                    } else if (remainder.match(/^[[.]/)) {
                                         // This is a child property of the array element
                                         delete targetBlocks[targetKey];
                                     }
@@ -908,11 +908,47 @@ class JsonBlockParser {
             }
         }
         
-        console.log('Target blocks after applying changes:', JSON.parse(JSON.stringify(targetBlocks)));
+        // Rebuild targetBlocks to respect the order from changedBlocks
+        // changedBlocks contains all blocks at the current depth in the correct order
+        // We need to preserve this order while keeping blocks from other depths
+        const orderedTargetBlocks = {};
+        const changedKeys = Object.keys(changedBlocks).filter(k => changedBlocks[k] !== null);
+        
+        // Determine which depth the changed blocks are at
+        const changedDepth = changedKeys.length > 0 && changedBlocks[changedKeys[0]] 
+            ? changedBlocks[changedKeys[0]].depth 
+            : null;
+        
+        // First, add blocks from other depths that come before the changed depth
+        for (const key in targetBlocks) {
+            if (Object.prototype.hasOwnProperty.call(targetBlocks, key)) {
+                const block = targetBlocks[key];
+                if (changedDepth !== null && block.depth < changedDepth && !deletedKeys.includes(key)) {
+                    orderedTargetBlocks[key] = block;
+                }
+            }
+        }
+        
+        // Then, add changed blocks in their correct order
+        for (const key of changedKeys) {
+            orderedTargetBlocks[key] = changedBlocks[key];
+        }
+        
+        // Finally, add blocks from other depths that come after the changed depth
+        for (const key in targetBlocks) {
+            if (Object.prototype.hasOwnProperty.call(targetBlocks, key)) {
+                const block = targetBlocks[key];
+                if (changedDepth !== null && block.depth > changedDepth && !deletedKeys.includes(key)) {
+                    orderedTargetBlocks[key] = block;
+                }
+            }
+        }
+        
+        console.log('Target blocks after applying changes:', JSON.parse(JSON.stringify(orderedTargetBlocks)));
         console.log('Deleted keys to pass to blocksToJsonWithDeletions:', deletedKeys);
         
         // Convert to JSON
-        const result = this.blocksToJsonWithDeletions(targetBlocks, deletedKeys);
+        const result = this.blocksToJsonWithDeletions(orderedTargetBlocks, deletedKeys);
         console.log('=== applyOnlyChangedBlocks END ===');
         return result;
     }

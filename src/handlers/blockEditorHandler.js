@@ -199,7 +199,7 @@ class BlockEditorHandler {
                         // For array indices: [0] or [0][1] or [0].property
                         else if (remainder.startsWith('[')) {
                             // Check if this is immediately followed by an index
-                            const match = remainder.match(/^\[(\d+)\]/);
+                            const match = remainder.match(/^[[]([0-9]+)[]]/);
                             if (match) {
                                 const afterIndex = remainder.substring(match[0].length);
                                 // After the index, it should either be empty, start with '.', or start with '['
@@ -278,6 +278,46 @@ class BlockEditorHandler {
                     }
                     newBlockDepthSelector.appendChild(option);
                 }
+            }
+            
+            // Function to populate new block position selector options
+            function populateNewBlockPositionSelector(depth) {
+                const positionSelector = document.getElementById('newBlockPosition');
+                positionSelector.innerHTML = '';
+                
+                // Collect ALL keys at the selected depth across all prefix groups
+                // This gives the user a complete list of positions to choose from
+                const allKeysAtDepth = [];
+                currentBlocks.forEach(depthGroup => {
+                    if (depthGroup.depth === depth) {
+                        for (const key of Object.keys(depthGroup.blocks)) {
+                            allKeysAtDepth.push(key);
+                        }
+                    }
+                });
+                
+                // Add option to insert at the beginning
+                const beginOption = document.createElement('option');
+                beginOption.value = '__begin__';
+                beginOption.textContent = '\u2191 At the beginning';
+                positionSelector.appendChild(beginOption);
+                
+                // Add "Before: key" option for each existing key at this depth
+                if (allKeysAtDepth.length > 0) {
+                    for (const key of allKeysAtDepth) {
+                        const option = document.createElement('option');
+                        option.value = key;
+                        option.textContent = '\u2191 Before: ' + key;
+                        positionSelector.appendChild(option);
+                    }
+                }
+                
+                // Add option to insert at the end (default)
+                const endOption = document.createElement('option');
+                endOption.value = '__end__';
+                endOption.textContent = '\u2193 At the end';
+                endOption.selected = true;
+                positionSelector.appendChild(endOption);
             }
             
             // Function to render blocks grouped by depth
@@ -786,6 +826,16 @@ class BlockEditorHandler {
                 // If NaN, default to 1 (but allow 0)
                 const validCurrentDepth = isNaN(currentDepth) ? 1 : currentDepth;
                 document.getElementById('newBlockDepth').value = validCurrentDepth;
+                // Populate the position selector based on current depth
+                populateNewBlockPositionSelector(validCurrentDepth);
+            });
+            
+            // Handle depth change in the new block form to update position selector
+            document.getElementById('newBlockDepth').addEventListener('change', () => {
+                const selectedDepth = parseInt(document.getElementById('newBlockDepth').value);
+                const validDepth = isNaN(selectedDepth) ? 1 : selectedDepth;
+                // Populate position selector for the selected depth
+                populateNewBlockPositionSelector(validDepth);
             });
             
             // Handle Cancel Add button
@@ -794,6 +844,7 @@ class BlockEditorHandler {
                 document.getElementById('newBlockKey').value = '';
                 document.getElementById('newBlockValue').value = '';
                 document.getElementById('newBlockDepth').value = '0';
+                document.getElementById('newBlockPosition').value = '__end__';
             });
             
             // Handle Confirm Add button
@@ -801,6 +852,7 @@ class BlockEditorHandler {
                 const key = document.getElementById('newBlockKey').value.trim();
                 const value = document.getElementById('newBlockValue').value;
                 const depth = parseInt(document.getElementById('newBlockDepth').value);
+                const insertPosition = document.getElementById('newBlockPosition').value;
                 
                 if (key) {
                     // Determine the prefix for grouping
@@ -844,7 +896,7 @@ class BlockEditorHandler {
                         displayValue = '"' + actualValue + '"';
                     }
                     
-                    depthGroup.blocks[key] = {
+                    const newBlock = {
                         value: displayValue,
                         type: typeof actualValue,
                         depth: depth,
@@ -852,6 +904,61 @@ class BlockEditorHandler {
                         editable: true,
                         originalType: originalType
                     };
+                    
+                    // Insert the block at the specified position
+                    if (insertPosition === '__end__') {
+                        // Append at the end (default behavior)
+                        depthGroup.blocks[key] = newBlock;
+                    } else if (insertPosition === '__begin__') {
+                        // Insert at the beginning of the target depth group
+                        const newBlocks = {};
+                        newBlocks[key] = newBlock;
+                        for (const existingKey of Object.keys(depthGroup.blocks)) {
+                            newBlocks[existingKey] = depthGroup.blocks[existingKey];
+                        }
+                        depthGroup.blocks = newBlocks;
+                    } else {
+                        // Insert before a specific existing key
+                        // Find which depth group contains the target key
+                        const targetGroup = currentBlocks.find(dg => 
+                            dg.depth === depth && Object.prototype.hasOwnProperty.call(dg.blocks, insertPosition)
+                        );
+                        
+                        if (targetGroup && targetGroup.prefix === prefix) {
+                            // Same group: insert before the target key within this group
+                            const newBlocks = {};
+                            let inserted = false;
+                            for (const existingKey of Object.keys(depthGroup.blocks)) {
+                                if (existingKey === insertPosition) {
+                                    newBlocks[key] = newBlock;
+                                    inserted = true;
+                                }
+                                newBlocks[existingKey] = depthGroup.blocks[existingKey];
+                            }
+                            if (!inserted) {
+                                newBlocks[key] = newBlock;
+                            }
+                            depthGroup.blocks = newBlocks;
+                        } else if (targetGroup) {
+                            // Different group: add to our group and reorder groups
+                            depthGroup.blocks[key] = newBlock;
+                            
+                            // Move our depth group to be right before the target group in currentBlocks
+                            const ourIndex = currentBlocks.indexOf(depthGroup);
+                            const targetIndex = currentBlocks.indexOf(targetGroup);
+                            if (ourIndex !== -1 && targetIndex !== -1 && ourIndex !== targetIndex - 1) {
+                                // Remove our group from its current position
+                                currentBlocks.splice(ourIndex, 1);
+                                // Recalculate target index after removal
+                                const newTargetIndex = currentBlocks.indexOf(targetGroup);
+                                // Insert our group right before the target
+                                currentBlocks.splice(newTargetIndex, 0, depthGroup);
+                            }
+                        } else {
+                            // Target key not found (shouldn't happen), just append
+                            depthGroup.blocks[key] = newBlock;
+                        }
+                    }
                     
                     // Track newly added block
                     newlyAddedBlocks.push(key);
@@ -863,6 +970,7 @@ class BlockEditorHandler {
                     document.getElementById('newBlockKey').value = '';
                     document.getElementById('newBlockValue').value = '';
                     document.getElementById('newBlockDepth').value = '0';
+                    document.getElementById('newBlockPosition').value = '__end__';
                     
                     // Show save changes notification
                     showSaveChangesNotification();
@@ -878,6 +986,15 @@ class BlockEditorHandler {
                 // Clear search results when switching depth
                 clearSearch();
                 renderBlocks();
+                
+                // Sync the Add Block form's depth if the form is visible
+                const newBlockForm = document.getElementById('newBlockForm');
+                if (newBlockForm && !newBlockForm.classList.contains('hidden')) {
+                    const newDepth = parseInt(e.target.value);
+                    const validNewDepth = isNaN(newDepth) ? 1 : newDepth;
+                    document.getElementById('newBlockDepth').value = validNewDepth;
+                    populateNewBlockPositionSelector(validNewDepth);
+                }
             });
             
             // Handle search button
