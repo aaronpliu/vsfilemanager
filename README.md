@@ -182,6 +182,14 @@ This extension contributes the following settings:
 
 ## Release Notes
 
+### 1.3.7
+
+Latest improvements and fixes:
+- Added position control for "Add Block" - insert new blocks at specific positions (beginning, before any key, or end)
+- Auto-sync depth selector between main view and Add Block form
+- Fixed block position preservation after save
+- Fixed ESLint errors in regex patterns
+
 ### 1.3.6
 
 Latest improvements and fixes:

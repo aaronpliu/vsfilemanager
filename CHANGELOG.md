@@ -5,6 +5,20 @@ All notable changes to the "vsfilemanager" extension will be documented in this 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.7] - 2025-08-25
+
+### Added
+- Added position control for "Add Block" functionality - users can now specify where to insert new blocks (at the beginning, before a specific key, or at the end)
+- Added auto-sync between main view depth selector and Add Block form depth selector
+
+### Fixed
+- Fixed block position preservation after save - newly added blocks now maintain their specified position in the file instead of being appended at the end
+- Fixed ESLint errors related to unnecessary escape characters in regex patterns
+
+### Improved
+- Enhanced position selector to show all keys at the selected depth level across all prefix groups
+- Improved block insertion logic to handle cross-group positioning correctly
+
 ## [1.3.6] - 2025-11-01
 
 ### Fixed
